@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Roulette Royale | 俄罗斯转盘模拟器</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="noise"></div>
+  <div class="app-shell">
+    <nav class="topbar">
+      <div>
+        <p class="topbar-kicker">Red Room Simulation</p>
+        <h1>Roulette Royale</h1>
+      </div>
+      <div class="topbar-actions">
+        <button id="goToSetupBtn" class="ghost-btn">设置页</button>
+        <button id="goToGameBtn" class="ghost-btn">游戏页</button>
+      </div>
+    </nav>
+
+    <section id="setupView" class="view active">
+      <header class="view-hero">
+        <div class="hero-copy">
+          <p class="section-kicker">Scene 01</p>
+          <h2>设置房间</h2>
+          <p>先设定玩家、顺序、枪膛和结束规则，再进入游戏舞台。整个流程压缩成单独页面，不再把所有内容堆在一屏里。</p>
+        </div>
+        <aside class="hero-side">
+          <div class="stat-pill"><span>玩家数</span><strong id="setupPlayerCount">0</strong></div>
+          <div class="stat-pill"><span>枪膛 / 子弹</span><strong id="setupBulletLabel">0 / 0</strong></div>
+          <div class="stat-pill"><span>规则</span><strong id="setupRuleLabel">未设置</strong></div>
+        </aside>
+      </header>
+
+      <main class="setup-grid">
+        <section class="panel">
+          <div class="panel-title-row">
+            <div>
+              <p class="section-kicker">Players</p>
+              <h3>玩家名单与顺序</h3>
+            </div>
+            <button id="addPlayerBtn" class="secondary-btn">新增玩家</button>
+          </div>
+          <p class="panel-help">拖动卡片调整顺序，右侧预览会直接反映开枪时的目标顺位。</p>
+          <div id="playerList" class="player-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title-row">
+            <div>
+              <p class="section-kicker">Rules</p>
+              <h3>装弹与结束条件</h3>
+            </div>
+          </div>
+          <div class="config-grid">
+            <label class="field"><span>枪膛数量</span><input id="chamberCountInput" type="number" min="2" max="12" /></label>
+            <label class="field"><span>子弹数量</span><input id="bulletCountInput" type="number" min="1" max="12" /></label>
+            <label class="field"><span>结束规则</span><select id="endRuleSelect"><option value="allBulletsUsed">直到子弹打完</option><option value="oneFullRound">所有人轮过一遍</option><option value="fixedTurns">固定回合数</option></select></label>
+            <label class="field"><span>固定回合数</span><input id="fixedTurnsInput" type="number" min="1" max="50" /></label>
+            <label class="field"><span>命中后处理</span><select id="eliminationModeSelect"><option value="eliminate">被击中后淘汰</option><option value="survive">命中但继续保留</option></select></label>
+            <label class="field"><span>枪膛模式</span><select id="spinModeSelect"><option value="sequence">顺序推进</option><option value="respin">每次重新洗牌</option></select></label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle"><input id="autoAdvanceToggle" type="checkbox" /><span>自动连续推进</span></label>
+            <label class="toggle"><input id="soundToggle" type="checkbox" checked /><span>开启音效</span></label>
+            <label class="toggle"><input id="historyDetailToggle" type="checkbox" checked /><span>保留详细历史</span></label>
+          </div>
+          <div id="ruleSummary" class="rule-summary"></div>
+          <div class="setup-actions">
+            <button id="quickStartBtn" class="secondary-btn">示例配置</button>
+            <button id="resetAllBtn" class="ghost-btn">重置设置</button>
+            <button id="startFromSetupBtn" class="primary-btn">进入游戏</button>
+          </div>
+        </section>
+      </main>
+    </section>
+
+    <section id="gameView" class="view">
+      <header class="view-hero game-hero">
+        <div class="hero-copy">
+          <p class="section-kicker">Scene 02</p>
+          <h2>执行游戏</h2>
+          <p id="resultBanner">开始后会先进行装弹与上膛动画，然后枪口会指向当前玩家卡牌。</p>
+        </div>
+        <aside class="hero-side compact-side">
+          <div class="stat-pill"><span>阶段</span><strong id="phaseLabel">等待开始</strong></div>
+          <div class="stat-pill"><span>回合</span><strong id="roundBadge">第 0 轮</strong></div>
+          <div class="stat-pill"><span>剩余子弹</span><strong id="remainingBulletsLabel">0</strong></div>
+        </aside>
+      </header>
+
+      <main class="game-stage">
+        <section class="stage-arena panel">
+          <div class="panel-title-row">
+            <div>
+              <p class="section-kicker">Arena</p>
+              <h3>瞄准区</h3>
+            </div>
+            <div class="status-inline"><span>当前玩家</span><strong id="currentPlayerLabel">未开始</strong></div>
+          </div>
+          <div class="arena">
+            <div class="gun-rig">
+              <div id="gunBarrel" class="gun-barrel"></div>
+              <div class="gun-body">
+                <div id="cylinder" class="cylinder"></div>
+                <div class="gun-handle"></div>
+              </div>
+            </div>
+            <div id="targetBoard" class="target-board"></div>
+            <div id="muzzleFlash" class="muzzle-flash"></div>
+            <div id="shellRain" class="shell-rain"></div>
+          </div>
+          <div class="control-actions">
+            <button id="startGameBtn" class="primary-btn">开始新游戏</button>
+            <button id="nextTurnBtn" class="secondary-btn">开下一枪</button>
+            <button id="autoPlayBtn" class="secondary-btn">自动打完整局</button>
+            <button id="restartBtn" class="ghost-btn">重新洗牌</button>
+          </div>
+        </section>
+
+        <aside class="game-sidebar">
+          <section class="panel">
+            <div class="panel-title-row">
+              <div>
+                <p class="section-kicker">Status</p>
+                <h3>实时状态</h3>
+              </div>
+            </div>
+            <div class="status-grid solo">
+              <article class="metric"><span>剩余存活</span><strong id="alivePlayersLabel">0</strong></article>
+              <article class="metric"><span>结束规则</span><strong id="ruleLabel">未设置</strong></article>
+            </div>
+            <div class="live-card"><span>存活玩家</span><div id="alivePlayerChips" class="chips"></div></div>
+            <div class="live-card"><span>淘汰玩家</span><div id="eliminatedPlayerChips" class="chips"></div></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-title-row">
+              <div>
+                <p class="section-kicker">History</p>
+                <h3>回合记录</h3>
+              </div>
+            </div>
+            <ol id="historyList" class="history-list"></ol>
+          </section>
+        </aside>
+      </main>
+    </section>
+  </div>
+
+  <template id="playerCardTemplate">
+    <article class="player-card" draggable="true">
+      <div class="player-card-top">
+        <span class="drag-handle" title="拖动排序">▲</span>
+        <span class="player-order"></span>
+        <button class="icon-btn remove-btn" type="button" title="删除">×</button>
+      </div>
+      <label class="field compact-field"><span>姓名</span><input class="name-input" type="text" maxlength="20" /></label>
+      <label class="field compact-field"><span>身份标签</span><input class="title-input" type="text" maxlength="24" /></label>
+      <label class="field compact-field"><span>颜色</span><input class="color-input" type="color" /></label>
+      <div class="player-preview">
+        <span class="player-dot"></span>
+        <div><strong class="preview-name"></strong><small class="preview-title"></small></div>
+      </div>
+    </article>
+  </template>
+
+  <script src="./app.js"></script>
+</body>
+</html>
