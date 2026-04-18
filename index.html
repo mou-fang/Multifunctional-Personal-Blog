@@ -3,170 +3,172 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Roulette Royale | 俄罗斯转盘模拟器</title>
+  <title>Atelier Azure | 个人主页</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
-<body>
-  <div class="noise"></div>
-  <div class="app-shell">
-    <nav class="topbar">
-      <div>
-        <p class="topbar-kicker">Red Room Simulation</p>
-        <h1>Roulette Royale</h1>
-      </div>
-      <div class="topbar-actions">
-        <button id="goToSetupBtn" class="ghost-btn">设置页</button>
-        <button id="goToGameBtn" class="ghost-btn">游戏页</button>
-      </div>
-    </nav>
+<body data-page="home" data-style="neumorphism" data-route-state="idle">
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <div class="ambient ambient-c"></div>
+  <div class="texture-layer"></div>
 
-    <section id="setupView" class="view active">
-      <header class="view-hero">
-        <div class="hero-copy">
-          <p class="section-kicker">Scene 01</p>
-          <h2>设置房间</h2>
-          <p>先设定玩家、顺序、枪膛和结束规则，再进入游戏舞台。整个流程压缩成单独页面，不再把所有内容堆在一屏里。</p>
+  <div class="site-shell">
+    <header class="site-header page-chunk" data-reveal-order="1">
+      <a class="site-brand" href="./index.html" data-nav-link>
+        <span class="brand-mark">A</span>
+        <div>
+          <p class="topbar-kicker">Personal Atelier</p>
+          <strong>Atelier Azure</strong>
         </div>
-        <aside class="hero-side">
-          <div class="stat-pill"><span>玩家数</span><strong id="setupPlayerCount">0</strong></div>
-          <div class="stat-pill"><span>枪膛 / 子弹</span><strong id="setupBulletLabel">0 / 0</strong></div>
-          <div class="stat-pill"><span>规则</span><strong id="setupRuleLabel">未设置</strong></div>
-        </aside>
-      </header>
+      </a>
 
-      <main class="setup-grid">
-        <section class="panel">
-          <div class="panel-title-row">
-            <div>
-              <p class="section-kicker">Players</p>
-              <h3>玩家名单与顺序</h3>
-            </div>
-            <button id="addPlayerBtn" class="secondary-btn">新增玩家</button>
-          </div>
-          <p class="panel-help">拖动卡片调整顺序，右侧预览会直接反映开枪时的目标顺位。</p>
-          <div id="playerList" class="player-list"></div>
-        </section>
+      <nav class="site-nav">
+        <a href="./index.html" data-nav-link data-nav-item>首页</a>
+        <a href="./game.html" data-nav-link data-nav-item>游戏</a>
+        <a href="./ai.html" data-nav-link data-nav-item>AI 聊天</a>
+      </nav>
 
-        <section class="panel">
-          <div class="panel-title-row">
-            <div>
-              <p class="section-kicker">Rules</p>
-              <h3>装弹与结束条件</h3>
-            </div>
-          </div>
-          <div class="config-grid">
-            <label class="field"><span>枪膛数量</span><input id="chamberCountInput" type="number" min="2" max="12" /></label>
-            <label class="field"><span>子弹数量</span><input id="bulletCountInput" type="number" min="1" max="12" /></label>
-            <label class="field"><span>结束规则</span><select id="endRuleSelect"><option value="allBulletsUsed">直到子弹打完</option><option value="oneFullRound">所有人轮过一遍</option><option value="fixedTurns">固定回合数</option></select></label>
-            <label class="field"><span>固定回合数</span><input id="fixedTurnsInput" type="number" min="1" max="50" /></label>
-            <label class="field"><span>命中后处理</span><select id="eliminationModeSelect"><option value="eliminate">被击中后淘汰</option><option value="survive">命中但继续保留</option></select></label>
-            <label class="field"><span>枪膛模式</span><select id="spinModeSelect"><option value="sequence">顺序推进</option><option value="respin">每次重新洗牌</option></select></label>
-          </div>
-          <div class="toggle-row">
-            <label class="toggle"><input id="autoAdvanceToggle" type="checkbox" /><span>自动连续推进</span></label>
-            <label class="toggle"><input id="soundToggle" type="checkbox" checked /><span>开启音效</span></label>
-            <label class="toggle"><input id="historyDetailToggle" type="checkbox" checked /><span>保留详细历史</span></label>
-          </div>
-          <div id="ruleSummary" class="rule-summary"></div>
-          <div class="setup-actions">
-            <button id="quickStartBtn" class="secondary-btn">示例配置</button>
-            <button id="resetAllBtn" class="ghost-btn">重置设置</button>
-            <button id="startFromSetupBtn" class="primary-btn">进入游戏</button>
-          </div>
-        </section>
-      </main>
-    </section>
-
-    <section id="gameView" class="view">
-      <header class="view-hero game-hero">
-        <div class="hero-copy">
-          <p class="section-kicker">Scene 02</p>
-          <h2>执行游戏</h2>
-          <p id="resultBanner">开始后会先进行装弹与上膛动画，然后枪口会指向当前玩家卡牌。</p>
+      <div class="header-actions">
+        <div class="theme-toggle-wrap">
+          <span class="theme-mode-label" data-theme-mode>Soft</span>
+          <label class="theme-toggle">
+            <input type="checkbox" data-theme-toggle />
+            <span class="theme-toggle-track">
+              <span class="theme-toggle-thumb"></span>
+            </span>
+          </label>
+          <span class="theme-state-label" data-theme-state>Neumorphism</span>
         </div>
-        <aside class="hero-side compact-side">
-          <div class="stat-pill"><span>阶段</span><strong id="phaseLabel">等待开始</strong></div>
-          <div class="stat-pill"><span>回合</span><strong id="roundBadge">第 0 轮</strong></div>
-          <div class="stat-pill"><span>剩余子弹</span><strong id="remainingBulletsLabel">0</strong></div>
-        </aside>
-      </header>
+      </div>
+    </header>
 
-      <main class="game-stage">
-        <section class="stage-arena panel">
+    <main class="page-stack">
+      <section class="landing-hero page-chunk" data-reveal-order="2">
+        <div class="landing-copy hero-copy">
+          <p class="section-kicker">About Me</p>
+          <h1>把作品、实验和一点审美偏执，收进同一个淡蓝工作台。</h1>
+          <p>
+            这里先作为你的个人博客首页。文案默认留成可替换的占位版本，不乱写你的真实经历；
+            你后面只需要把这段换成你自己的介绍，这个站点就能同时承载个人主页、游戏和 AI 工具。
+          </p>
+          <div class="hero-note-row">
+            <article class="hero-note">
+              <span>身份占位</span>
+              <strong>设计 / 开发 / 创作方向都可以在这里替换成你的真实介绍</strong>
+            </article>
+            <article class="hero-note">
+              <span>站点气质</span>
+              <strong>Neumorphism 与 Liquid Glass 双主题共存，默认更柔和，切换后更通透</strong>
+            </article>
+          </div>
+          <div class="hero-cta-row">
+            <a class="primary-btn" href="./game.html" data-nav-link>进入俄罗斯转盘</a>
+            <a class="secondary-btn" href="./ai.html" data-nav-link>打开 DeepSeek 聊天</a>
+          </div>
+        </div>
+
+        <aside class="hero-side profile-spotlight">
+          <div class="stat-pill">
+            <span>站点定位</span>
+            <strong>个人博客 + 工具入口</strong>
+          </div>
+          <div class="stat-pill">
+            <span>当前可用</span>
+            <strong>游戏 / AI 聊天</strong>
+          </div>
+          <div class="stat-pill">
+            <span>主题系统</span>
+            <strong>Neumorphism / Liquid Glass</strong>
+          </div>
+        </aside>
+      </section>
+
+      <section class="feature-section page-chunk" data-reveal-order="3">
+        <div class="section-heading">
+          <p class="section-kicker">Entry Points</p>
+          <h2>功能按钮</h2>
+          <p>主页面先做成一个清晰的入口台，游戏和 AI 都可以从这里直接跳转。</p>
+        </div>
+
+        <div class="feature-grid">
+          <a class="feature-card feature-card-primary" href="./game.html" data-nav-link>
+            <span class="feature-eyebrow">Playable</span>
+            <h3>俄罗斯转盘游戏</h3>
+            <p>保留原来的完整玩法、设置页和仪式台对局区，现在作为站点里的主功能之一。</p>
+            <span class="feature-link">进入游戏</span>
+          </a>
+
+          <a class="feature-card" href="./ai.html" data-nav-link>
+            <span class="feature-eyebrow">Live API</span>
+            <h3>DeepSeek 聊天</h3>
+            <p>支持普通聊天、深度思考模式和网页搜索占位流程，API key 位置已经在页面里标清楚。</p>
+            <span class="feature-link">进入聊天页</span>
+          </a>
+
+          <article class="feature-card feature-card-disabled">
+            <span class="feature-eyebrow">Soon</span>
+            <h3>作品陈列</h3>
+            <p>保留为空位，后续可以接你的项目卡片、图文文章或可视化作品入口。</p>
+            <span class="feature-link">Coming Soon</span>
+          </article>
+
+          <article class="feature-card feature-card-disabled">
+            <span class="feature-eyebrow">Soon</span>
+            <h3>实验日志</h3>
+            <p>预留给技术实验、灵感备忘或者开发日记，现在只保留视觉占位和结构。</p>
+            <span class="feature-link">Coming Soon</span>
+          </article>
+        </div>
+      </section>
+
+      <section class="info-grid page-chunk" data-reveal-order="4">
+        <article class="panel">
           <div class="panel-title-row">
             <div>
-              <p class="section-kicker">Arena</p>
-              <h3>瞄准区</h3>
+              <p class="section-kicker">About</p>
+              <h3>博客首页预留内容</h3>
             </div>
-            <div class="status-inline"><span>当前玩家</span><strong id="currentPlayerLabel">未开始</strong></div>
           </div>
-          <div class="arena">
-            <div class="gun-rig">
-              <div id="gunBarrel" class="gun-barrel"></div>
-              <div class="gun-body">
-                <div id="cylinder" class="cylinder"></div>
-                <div class="gun-handle"></div>
-              </div>
-            </div>
-            <div id="targetBoard" class="target-board"></div>
-            <div id="muzzleFlash" class="muzzle-flash"></div>
-            <div id="shellRain" class="shell-rain"></div>
+          <p class="panel-help">
+            这里建议你后面放三种内容之一：一句更完整的个人简介、你的技能方向、或者你最近在做的东西。
+            现在先保留成高级占位，不让首页显得空。
+          </p>
+          <div class="bullet-pairs">
+            <div class="glass-note">你可以把这里换成学校 / 工作方向 / 作品偏好</div>
+            <div class="glass-note">也可以放一小段“最近更新了什么”</div>
           </div>
-          <div class="control-actions">
-            <button id="startGameBtn" class="primary-btn">开始新游戏</button>
-            <button id="nextTurnBtn" class="secondary-btn">开下一枪</button>
-            <button id="autoPlayBtn" class="secondary-btn">自动打完整局</button>
-            <button id="restartBtn" class="ghost-btn">重新洗牌</button>
-          </div>
-        </section>
+        </article>
 
-        <aside class="game-sidebar">
-          <section class="panel">
-            <div class="panel-title-row">
-              <div>
-                <p class="section-kicker">Status</p>
-                <h3>实时状态</h3>
-              </div>
+        <article class="panel panel-quiet">
+          <div class="panel-title-row">
+            <div>
+              <p class="section-kicker">Now</p>
+              <h3>近期动态占位</h3>
             </div>
-            <div class="status-grid solo">
-              <article class="metric"><span>剩余存活</span><strong id="alivePlayersLabel">0</strong></article>
-              <article class="metric"><span>结束规则</span><strong id="ruleLabel">未设置</strong></article>
+          </div>
+          <div class="timeline-list">
+            <div class="timeline-item">
+              <strong>游戏功能区已经并入站点</strong>
+              <span>现在可以直接从首页跳进原来的仪式台。</span>
             </div>
-            <div class="live-card"><span>存活玩家</span><div id="alivePlayerChips" class="chips"></div></div>
-            <div class="live-card"><span>淘汰玩家</span><div id="eliminatedPlayerChips" class="chips"></div></div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-title-row">
-              <div>
-                <p class="section-kicker">History</p>
-                <h3>回合记录</h3>
-              </div>
+            <div class="timeline-item">
+              <strong>AI 聊天页已接入 DeepSeek</strong>
+              <span>填入 API key 后就能直接对话，网页搜索先保留适配器接口。</span>
             </div>
-            <ol id="historyList" class="history-list"></ol>
-          </section>
-        </aside>
-      </main>
-    </section>
+            <div class="timeline-item">
+              <strong>主题切换支持全站同步</strong>
+              <span>右上角滑动开关会在不同页面之间保持当前风格。</span>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
   </div>
 
-  <template id="playerCardTemplate">
-    <article class="player-card" draggable="true">
-      <div class="player-card-top">
-        <span class="drag-handle" title="拖动排序">▲</span>
-        <span class="player-order"></span>
-        <button class="icon-btn remove-btn" type="button" title="删除">×</button>
-      </div>
-      <label class="field compact-field"><span>姓名</span><input class="name-input" type="text" maxlength="20" /></label>
-      <label class="field compact-field"><span>身份标签</span><input class="title-input" type="text" maxlength="24" /></label>
-      <label class="field compact-field"><span>颜色</span><input class="color-input" type="color" /></label>
-      <div class="player-preview">
-        <span class="player-dot"></span>
-        <div><strong class="preview-name"></strong><small class="preview-title"></small></div>
-      </div>
-    </article>
-  </template>
-
-  <script src="./app.js"></script>
+  <script src="./config.js"></script>
+  <script src="./site.js"></script>
 </body>
 </html>

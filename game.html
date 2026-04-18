@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atelier Azure | 俄罗斯转盘</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body data-page="game" data-view="setup" data-phase="idle" data-started="false" data-style="neumorphism" data-route-state="idle">
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <div class="ambient ambient-c"></div>
+  <div class="texture-layer"></div>
+
+  <div class="site-shell site-shell-wide">
+    <header class="site-header page-chunk" data-reveal-order="1">
+      <a class="site-brand" href="./index.html" data-nav-link>
+        <span class="brand-mark">A</span>
+        <div>
+          <p class="topbar-kicker">Ritual Console</p>
+          <strong>Atelier Azure</strong>
+        </div>
+      </a>
+
+      <nav class="site-nav">
+        <a href="./index.html" data-nav-link data-nav-item>首页</a>
+        <a href="./game.html" data-nav-link data-nav-item>游戏</a>
+        <a href="./ai.html" data-nav-link data-nav-item>AI 聊天</a>
+      </nav>
+
+      <div class="header-actions">
+        <div class="theme-toggle-wrap">
+          <span class="theme-mode-label" data-theme-mode>Soft</span>
+          <label class="theme-toggle">
+            <input type="checkbox" data-theme-toggle />
+            <span class="theme-toggle-track">
+              <span class="theme-toggle-thumb"></span>
+            </span>
+          </label>
+          <span class="theme-state-label" data-theme-state>Neumorphism</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="app-shell game-app-shell">
+      <nav class="topbar page-chunk" data-reveal-order="2">
+        <div class="brand-block">
+          <p class="topbar-kicker">Cryogenic Ritual Console</p>
+          <div class="brand-copy">
+            <h1>Azure Roulette Atelier</h1>
+            <p>把设置、玩家顺序和对局舞台都收进一套冷感材质里，保留游戏的锋利感，但表面更柔和、更高级。</p>
+          </div>
+        </div>
+        <div class="topbar-actions nav-dock">
+          <button id="goToSetupBtn" class="ghost-btn is-current" type="button">设置页</button>
+          <button id="goToGameBtn" class="ghost-btn" type="button">游戏页</button>
+        </div>
+      </nav>
+
+      <section id="setupView" class="view active page-chunk" data-reveal-order="3">
+        <header class="view-hero">
+          <div class="hero-copy">
+            <p class="section-kicker">Scene 01</p>
+            <h2>配置冷感仪式台</h2>
+            <p>先设置玩家、顺序和规则，然后再把整局推进到主舞台。这里仍然是配置台，但材质和动势会延续到对局阶段。</p>
+            <div class="hero-note-row">
+              <article class="hero-note">
+                <span>视觉指令</span>
+                <strong>Soft depth, precise danger</strong>
+              </article>
+              <article class="hero-note">
+                <span>交互提示</span>
+                <strong>拖动玩家卡片调整顺序，配置完成后直接开局</strong>
+              </article>
+            </div>
+          </div>
+          <aside class="hero-side">
+            <div class="stat-pill">
+              <span>玩家数量</span>
+              <strong id="setupPlayerCount">0</strong>
+            </div>
+            <div class="stat-pill">
+              <span>枪膛 / 子弹</span>
+              <strong id="setupBulletLabel">0 / 0</strong>
+            </div>
+            <div class="stat-pill">
+              <span>结束规则</span>
+              <strong id="setupRuleLabel">未设置</strong>
+            </div>
+          </aside>
+        </header>
+
+        <main class="setup-grid">
+          <section class="panel">
+            <div class="panel-title-row">
+              <div>
+                <p class="section-kicker">Players</p>
+                <h3>玩家名单与顺位</h3>
+              </div>
+              <button id="addPlayerBtn" class="secondary-btn" type="button">新增玩家</button>
+            </div>
+            <p class="panel-help">拖动卡片重新排序。游戏页中的目标板会严格按照这里的顺位依次锁定目标。</p>
+            <div class="player-list-wrap">
+              <div id="playerList" class="player-list"></div>
+            </div>
+          </section>
+
+          <section class="panel panel-quiet">
+            <div class="panel-title-row">
+              <div>
+                <p class="section-kicker">Rules</p>
+                <h3>装弹与结束条件</h3>
+              </div>
+            </div>
+            <div class="config-well">
+              <div class="config-grid">
+                <label class="field">
+                  <span>枪膛数量</span>
+                  <input id="chamberCountInput" type="number" min="2" max="12" />
+                </label>
+                <label class="field">
+                  <span>子弹数量</span>
+                  <input id="bulletCountInput" type="number" min="1" max="12" />
+                </label>
+                <label class="field">
+                  <span>结束规则</span>
+                  <select id="endRuleSelect">
+                    <option value="allBulletsUsed">直到子弹打完</option>
+                    <option value="oneFullRound">所有人轮过一遍</option>
+                    <option value="fixedTurns">固定回合数</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>固定回合数</span>
+                  <input id="fixedTurnsInput" type="number" min="1" max="50" />
+                </label>
+                <label class="field">
+                  <span>命中后处理</span>
+                  <select id="eliminationModeSelect">
+                    <option value="eliminate">被击中后淘汰</option>
+                    <option value="survive">命中但继续保留</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>枪膛模式</span>
+                  <select id="spinModeSelect">
+                    <option value="sequence">顺序推进</option>
+                    <option value="respin">每次重新洗牌</option>
+                  </select>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <label class="toggle">
+                  <input id="autoAdvanceToggle" type="checkbox" />
+                  <span>自动连续推进</span>
+                </label>
+                <label class="toggle">
+                  <input id="soundToggle" type="checkbox" checked />
+                  <span>开启音效</span>
+                </label>
+                <label class="toggle">
+                  <input id="historyDetailToggle" type="checkbox" checked />
+                  <span>保留详细历史</span>
+                </label>
+              </div>
+              <div id="ruleSummary" class="rule-summary"></div>
+            </div>
+            <div class="setup-actions">
+              <button id="quickStartBtn" class="secondary-btn" type="button">示例配置</button>
+              <button id="resetAllBtn" class="ghost-btn" type="button">重置设置</button>
+              <button id="startFromSetupBtn" class="primary-btn" type="button">进入游戏</button>
+            </div>
+          </section>
+        </main>
+      </section>
+
+      <section id="gameView" class="view page-chunk" data-reveal-order="3">
+        <header class="view-hero">
+          <div class="hero-copy">
+            <p class="section-kicker">Scene 02</p>
+            <h2>瞄准仪式台</h2>
+            <p id="resultBanner">开始后会先进行装弹与上膛动画，然后枪体会沿垂直轨道平移到与当前玩家完全平行的位置。</p>
+          </div>
+          <aside class="hero-side compact-side">
+            <div class="stat-pill">
+              <span>阶段</span>
+              <strong id="phaseLabel">等待开始</strong>
+            </div>
+            <div class="stat-pill">
+              <span>回合</span>
+              <strong id="roundBadge">第 0 轮</strong>
+            </div>
+            <div class="stat-pill">
+              <span>剩余子弹</span>
+              <strong id="remainingBulletsLabel">0</strong>
+            </div>
+          </aside>
+        </header>
+
+        <main class="game-stage">
+          <section class="panel stage-arena">
+            <div class="panel-title-row">
+              <div>
+                <p class="section-kicker">Arena</p>
+                <h3>瞄准仪式台</h3>
+              </div>
+              <div class="status-inline">
+                <span>当前玩家</span>
+                <strong id="currentPlayerLabel">未开始</strong>
+              </div>
+            </div>
+            <div class="arena">
+              <div class="arena-core-sheen"></div>
+              <div class="arena-reflection"></div>
+              <div class="gun-rig">
+                <div id="gunBarrel" class="gun-barrel"></div>
+                <div class="gun-body">
+                  <div id="cylinder" class="cylinder"></div>
+                  <div class="gun-handle"></div>
+                </div>
+              </div>
+              <div id="targetBoard" class="target-board"></div>
+              <div id="muzzleFlash" class="muzzle-flash"></div>
+              <div id="shellRain" class="shell-rain"></div>
+            </div>
+            <div class="control-actions">
+              <button id="startGameBtn" class="primary-btn" type="button">开始新游戏</button>
+              <button id="nextTurnBtn" class="secondary-btn" type="button">开下一枪</button>
+              <button id="autoPlayBtn" class="secondary-btn" type="button">自动打完整局</button>
+              <button id="restartBtn" class="ghost-btn" type="button">重新洗牌</button>
+            </div>
+          </section>
+
+          <aside class="game-sidebar">
+            <section class="panel panel-quiet">
+              <div class="panel-title-row">
+                <div>
+                  <p class="section-kicker">Status</p>
+                  <h3>实时状态井</h3>
+                </div>
+              </div>
+              <div class="status-grid solo">
+                <article class="metric">
+                  <span>剩余存活</span>
+                  <strong id="alivePlayersLabel">0</strong>
+                </article>
+                <article class="metric">
+                  <span>结束规则</span>
+                  <strong id="ruleLabel">未设置</strong>
+                </article>
+              </div>
+              <div class="live-card">
+                <span>存活玩家</span>
+                <div id="alivePlayerChips" class="chips"></div>
+              </div>
+              <div class="live-card">
+                <span>淘汰玩家</span>
+                <div id="eliminatedPlayerChips" class="chips"></div>
+              </div>
+            </section>
+
+            <section class="panel panel-quiet">
+              <div class="panel-title-row">
+                <div>
+                  <p class="section-kicker">History</p>
+                  <h3>回合记录</h3>
+                </div>
+              </div>
+              <div class="history-well">
+                <ol id="historyList" class="history-list"></ol>
+              </div>
+            </section>
+          </aside>
+        </main>
+      </section>
+    </div>
+  </div>
+
+  <template id="playerCardTemplate">
+    <article class="player-card" draggable="true">
+      <div class="player-card-top">
+        <span class="drag-handle" title="拖动排序">::</span>
+        <span class="player-order"></span>
+        <button class="icon-btn remove-btn" type="button" title="删除">x</button>
+      </div>
+      <label class="field compact-field">
+        <span>姓名</span>
+        <input class="name-input" type="text" maxlength="20" />
+      </label>
+      <label class="field compact-field">
+        <span>身份标签</span>
+        <input class="title-input" type="text" maxlength="24" />
+      </label>
+      <label class="field compact-field">
+        <span>颜色</span>
+        <input class="color-input" type="color" />
+      </label>
+      <div class="player-preview">
+        <span class="player-dot"></span>
+        <div class="player-preview-copy">
+          <strong class="preview-name"></strong>
+          <small class="preview-title"></small>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script src="./config.js"></script>
+  <script src="./site.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
