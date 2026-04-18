@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atelier Azure | DeepSeek 聊天</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body data-page="ai" data-style="neumorphism" data-route-state="idle">
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <div class="ambient ambient-c"></div>
+  <div class="texture-layer"></div>
+
+  <div class="site-shell" data-ai-page data-show-reasoning="true">
+    <header class="site-header page-chunk" data-reveal-order="1">
+      <a class="site-brand" href="./index.html" data-nav-link>
+        <span class="brand-mark">A</span>
+        <div>
+          <p class="topbar-kicker">AI Console</p>
+          <strong>Atelier Azure</strong>
+        </div>
+      </a>
+
+      <nav class="site-nav">
+        <a href="./index.html" data-nav-link data-nav-item>首页</a>
+        <a href="./game.html" data-nav-link data-nav-item>游戏</a>
+        <a href="./ai.html" data-nav-link data-nav-item>AI 聊天</a>
+      </nav>
+
+      <div class="header-actions">
+        <div class="theme-toggle-wrap">
+          <span class="theme-mode-label" data-theme-mode>Soft</span>
+          <label class="theme-toggle">
+            <input type="checkbox" data-theme-toggle />
+            <span class="theme-toggle-track">
+              <span class="theme-toggle-thumb"></span>
+            </span>
+          </label>
+          <span class="theme-state-label" data-theme-state>Neumorphism</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="ai-layout">
+      <section class="panel ai-intro page-chunk" data-reveal-order="2">
+        <div class="panel-title-row">
+          <div>
+            <p class="section-kicker">DeepSeek</p>
+            <h1>DeepSeek 聊天工作台</h1>
+          </div>
+        </div>
+        <p class="panel-help">
+          这个页面已经按前端直连 DeepSeek API 的方式做好。普通聊天和深度思考都能直接请求官方接口，
+          网页搜索则先保留外部搜索适配器占位，等你填好自己的搜索服务端点后再接上。
+        </p>
+        <div class="bullet-pairs">
+          <div class="glass-note">
+            API key 填写位置：<code>config.js</code> 里的 <code>APP_CONFIG.deepseek.apiKey</code>
+          </div>
+          <div class="glass-note">
+            网页搜索端点填写位置：<code>APP_CONFIG.webSearch.endpoint</code>
+          </div>
+        </div>
+      </section>
+
+      <section class="ai-grid">
+        <aside class="panel panel-quiet ai-sidebar page-chunk" data-reveal-order="3">
+          <div class="panel-title-row">
+            <div>
+              <p class="section-kicker">Controls</p>
+              <h3>模型与模式</h3>
+            </div>
+          </div>
+
+          <div class="config-well">
+            <label class="field">
+              <span>模型</span>
+              <select id="modelSelect">
+                <option value="deepseek-chat">deepseek-chat</option>
+                <option value="deepseek-reasoner">deepseek-reasoner</option>
+              </select>
+            </label>
+
+            <div class="toggle-stack">
+              <label class="toggle toggle-block">
+                <input id="webSearchToggle" type="checkbox" />
+                <span>网页搜索</span>
+              </label>
+              <label class="toggle toggle-block">
+                <input id="reasoningModeToggle" type="checkbox" />
+                <span>深度思考</span>
+              </label>
+              <label class="toggle toggle-block">
+                <input id="showReasoningToggle" type="checkbox" checked />
+                <span>显示思考链</span>
+              </label>
+            </div>
+
+            <div id="configHint" class="rule-summary">
+              当前页面会直接读取 <code>config.js</code>。如果还没有写 key，请先编辑：
+              <code>APP_CONFIG.deepseek.apiKey</code>。
+            </div>
+            <div id="chatStatus" class="status-banner" data-tone="muted">准备中…</div>
+          </div>
+
+          <div class="setup-actions">
+            <button id="clearChatBtn" class="ghost-btn" type="button">清空对话</button>
+          </div>
+        </aside>
+
+        <section class="panel ai-chat-panel page-chunk" data-reveal-order="4">
+          <div class="panel-title-row">
+            <div>
+              <p class="section-kicker">Conversation</p>
+              <h3>对话区</h3>
+            </div>
+          </div>
+
+          <div id="chatMessages" class="chat-messages"></div>
+
+          <form id="chatComposer" class="chat-composer">
+            <label class="field composer-field">
+              <span>输入消息</span>
+              <textarea id="chatPrompt" rows="4" placeholder="问点什么。比如：帮我制定一份今天的学习计划，或者解释一道题。"></textarea>
+            </label>
+            <div class="control-actions">
+              <button id="sendPromptBtn" class="primary-btn" type="submit">发送</button>
+            </div>
+          </form>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="./config.js"></script>
+  <script src="./site.js"></script>
+  <script src="./ai.js"></script>
+</body>
+</html>
