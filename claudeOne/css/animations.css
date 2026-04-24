@@ -1,0 +1,179 @@
+/* ===== claudeOne :: animations.css ===== */
+/* Keyframes + shared transition utilities. Reveal-on-scroll, page enter,
+   ambient orb drift, toggle ripple, etc. */
+
+/* ===== Ambient orb drift (liquid-glass) ===== */
+@keyframes orbA {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(4vw, 5vh, 0) scale(1.08); }
+}
+@keyframes orbB {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-5vw, -4vh, 0) scale(1.05); }
+}
+@keyframes orbC {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-3vw, 6vh, 0) scale(1.12); }
+}
+
+/* ===== Reveal on enter ===== */
+.page-chunk {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity var(--dur-slow) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out);
+}
+
+.page-chunk[data-revealed="true"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* staggered delays via data-reveal-order */
+.page-chunk[data-reveal-order="1"] { transition-delay: 60ms; }
+.page-chunk[data-reveal-order="2"] { transition-delay: 140ms; }
+.page-chunk[data-reveal-order="3"] { transition-delay: 220ms; }
+.page-chunk[data-reveal-order="4"] { transition-delay: 300ms; }
+.page-chunk[data-reveal-order="5"] { transition-delay: 380ms; }
+.page-chunk[data-reveal-order="6"] { transition-delay: 460ms; }
+.page-chunk[data-reveal-order="7"] { transition-delay: 540ms; }
+.page-chunk[data-reveal-order="8"] { transition-delay: 620ms; }
+
+/* ===== Page exit (used by shell.js when navigating) ===== */
+body[data-route-state="exiting"] .page-stack {
+  opacity: 0;
+  transform: translateY(-14px) scale(0.995);
+  transition: opacity 260ms var(--ease-in-out),
+    transform 260ms var(--ease-in-out);
+}
+
+.page-stack {
+  transition: opacity var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-out);
+}
+
+/* ===== Cube idle & drag states ===== */
+.cube-stage[data-dragging="true"] {
+  cursor: grabbing;
+}
+
+/* A soft floating ring behind the cube — purely decorative */
+.cube-stage::before {
+  content: "";
+  position: absolute;
+  inset: 12% 12% 8% 12%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(111, 155, 255, 0.35) 0%,
+    transparent 65%
+  );
+  filter: blur(24px);
+  z-index: -1;
+  animation: cubeAura 8s var(--ease-in-out) infinite;
+}
+
+@keyframes cubeAura {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+
+body[data-theme="liquid-glass"] .cube-stage::before {
+  background: radial-gradient(
+    circle,
+    rgba(95, 200, 255, 0.6) 0%,
+    transparent 65%
+  );
+}
+
+/* ===== Roulette chamber spin & fire ===== */
+@keyframes chamberSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(1440deg); }
+}
+
+.chamber-svg[data-spinning="true"] > svg > .chamber-slots,
+.chamber-svg[data-spinning="true"] > svg {
+  animation: chamberSpin 1400ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center;
+}
+
+@keyframes firePulse {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+
+.fire-btn[data-firing="true"] {
+  animation: firePulse 420ms var(--ease-out);
+}
+
+@keyframes resultShakeBullet {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(4px); }
+}
+
+.result-banner[data-kind="bullet"] {
+  animation: resultShakeBullet 520ms var(--ease-in-out);
+}
+
+@keyframes resultFlashMiss {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.result-banner {
+  animation: resultFlashMiss 380ms var(--ease-out);
+}
+
+/* ===== Chat message enter ===== */
+@keyframes msgEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.msg {
+  animation: msgEnter 320ms var(--ease-out);
+}
+
+/* Streaming indicator — three pulsing dots */
+@keyframes typingDot {
+  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+
+.typing {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: typingDot 1s infinite;
+}
+
+.typing span:nth-child(2) { animation-delay: 0.15s; }
+.typing span:nth-child(3) { animation-delay: 0.3s; }
+
+/* ===== Drag-and-drop player list ===== */
+.player-row[data-dragging="true"] {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+
+.player-row[data-drop-over="true"] {
+  box-shadow: 0 0 0 2px var(--accent) inset;
+}
+
+.player-row {
+  transition: transform var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    opacity var(--dur) var(--ease-out);
+}

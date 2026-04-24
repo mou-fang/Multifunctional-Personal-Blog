@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="description" content="claudeOne — quiet personal workspace" />
+  <!-- CSP: scripts only from self; styles from self + Google Fonts (inline-style
+       allowed for the font link's CSS injection); API connect limited to DeepSeek. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src https://api.deepseek.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>claudeOne · 魔方工作台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+  <link rel="stylesheet" href="./css/neumorphism.css" />
+  <link rel="stylesheet" href="./css/liquid-glass.css" />
+  <link rel="stylesheet" href="./css/cube.css" />
+  <link rel="stylesheet" href="./css/animations.css" />
+</head>
+<body data-page="home" data-route-state="idle">
+  <!-- Theme init runs synchronously before anything else in body paints -->
+  <script src="./js/theme-init.js"></script>
+
+  <!-- Ambient color orbs — invisible in neumorphism, alive in liquid-glass -->
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <div class="ambient ambient-c"></div>
+
+  <div class="site-shell">
+    <header class="site-header page-chunk" data-reveal-order="1">
+      <a class="site-brand" href="./index.html" data-nav-link>
+        <span class="brand-mark" aria-hidden="true">◩</span>
+        <span class="brand-text">
+          <small>Workspace</small>
+          <strong>claudeOne</strong>
+        </span>
+      </a>
+
+      <nav class="site-nav" aria-label="Main">
+        <a href="./index.html" data-nav-link>首页</a>
+        <a href="./game.html" data-nav-link>俄罗斯转盘</a>
+        <a href="./ai.html" data-nav-link>DeepSeek</a>
+      </nav>
+
+      <div class="header-actions">
+        <label class="theme-toggle" aria-label="切换主题">
+          <span class="theme-toggle__label" data-theme-label>Soft UI</span>
+          <input type="checkbox" data-theme-toggle class="theme-toggle__input" />
+          <span class="theme-toggle__track">
+            <span class="theme-toggle__thumb"></span>
+          </span>
+        </label>
+        <span class="sr-only" data-theme-live aria-live="polite"></span>
+      </div>
+    </header>
+
+    <main class="page-stack">
+      <section class="cube-hero page-chunk" data-reveal-order="2">
+        <div class="cube-stage" data-cube-stage aria-label="3D Rubik's cube"></div>
+
+        <div class="cube-hero__copy">
+          <span class="pill pill--accent">claudeOne</span>
+          <h1 class="cube-hero__title">一个安静的<br />魔方工作台。</h1>
+          <p class="cube-hero__lead">
+            这里摆着几件工具，还有更多空位。左边的魔方可以拖动旋转，松开后会自己慢慢转。
+            右上角的开关在 Soft UI 和 Liquid Glass 之间切换，两种风格都按 1:1 复刻。
+          </p>
+          <div class="cube-hero__tags">
+            <span class="pill">Neumorphism</span>
+            <span class="pill">Liquid Glass</span>
+            <span class="pill">No build step</span>
+          </div>
+          <p class="cube-hero__hint">拖动魔方 · 切换风格 · 选一个工具开始</p>
+        </div>
+      </section>
+
+      <section class="feature-grid-wrap page-chunk" data-reveal-order="3">
+        <header class="feature-grid-head">
+          <span class="section-kicker">Tools</span>
+          <h2>工作台上有什么</h2>
+        </header>
+
+        <div class="feature-grid">
+          <a class="card card-link page-chunk" data-reveal-order="4" href="./game.html" data-nav-link>
+            <span class="card-eyebrow">游戏</span>
+            <h3 class="card-title">俄罗斯转盘</h3>
+            <p class="card-desc">
+              设定人数、名字、弹巢大小和子弹数量。拖拽排序玩家，三种结束规则任选，
+              弹巢位置可选择是否暴露——气氛松紧自己掌握。
+            </p>
+            <span class="card-arrow">Play &rarr;</span>
+          </a>
+
+          <a class="card card-link page-chunk" data-reveal-order="5" href="./ai.html" data-nav-link>
+            <span class="card-eyebrow">AI</span>
+            <h3 class="card-title">DeepSeek 聊天</h3>
+            <p class="card-desc">
+              连接 DeepSeek V4 Flash / Pro，支持思维链开关与推理强度调节。
+              API Key 只存在你自己的浏览器里，不打包进代码。
+            </p>
+            <span class="card-arrow">Chat &rarr;</span>
+          </a>
+
+          <div class="card card--soon page-chunk" data-reveal-order="6" aria-disabled="true">
+            <span class="card-eyebrow">Coming Soon</span>
+            <h3 class="card-title">预留位 · 01</h3>
+            <p class="card-desc">想到合适的工具会补上，可能是便签、可能是计时器，目前空着。</p>
+            <span class="card-arrow">Waiting</span>
+          </div>
+
+          <div class="card card--soon page-chunk" data-reveal-order="7" aria-disabled="true">
+            <span class="card-eyebrow">Coming Soon</span>
+            <h3 class="card-title">预留位 · 02</h3>
+            <p class="card-desc">同上。让它先空着，克制一点更像个工作台。</p>
+            <span class="card-arrow">Waiting</span>
+          </div>
+
+          <div class="card card--soon page-chunk" data-reveal-order="8" aria-disabled="true">
+            <span class="card-eyebrow">Coming Soon</span>
+            <h3 class="card-title">预留位 · 03</h3>
+            <p class="card-desc">三块占位砖。比起填满，留白更容易看清还需要什么。</p>
+            <span class="card-arrow">Waiting</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer page-chunk" data-reveal-order="8">
+      <span>claudeOne · Soft UI ↔ Liquid Glass · no build</span>
+    </footer>
+  </div>
+
+  <script src="./js/config.js"></script>
+  <script src="./js/shell.js"></script>
+  <script src="./js/cube.js"></script>
+</body>
+</html>

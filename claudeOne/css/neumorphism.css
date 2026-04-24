@@ -1,0 +1,133 @@
+/* ===== claudeOne :: neumorphism.css ===== */
+/* Theme-specific visuals for the Neumorphism (Soft UI) skin. Activated by
+   [data-theme="neumorphism"] on <body>. Uses inset/outset soft shadows on a
+   light-blue canvas to fake raised/recessed surfaces. */
+
+body[data-theme="neumorphism"] .brand-mark {
+  box-shadow: var(--shadow-out-sm);
+}
+
+body[data-theme="neumorphism"] .site-nav {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .site-nav a[aria-current="page"] {
+  box-shadow: var(--shadow-out-sm);
+}
+
+body[data-theme="neumorphism"] .theme-toggle {
+  box-shadow: var(--shadow-out-sm);
+}
+
+body[data-theme="neumorphism"] .theme-toggle__track {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .theme-toggle__thumb {
+  box-shadow: 2px 2px 4px rgba(74, 102, 166, 0.4),
+    -2px -2px 4px rgba(255, 255, 255, 0.8),
+    inset 0 0 0 0 rgba(255, 255, 255, 0);
+}
+
+body[data-theme="neumorphism"] .card {
+  box-shadow: var(--shadow-out);
+  border: none;
+}
+
+body[data-theme="neumorphism"] .card-link:hover {
+  box-shadow: 18px 18px 36px #bbc6dc, -18px -18px 36px #ffffff;
+}
+
+body[data-theme="neumorphism"] .card--soon {
+  box-shadow: var(--shadow-in);
+}
+
+body[data-theme="neumorphism"] .btn {
+  box-shadow: var(--shadow-out-sm);
+}
+
+body[data-theme="neumorphism"] .btn:active {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, #7aa6ff 0%, #5b84ff 100%);
+  box-shadow: 8px 8px 18px #c5cee0, -8px -8px 18px #ffffff,
+    inset 0 0 0 rgba(255, 255, 255, 0);
+}
+
+body[data-theme="neumorphism"] .btn-primary:active {
+  box-shadow: inset 4px 4px 8px #4d6ec4,
+    inset -4px -4px 8px #8caefd;
+}
+
+body[data-theme="neumorphism"] .btn-ghost {
+  box-shadow: none;
+}
+
+body[data-theme="neumorphism"] .input,
+body[data-theme="neumorphism"] .textarea,
+body[data-theme="neumorphism"] .select {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .input:focus,
+body[data-theme="neumorphism"] .textarea:focus,
+body[data-theme="neumorphism"] .select:focus {
+  box-shadow: var(--shadow-in-sm), 0 0 0 3px var(--ring);
+}
+
+body[data-theme="neumorphism"] .stepper {
+  box-shadow: var(--shadow-in-sm);
+}
+body[data-theme="neumorphism"] .stepper button {
+  box-shadow: var(--shadow-out-sm);
+}
+body[data-theme="neumorphism"] .stepper button:active {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .switch__track {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .radio-option {
+  box-shadow: var(--shadow-in-sm);
+}
+body[data-theme="neumorphism"] .radio-option:has(input:checked) {
+  box-shadow: var(--shadow-in-sm), 0 0 0 2px var(--accent) inset;
+}
+
+body[data-theme="neumorphism"] .pill {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .modal-card {
+  box-shadow: var(--shadow-out);
+}
+
+body[data-theme="neumorphism"] .toast {
+  box-shadow: var(--shadow-out-sm);
+}
+
+/* Site shell gets a subtle grain texture in neumorphism to avoid feeling flat */
+body[data-theme="neumorphism"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  mix-blend-mode: soft-light;
+  background-image: radial-gradient(
+      circle at 20% 20%,
+      rgba(255, 255, 255, 0.6) 0%,
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at 80% 70%,
+      rgba(160, 185, 230, 0.35) 0%,
+      transparent 45%
+    );
+}

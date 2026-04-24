@@ -1,0 +1,577 @@
+/* ===== claudeOne :: components.css ===== */
+/* Reusable components: buttons, cards, toggle switch, form controls,
+   modal, toast, pills. Theme-specific visuals live in neumorphism.css and
+   liquid-glass.css; this file handles structure + shared behavior. */
+
+/* ===== Buttons ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 14px 26px;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  font-size: 0.93rem;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  background: var(--surface);
+  transition: transform var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    background var(--dur) var(--ease-out),
+    color var(--dur) var(--ease-out);
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.btn[disabled],
+.btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 800;
+}
+
+.btn-ghost {
+  background: transparent;
+}
+
+.btn-sm {
+  padding: 9px 16px;
+  font-size: 0.82rem;
+}
+
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+/* ===== Cards ===== */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+
+.card-link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 200px;
+  cursor: pointer;
+}
+
+.card-link:hover {
+  transform: translateY(-6px);
+}
+
+.card-link .card-arrow {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.88rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: transform var(--dur) var(--ease-out);
+}
+
+.card-link:hover .card-arrow {
+  transform: translateX(6px);
+}
+
+.card-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.card-title {
+  font-family: "Sora", "Manrope", sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.card-desc {
+  font-size: 0.93rem;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+.card--soon {
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.card--soon .card-arrow {
+  color: var(--ink-muted);
+}
+
+/* ===== Theme toggle switch ===== */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px 14px 8px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  cursor: pointer;
+  user-select: none;
+  transition: box-shadow var(--dur) var(--ease-out);
+}
+
+.theme-toggle__label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  transition: color var(--dur) var(--ease-out);
+  min-width: 62px;
+  text-align: right;
+}
+
+.theme-toggle__track {
+  position: relative;
+  width: 56px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  transition: background var(--dur) var(--ease-out);
+}
+
+.theme-toggle__thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  transition: transform var(--dur-slow) var(--ease-spring),
+    background var(--dur) var(--ease-out);
+  display: grid;
+  place-items: center;
+}
+
+.theme-toggle__thumb::before,
+.theme-toggle__thumb::after {
+  content: "";
+  position: absolute;
+  transition: opacity var(--dur) var(--ease-out),
+    transform var(--dur-slow) var(--ease-spring);
+}
+
+/* Sun icon (neumorphism state) */
+.theme-toggle__thumb::before {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4);
+  opacity: 1;
+}
+
+/* Drop icon (glass state) */
+.theme-toggle__thumb::after {
+  width: 8px;
+  height: 12px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  transform: rotate(180deg);
+  background: #fff;
+  opacity: 0;
+}
+
+.theme-toggle__input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+body[data-theme="liquid-glass"] .theme-toggle__thumb {
+  transform: translateX(26px);
+}
+body[data-theme="liquid-glass"] .theme-toggle__thumb::before {
+  opacity: 0;
+}
+body[data-theme="liquid-glass"] .theme-toggle__thumb::after {
+  opacity: 1;
+}
+
+.theme-toggle input:focus-visible ~ .theme-toggle__track,
+.theme-toggle:focus-within {
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+/* ===== Form controls ===== */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.field__label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: box-shadow var(--dur) var(--ease-out),
+    background var(--dur) var(--ease-out);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 96px;
+  line-height: 1.5;
+}
+
+.select {
+  appearance: none;
+  background-image: linear-gradient(
+    45deg,
+    transparent 50%,
+    currentColor 50%
+  ),
+  linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 22px) 50%, calc(100% - 16px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 44px;
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+}
+
+.stepper button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--surface-raised);
+  transition: transform var(--dur) var(--ease-out);
+}
+
+.stepper button:active {
+  transform: scale(0.92);
+}
+
+.stepper__value {
+  min-width: 40px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch__track {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  transition: background var(--dur) var(--ease-out);
+}
+
+.switch__track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink-muted);
+  transition: transform var(--dur) var(--ease-spring),
+    background var(--dur) var(--ease-out);
+}
+
+.switch input:checked + .switch__track {
+  background: var(--accent-soft);
+}
+
+.switch input:checked + .switch__track::after {
+  transform: translateX(20px);
+  background: var(--accent);
+}
+
+.switch__label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+
+.radio-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.radio-option__mark {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin-top: 2px;
+  position: relative;
+  background: var(--surface-raised);
+  transition: background var(--dur) var(--ease-out);
+}
+
+.radio-option__mark::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: scale(0);
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.radio-option input:checked ~ .radio-option__mark::after {
+  transform: scale(1);
+}
+
+.radio-option__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.radio-option__title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+
+.radio-option__desc {
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+}
+
+.radio-option:has(input:checked) {
+  background: var(--accent-soft);
+}
+
+/* ===== Pills ===== */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: var(--surface-sunken);
+}
+
+.pill--accent {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* ===== Modal ===== */
+.modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  background: rgba(10, 18, 38, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur) var(--ease-out);
+}
+
+.modal-root[data-open="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-card {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  max-width: 480px;
+  width: 100%;
+  transform: scale(0.94) translateY(12px);
+  opacity: 0;
+  transition: transform var(--dur-slow) var(--ease-spring),
+    opacity var(--dur) var(--ease-out);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.modal-root[data-open="true"] .modal-card {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+.modal-card h2 {
+  font-size: 1.4rem;
+}
+
+.modal-card .modal-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  margin-top: var(--space-2);
+}
+
+/* ===== Toast ===== */
+.toast-rail {
+  position: fixed;
+  top: var(--space-6);
+  right: var(--space-6);
+  z-index: 998;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  pointer-events: none;
+}
+
+.toast {
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+  transform: translateY(-12px);
+  opacity: 0;
+  transition: transform var(--dur) var(--ease-spring),
+    opacity var(--dur) var(--ease-out);
+  pointer-events: auto;
+}
+
+.toast[data-enter="true"] {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.toast--err {
+  color: var(--danger);
+}
+.toast--ok {
+  color: var(--success);
+}
+
+/* ===== Theme transition overlay (fallback when View Transitions API absent) =====
+   The overlay sits on top showing the OLD theme's bg color. The new theme is
+   already applied underneath. Animating the clip-path from a full circle down
+   to zero at the click origin reveals the new theme, feeling like a ripple. */
+.theme-transition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  clip-path: circle(150vmax at var(--tx, 50%) var(--ty, 50%));
+}
+
+.theme-transition-overlay[data-anim="true"] {
+  animation: themeRipple 780ms var(--ease-in-out) forwards;
+}
+
+@keyframes themeRipple {
+  0% {
+    clip-path: circle(150vmax at var(--tx, 50%) var(--ty, 50%));
+  }
+  100% {
+    clip-path: circle(0 at var(--tx, 50%) var(--ty, 50%));
+  }
+}

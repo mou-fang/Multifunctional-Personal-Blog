@@ -1,0 +1,192 @@
+/* ===== claudeOne :: cube.css ===== */
+/* 3D Rubik's cube. Structure is built in js/cube.js; this file handles
+   visuals (stickers, perspective, face colors, theme-aware finish). */
+
+.cube-stage {
+  --cubelet: 64px;
+  --gap: 4px;
+  position: relative;
+  width: min(360px, 70vw);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  perspective: 1200px;
+  perspective-origin: 50% 45%;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+
+.cube-stage:active {
+  cursor: grabbing;
+}
+
+.cube {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: calc(var(--cubelet) * 3 + var(--gap) * 2);
+  height: calc(var(--cubelet) * 3 + var(--gap) * 2);
+  transform-style: preserve-3d;
+  transform: rotateX(-28deg) rotateY(-38deg);
+  will-change: transform;
+}
+
+.cubelet {
+  position: absolute;
+  width: var(--cubelet);
+  height: var(--cubelet);
+  transform-style: preserve-3d;
+}
+
+.sticker {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  backface-visibility: hidden;
+}
+
+/* Standard Rubik face colors. Each sticker is inset slightly from the cubelet
+   face to leave the "plastic" body showing through. */
+.sticker--up { background: #f5f8ff; }
+.sticker--down { background: #ffe74c; }
+.sticker--front { background: #ff5f6d; }
+.sticker--back { background: #ff9f4a; }
+.sticker--right { background: #5fbd5f; }
+.sticker--left { background: #5fa8ff; }
+
+/* Face positions: half the cubelet size plus gap on each axis */
+.sticker--up {
+  transform: rotateX(90deg) translateZ(calc(var(--cubelet) / 2));
+}
+.sticker--down {
+  transform: rotateX(-90deg) translateZ(calc(var(--cubelet) / 2));
+}
+.sticker--front {
+  transform: translateZ(calc(var(--cubelet) / 2));
+}
+.sticker--back {
+  transform: rotateY(180deg) translateZ(calc(var(--cubelet) / 2));
+}
+.sticker--right {
+  transform: rotateY(90deg) translateZ(calc(var(--cubelet) / 2));
+}
+.sticker--left {
+  transform: rotateY(-90deg) translateZ(calc(var(--cubelet) / 2));
+}
+
+/* Inner sticker — inset via margin to leave the cubelet body (dark) showing
+   between stickers and on internal cubelet faces. */
+.sticker-face {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #11151f;
+}
+
+.sticker .inner {
+  position: absolute;
+  inset: 3px;
+  border-radius: 8px;
+  background: inherit;
+  transition: background var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+
+/* Neumorphism: soft pastel stickers, subtle inner ridge */
+body[data-theme="neumorphism"] .sticker--up .inner { background: #f1f5ff; box-shadow: inset 0 0 0 1px #d7e0f5; }
+body[data-theme="neumorphism"] .sticker--down .inner { background: #ffe480; box-shadow: inset 0 0 0 1px #e9c95d; }
+body[data-theme="neumorphism"] .sticker--front .inner { background: #ff8593; box-shadow: inset 0 0 0 1px #e26574; }
+body[data-theme="neumorphism"] .sticker--back .inner { background: #ffb57a; box-shadow: inset 0 0 0 1px #e49255; }
+body[data-theme="neumorphism"] .sticker--right .inner { background: #7fd27f; box-shadow: inset 0 0 0 1px #5db15c; }
+body[data-theme="neumorphism"] .sticker--left .inner { background: #7fc1ff; box-shadow: inset 0 0 0 1px #5ea0e4; }
+
+body[data-theme="neumorphism"] .sticker {
+  background: #dde4f5;
+  box-shadow: 2px 2px 6px rgba(74, 102, 166, 0.25),
+    -2px -2px 6px rgba(255, 255, 255, 0.35);
+}
+
+/* Liquid Glass: translucent tiles with specular highlight */
+body[data-theme="liquid-glass"] .sticker {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+
+body[data-theme="liquid-glass"] .sticker .inner {
+  border-radius: 7px;
+  box-shadow: inset 0 0 16px rgba(255, 255, 255, 0.15);
+}
+
+body[data-theme="liquid-glass"] .sticker::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(255, 255, 255, 0) 50%
+  );
+  pointer-events: none;
+}
+
+body[data-theme="liquid-glass"] .sticker--up .inner { background: rgba(245, 248, 255, 0.88); }
+body[data-theme="liquid-glass"] .sticker--down .inner { background: rgba(255, 220, 90, 0.88); }
+body[data-theme="liquid-glass"] .sticker--front .inner { background: rgba(255, 100, 120, 0.88); }
+body[data-theme="liquid-glass"] .sticker--back .inner { background: rgba(255, 160, 80, 0.88); }
+body[data-theme="liquid-glass"] .sticker--right .inner { background: rgba(100, 220, 120, 0.88); }
+body[data-theme="liquid-glass"] .sticker--left .inner { background: rgba(110, 180, 255, 0.88); }
+
+/* Hero wrapper for the homepage */
+.cube-hero {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: var(--space-10);
+  align-items: center;
+  padding: var(--space-6) var(--space-4);
+}
+
+.cube-hero__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 480px;
+}
+
+.cube-hero__title {
+  font-size: clamp(2.4rem, 4vw + 1rem, 4rem);
+  line-height: 1.04;
+}
+
+.cube-hero__lead {
+  font-size: 1.05rem;
+  color: var(--ink-soft);
+  max-width: 42ch;
+}
+
+.cube-hero__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.cube-hero__hint {
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-top: var(--space-3);
+}
+
+@media (max-width: 880px) {
+  .cube-hero {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+    text-align: left;
+  }
+  .cube-stage {
+    --cubelet: 52px;
+  }
+}

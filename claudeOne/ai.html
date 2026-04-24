@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src https://api.deepseek.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>claudeOne · DeepSeek 聊天</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+  <link rel="stylesheet" href="./css/neumorphism.css" />
+  <link rel="stylesheet" href="./css/liquid-glass.css" />
+  <link rel="stylesheet" href="./css/animations.css" />
+</head>
+<body data-page="ai" data-route-state="idle">
+  <script src="./js/theme-init.js"></script>
+
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <div class="ambient ambient-c"></div>
+
+  <div class="site-shell">
+    <header class="site-header page-chunk" data-reveal-order="1">
+      <a class="site-brand" href="./index.html" data-nav-link>
+        <span class="brand-mark" aria-hidden="true">◩</span>
+        <span class="brand-text">
+          <small>Workspace</small>
+          <strong>claudeOne</strong>
+        </span>
+      </a>
+
+      <nav class="site-nav" aria-label="Main">
+        <a href="./index.html" data-nav-link>首页</a>
+        <a href="./game.html" data-nav-link>俄罗斯转盘</a>
+        <a href="./ai.html" data-nav-link>DeepSeek</a>
+      </nav>
+
+      <div class="header-actions">
+        <label class="theme-toggle" aria-label="切换主题">
+          <span class="theme-toggle__label" data-theme-label>Soft UI</span>
+          <input type="checkbox" data-theme-toggle class="theme-toggle__input" />
+          <span class="theme-toggle__track">
+            <span class="theme-toggle__thumb"></span>
+          </span>
+        </label>
+        <span class="sr-only" data-theme-live aria-live="polite"></span>
+      </div>
+    </header>
+
+    <main class="page-stack">
+      <section class="page-chunk" data-reveal-order="2">
+        <span class="section-kicker">Chat</span>
+        <h1 style="margin-top:12px">DeepSeek V4</h1>
+        <p class="muted" style="max-width:62ch; margin-top:8px">
+          对接 DeepSeek 官方 /chat/completions 接口，支持思维链（reasoning_content）与流式回复。
+          API Key 只写入你本地浏览器的 localStorage，不进代码仓库。
+        </p>
+      </section>
+
+      <section class="card chat-shell page-chunk" data-reveal-order="3" data-ai-root>
+        <div class="chat-controls">
+          <label class="field" style="min-width:200px">
+            <span class="field__label">模型</span>
+            <select class="select" data-model aria-label="模型"></select>
+          </label>
+
+          <label class="switch" style="margin-top:22px">
+            <input type="checkbox" data-thinking />
+            <span class="switch__track"></span>
+            <span class="switch__label">思维链</span>
+          </label>
+
+          <div class="segmented" data-effort role="radiogroup" aria-label="推理强度" hidden>
+            <label><input type="radio" name="effort" value="high" /> High</label>
+            <label><input type="radio" name="effort" value="max" /> Max</label>
+          </div>
+
+          <button class="btn btn-ghost btn-sm" data-clear type="button">清空对话</button>
+          <button class="btn btn-ghost btn-sm" data-apikey-open type="button">API Key</button>
+
+          <span class="chat-status" data-status>就绪</span>
+        </div>
+
+        <div class="chat-messages" data-messages></div>
+
+        <form class="chat-composer" data-composer>
+          <label class="field" style="grid-column: 1">
+            <span class="sr-only">Message</span>
+            <textarea class="textarea" data-input rows="2" maxlength="4000"
+                      placeholder="问点什么… (Enter 发送, Shift+Enter 换行)"></textarea>
+          </label>
+          <button class="btn btn-ghost btn-sm" data-stop type="button" hidden>中止</button>
+          <button class="btn btn-primary" data-send type="submit">发送</button>
+        </form>
+      </section>
+    </main>
+
+    <footer class="site-footer page-chunk" data-reveal-order="4">
+      <span>claudeOne · DeepSeek V4</span>
+    </footer>
+  </div>
+
+  <script src="./js/config.js"></script>
+  <script src="./js/shell.js"></script>
+  <script src="./js/ai.js"></script>
+</body>
+</html>
