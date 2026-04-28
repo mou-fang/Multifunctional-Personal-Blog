@@ -212,6 +212,13 @@
   dominant-baseline: central;
   text-anchor: middle;
   pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 5.2s cubic-bezier(0.12, 0.72, 0.12, 1);
+}
+
+.wheel-rotor[data-instant="true"] .wheel-label {
+  transition: none;
 }
 
 .wheel-label--small {
@@ -578,8 +585,9 @@
   display: grid;
   place-items: center;
   padding: var(--space-6);
-  background: rgba(5, 7, 13, 0.78);
-  backdrop-filter: blur(16px);
+  background: rgba(31, 53, 89, 0.26);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--dur) var(--ease-out);
@@ -599,14 +607,42 @@
   padding: clamp(30px, 6vw, 58px);
   border-radius: var(--radius-xl);
   text-align: center;
-  color: #fff;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(255, 215, 106, 0.28), transparent 42%),
-    linear-gradient(145deg, #151c32, #070a12);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.48);
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: var(--shadow-out);
   transform: scale(0.92) translateY(18px);
   transition: transform var(--dur-slow) var(--ease-spring);
+  position: relative;
+  overflow: hidden;
+}
+
+.winner-card::before {
+  content: "";
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  width: 330px;
+  height: 330px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(247, 185, 85, 0.22), transparent 66%);
+  pointer-events: none;
+}
+
+.winner-card::after {
+  content: "★";
+  position: absolute;
+  top: var(--space-6);
+  right: var(--space-8);
+  color: var(--warning);
+  font-size: 1.25rem;
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+.winner-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .winner-reveal[data-visible="true"] .winner-card {
@@ -614,11 +650,16 @@
 }
 
 .winner-card__kicker {
-  color: #ffd76a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  color: var(--warning);
+  background: var(--surface-sunken);
   font-size: 0.92rem;
   font-weight: 900;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .winner-card h2 {
@@ -626,13 +667,13 @@
   font-family: "Sora", "Manrope", sans-serif;
   font-size: clamp(2.5rem, 8vw, 5rem);
   line-height: 1;
-  color: #fff;
+  color: var(--ink);
   overflow-wrap: anywhere;
 }
 
 .winner-card p {
   margin: var(--space-4) 0 var(--space-8);
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--ink-soft);
   font-weight: 700;
 }
 
@@ -647,6 +688,54 @@ body[data-theme="liquid-glass"] .tiny-btn {
   box-shadow: var(--glass-shadow);
 }
 
+body[data-theme="liquid-glass"] .winner-reveal {
+  background:
+    radial-gradient(circle at 22% 18%, rgba(42, 107, 255, 0.18), transparent 30%),
+    radial-gradient(circle at 78% 72%, rgba(140, 75, 255, 0.14), transparent 34%),
+    rgba(243, 243, 243, 0.38);
+}
+
+body[data-theme="liquid-glass"] .winner-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  border: 1px solid var(--border);
+  box-shadow: var(--glass-shadow);
+  filter: brightness(0.99);
+}
+
+body[data-theme="liquid-glass"] .winner-card::before {
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  width: auto;
+  height: auto;
+  transform: none;
+  border: 1px solid rgba(0, 0, 0, 0.78);
+  filter: blur(10px);
+  opacity: 0.5;
+  background: transparent;
+}
+
+body[data-theme="liquid-glass"] .winner-card::after {
+  content: "";
+  inset: 0;
+  top: 0;
+  right: 0;
+  border-radius: inherit;
+  background: var(--glass-overlay);
+  color: transparent;
+  filter: blur(3px);
+  opacity: 0.85;
+}
+
+body[data-theme="liquid-glass"] .winner-card__kicker {
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
+  box-shadow: var(--glass-shadow-sm);
+}
+
 body[data-theme="liquid-glass"] .draw-stage {
   box-shadow:
     inset 2px -2px 1px -1px rgba(255, 255, 255, 0.22),
@@ -658,6 +747,27 @@ body[data-theme="neumorphism"] .control-card,
 body[data-theme="neumorphism"] .random-badge,
 body[data-theme="neumorphism"] .tiny-btn {
   box-shadow: var(--shadow-out-sm);
+}
+
+body[data-theme="neumorphism"] .winner-reveal {
+  background: rgba(230, 239, 255, 0.72);
+}
+
+body[data-theme="neumorphism"] .winner-card {
+  background: var(--surface);
+  box-shadow: 18px 18px 42px #bbc6dc, -18px -18px 42px #ffffff;
+  border: none;
+}
+
+body[data-theme="neumorphism"] .winner-card__kicker {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .winner-card .btn-primary {
+  box-shadow:
+    8px 8px 18px #c5cee0,
+    -8px -8px 18px #ffffff,
+    0 0 28px rgba(111, 155, 255, 0.28);
 }
 
 @media (max-width: 1080px) {

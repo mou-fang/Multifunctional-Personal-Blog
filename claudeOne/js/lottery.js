@@ -321,6 +321,20 @@
     html += '<circle class="wheel-center" cx="300" cy="300" r="48" />';
     html += '<circle class="wheel-center-dot" cx="300" cy="300" r="18" />';
     els.wheelRotor.innerHTML = html;
+    applyLabelCounterRotation(state.currentAngle, true);
+  }
+
+  function applyLabelCounterRotation(angle, instant = false) {
+    const labels = els.wheelRotor.querySelectorAll(".wheel-label");
+    if (instant) els.wheelRotor.dataset.instant = "true";
+    labels.forEach((label) => {
+      label.style.transform = "rotate(" + (-angle) + "deg)";
+    });
+    if (instant) {
+      requestAnimationFrame(() => {
+        if (!state.spinning) delete els.wheelRotor.dataset.instant;
+      });
+    }
   }
 
   function renderPrizes() {
@@ -599,11 +613,13 @@
     els.wheelFrame.dataset.spinning = "true";
     els.wheelRotor.dataset.instant = "true";
     els.wheelRotor.style.transform = "rotate(" + previousAngle + "deg)";
+    applyLabelCounterRotation(previousAngle, true);
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         delete els.wheelRotor.dataset.instant;
         els.wheelRotor.style.transform = "rotate(" + targetAngle + "deg)";
+        applyLabelCounterRotation(targetAngle);
         state.currentAngle = targetAngle;
         clearTimeout(spinFallbackTimer);
         spinFallbackTimer = setTimeout(resolveSpin, 5700);
@@ -675,6 +691,7 @@
     state.pendingWinner = null;
     els.wheelRotor.dataset.instant = "true";
     els.wheelRotor.style.transform = "rotate(0deg)";
+    applyLabelCounterRotation(0, true);
     saveState();
     renderAll();
     toast("中奖状态已重置", "ok");
