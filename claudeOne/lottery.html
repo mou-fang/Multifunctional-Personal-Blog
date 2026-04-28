@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="description" content="claudeOne 幸运抽奖活动大屏" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>claudeOne · 幸运抽奖</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23050510'/%3E%3Cpath d='M32 6l6.5 17.5L57 24l-14.5 11 5.2 18L32 42 16.3 53l5.2-18L7 24l18.5-.5L32 6z' fill='%23ffd76a'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+  <link rel="stylesheet" href="./css/neumorphism.css" />
+  <link rel="stylesheet" href="./css/liquid-glass.css" />
+  <link rel="stylesheet" href="./css/animations.css" />
+  <link rel="stylesheet" href="./css/lottery.css" />
+</head>
+<body data-page="lottery" data-route-state="idle">
+  <script src="./js/theme-init.js"></script>
+
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <div class="ambient ambient-c"></div>
+
+  <div class="site-shell">
+    <header class="site-header page-chunk" data-reveal-order="1">
+      <a class="site-brand" href="./index.html" data-nav-link>
+        <span class="brand-mark" aria-hidden="true">◩</span>
+        <span class="brand-text">
+          <small>Workspace</small>
+          <strong>claudeOne</strong>
+        </span>
+      </a>
+
+      <nav class="site-nav" aria-label="Main">
+        <a href="./index.html" data-nav-link>首页</a>
+        <a href="./lottery.html" data-nav-link>幸运抽奖</a>
+        <a href="./game.html" data-nav-link>俄罗斯转盘</a>
+        <a href="./ai.html" data-nav-link>DeepSeek</a>
+      </nav>
+
+      <div class="header-actions">
+        <label class="theme-toggle" aria-label="切换主题">
+          <span class="theme-toggle__label" data-theme-label>Soft UI</span>
+          <input type="checkbox" data-theme-toggle class="theme-toggle__input" />
+          <span class="theme-toggle__track">
+            <span class="theme-toggle__thumb"></span>
+          </span>
+        </label>
+        <span class="sr-only" data-theme-live aria-live="polite"></span>
+      </div>
+    </header>
+
+    <main class="lottery-page page-stack" data-lottery-root>
+      <section class="lottery-hero page-chunk" data-reveal-order="2">
+        <div>
+          <span class="pill pill--accent">Live Draw</span>
+          <h1>幸运抽奖</h1>
+          <p>使用 Web Crypto 安全随机数抽取中奖者。动画只负责展示，结果由无偏随机整数先行决定。</p>
+        </div>
+        <div class="random-badge" data-random-status>
+          <span class="random-badge__dot" aria-hidden="true"></span>
+          安全随机：Web Crypto
+        </div>
+      </section>
+
+      <section class="lottery-layout page-chunk" data-reveal-order="3">
+        <div class="draw-stage" aria-label="抽奖舞台">
+          <div class="stage-glow" aria-hidden="true"></div>
+
+          <div class="draw-status">
+            <span class="draw-status__label">当前奖项</span>
+            <strong data-current-prize>一等奖</strong>
+            <span data-prize-progress>剩余 1 / 1 名</span>
+          </div>
+
+          <div class="wheel-wrap" data-wheel-frame>
+            <div class="bulb-ring" data-bulb-ring aria-hidden="true"></div>
+            <svg class="wheel-svg" viewBox="0 0 600 600" role="img" aria-label="抽奖转盘">
+              <g class="wheel-rotor" data-wheel-rotor></g>
+            </svg>
+            <div class="wheel-pointer" aria-hidden="true"></div>
+            <div class="wheel-halo" aria-hidden="true"></div>
+          </div>
+
+          <button class="draw-button" data-spin-btn type="button">
+            <span>开始抽奖</span>
+            <small data-spin-subtitle>可抽 6 人</small>
+          </button>
+
+          <div class="stage-stats">
+            <span><strong data-active-count>6</strong> 可抽人数</span>
+            <span><strong data-winner-count>0</strong> 已中奖</span>
+            <span><strong data-prize-count>3</strong> 奖项</span>
+          </div>
+
+          <div class="confetti-layer" data-confetti-layer aria-hidden="true"></div>
+        </div>
+
+        <aside class="control-deck" aria-label="抽奖控制台">
+          <section class="control-card prize-card">
+            <div class="panel-head">
+              <div>
+                <span class="section-kicker">Prizes</span>
+                <h2>奖项设置</h2>
+              </div>
+              <button class="btn btn-ghost btn-sm" data-reset-winners type="button">重置中奖</button>
+            </div>
+
+            <div class="prize-list" data-prize-list></div>
+
+            <form class="inline-form" data-prize-form>
+              <input class="input" data-prize-name type="text" maxlength="24" placeholder="奖项名称，例如 特等奖" autocomplete="off" />
+              <input class="input input-quota" data-prize-quota type="number" min="1" max="100" value="1" aria-label="名额" />
+              <button class="btn btn-primary btn-sm" data-prize-submit type="submit">添加奖项</button>
+              <button class="btn btn-ghost btn-sm" data-prize-cancel type="button" hidden>取消</button>
+            </form>
+          </section>
+
+          <section class="control-card">
+            <div class="panel-head">
+              <div>
+                <span class="section-kicker">People</span>
+                <h2>参与者</h2>
+              </div>
+              <button class="btn btn-ghost btn-sm" data-clear-participants type="button">清空名单</button>
+            </div>
+
+            <form class="inline-form" data-participant-form>
+              <input class="input" data-participant-name type="text" maxlength="24" placeholder="输入姓名" autocomplete="off" />
+              <button class="btn btn-primary btn-sm" data-participant-submit type="submit">添加</button>
+              <button class="btn btn-ghost btn-sm" data-participant-cancel type="button" hidden>取消</button>
+            </form>
+
+            <div class="bulk-import">
+              <textarea class="textarea" data-bulk-input rows="5" placeholder="批量导入名单：每行一个名字"></textarea>
+              <div class="bulk-actions">
+                <button class="btn btn-primary btn-sm" data-import-participants type="button">导入名单</button>
+                <button class="btn btn-ghost btn-sm" data-clear-bulk type="button">清空输入</button>
+              </div>
+            </div>
+
+            <div class="participant-list" data-participant-list></div>
+          </section>
+
+          <section class="control-card winners-card">
+            <div class="panel-head">
+              <div>
+                <span class="section-kicker">Winners</span>
+                <h2>中奖记录</h2>
+              </div>
+              <button class="btn btn-ghost btn-sm" data-reset-all type="button">重置全部</button>
+            </div>
+            <div class="winner-list" data-winner-list></div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="site-footer page-chunk" data-reveal-order="4">
+      <span>claudeOne · Web Crypto lottery · no build</span>
+    </footer>
+  </div>
+
+  <div class="winner-reveal" data-winner-reveal aria-hidden="true" hidden>
+    <div class="winner-card" role="dialog" aria-modal="true" aria-labelledby="winnerTitle">
+      <span class="winner-card__kicker" data-reveal-prize>一等奖</span>
+      <h2 id="winnerTitle" data-reveal-name>中奖者</h2>
+      <p data-reveal-copy>恭喜中奖</p>
+      <button class="btn btn-primary" data-reveal-close type="button">继续抽奖</button>
+    </div>
+  </div>
+
+  <script src="./js/config.js"></script>
+  <script src="./js/shell.js"></script>
+  <script src="./js/lottery.js"></script>
+</body>
+</html>

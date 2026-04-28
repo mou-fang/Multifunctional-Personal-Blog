@@ -42,6 +42,7 @@
 
       <nav class="site-nav" aria-label="Main">
         <a href="./index.html" data-nav-link>首页</a>
+        <a href="./lottery.html" data-nav-link>幸运抽奖</a>
         <a href="./game.html" data-nav-link>俄罗斯转盘</a>
         <a href="./ai.html" data-nav-link>DeepSeek</a>
       </nav>
@@ -60,7 +61,31 @@
 
     <main class="page-stack">
       <section class="cube-hero page-chunk" data-reveal-order="2">
-        <div class="cube-stage" data-cube-stage aria-label="3D Rubik's cube"></div>
+        <div class="cube-hero__cube">
+          <div class="cube-stage" data-cube-stage aria-label="3D Rubik's cube"></div>
+
+          <div class="cube-controls">
+            <div class="cube-turns" role="toolbar" aria-label="魔方面操作">
+              <button class="cube-turn-btn" data-cube-turn="U" type="button" aria-label="Up clockwise">U</button>
+              <button class="cube-turn-btn" data-cube-turn="U'" type="button" aria-label="Up counter-clockwise">U'</button>
+              <button class="cube-turn-btn" data-cube-turn="D" type="button" aria-label="Down clockwise">D</button>
+              <button class="cube-turn-btn" data-cube-turn="D'" type="button" aria-label="Down counter-clockwise">D'</button>
+              <button class="cube-turn-btn" data-cube-turn="L" type="button" aria-label="Left clockwise">L</button>
+              <button class="cube-turn-btn" data-cube-turn="L'" type="button" aria-label="Left counter-clockwise">L'</button>
+              <button class="cube-turn-btn" data-cube-turn="R" type="button" aria-label="Right clockwise">R</button>
+              <button class="cube-turn-btn" data-cube-turn="R'" type="button" aria-label="Right counter-clockwise">R'</button>
+              <button class="cube-turn-btn" data-cube-turn="F" type="button" aria-label="Front clockwise">F</button>
+              <button class="cube-turn-btn" data-cube-turn="F'" type="button" aria-label="Front counter-clockwise">F'</button>
+              <button class="cube-turn-btn" data-cube-turn="B" type="button" aria-label="Back clockwise">B</button>
+              <button class="cube-turn-btn" data-cube-turn="B'" type="button" aria-label="Back counter-clockwise">B'</button>
+            </div>
+            <div class="cube-actions">
+              <button class="btn btn-primary" data-cube-scramble type="button">打乱</button>
+              <button class="btn btn-ghost" data-cube-reset type="button">还原</button>
+            </div>
+            <p class="cube-hint">键盘：U D L R F B（Shift = 反向）· 空格打乱 · Esc 还原</p>
+          </div>
+        </div>
 
         <div class="cube-hero__copy">
           <span class="pill pill--accent">claudeOne</span>
@@ -105,12 +130,15 @@
             <span class="card-arrow">Chat &rarr;</span>
           </a>
 
-          <div class="card card--soon page-chunk" data-reveal-order="6" aria-disabled="true">
-            <span class="card-eyebrow">Coming Soon</span>
-            <h3 class="card-title">预留位 · 01</h3>
-            <p class="card-desc">想到合适的工具会补上，可能是便签、可能是计时器，目前空着。</p>
-            <span class="card-arrow">Waiting</span>
-          </div>
+          <a class="card card-link page-chunk" data-reveal-order="6" href="./lottery.html" data-nav-link>
+            <span class="card-eyebrow">工具</span>
+            <h3 class="card-title">幸运抽奖</h3>
+            <p class="card-desc">
+              嘉年华风格大转盘，真随机算法驱动。添加参与者，命运交给转盘，
+              粒子爆发和五彩纸屑见证赢家诞生。
+            </p>
+            <span class="card-arrow">Draw &rarr;</span>
+          </a>
 
           <div class="card card--soon page-chunk" data-reveal-order="7" aria-disabled="true">
             <span class="card-eyebrow">Coming Soon</span>

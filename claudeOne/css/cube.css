@@ -33,9 +33,26 @@
 
 .cubelet {
   position: absolute;
+  /* Anchor every cubelet's bounding box at the cube wrapper's center; its
+     individual matrix3d transform then offsets it to the right slot. This
+     ensures slice rotations pivot through the cube center. */
+  left: calc(50% - var(--cubelet) / 2);
+  top: calc(50% - var(--cubelet) / 2);
   width: var(--cubelet);
   height: var(--cubelet);
   transform-style: preserve-3d;
+}
+
+/* Temporary group used while a layer turn is animating. Same bounds as .cube
+   so its transform-origin (50% 50%) coincides with the cube center. */
+.cube-slice {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  pointer-events: none;
+  will-change: transform;
 }
 
 .sticker {
@@ -106,16 +123,19 @@ body[data-theme="neumorphism"] .sticker {
     -2px -2px 6px rgba(255, 255, 255, 0.35);
 }
 
-/* Liquid Glass: translucent tiles with specular highlight */
+/* Liquid Glass: pearl-glass stickers — multi-shadow gleam + diagonal specular */
 body[data-theme="liquid-glass"] .sticker {
   background: rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 1px -1px 1px rgba(255, 255, 255, 0.9),
+    inset -1px 1px 1px rgba(255, 255, 255, 0.9),
+    inset 0 0 1px rgba(0, 0, 0, 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
 body[data-theme="liquid-glass"] .sticker .inner {
   border-radius: 7px;
-  box-shadow: inset 0 0 16px rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.35);
 }
 
 body[data-theme="liquid-glass"] .sticker::before {
@@ -124,19 +144,116 @@ body[data-theme="liquid-glass"] .sticker::before {
   inset: 0;
   border-radius: inherit;
   background: linear-gradient(
-    155deg,
-    rgba(255, 255, 255, 0.4) 0%,
-    rgba(255, 255, 255, 0) 50%
+    45deg,
+    rgba(255, 255, 255, 0.7) 0%,
+    transparent 25%,
+    transparent 75%,
+    rgba(255, 255, 255, 0.7) 100%
   );
+  filter: blur(2px);
   pointer-events: none;
+  z-index: 1;
 }
 
-body[data-theme="liquid-glass"] .sticker--up .inner { background: rgba(245, 248, 255, 0.88); }
-body[data-theme="liquid-glass"] .sticker--down .inner { background: rgba(255, 220, 90, 0.88); }
-body[data-theme="liquid-glass"] .sticker--front .inner { background: rgba(255, 100, 120, 0.88); }
-body[data-theme="liquid-glass"] .sticker--back .inner { background: rgba(255, 160, 80, 0.88); }
-body[data-theme="liquid-glass"] .sticker--right .inner { background: rgba(100, 220, 120, 0.88); }
-body[data-theme="liquid-glass"] .sticker--left .inner { background: rgba(110, 180, 255, 0.88); }
+body[data-theme="liquid-glass"] .sticker .inner { z-index: 0; }
+
+body[data-theme="liquid-glass"] .sticker--up .inner { background: rgba(248, 248, 248, 0.92); }
+body[data-theme="liquid-glass"] .sticker--down .inner { background: rgba(255, 220, 90, 0.92); }
+body[data-theme="liquid-glass"] .sticker--front .inner { background: rgba(220, 70, 90, 0.92); }
+body[data-theme="liquid-glass"] .sticker--back .inner { background: rgba(230, 130, 60, 0.92); }
+body[data-theme="liquid-glass"] .sticker--right .inner { background: rgba(80, 180, 100, 0.92); }
+body[data-theme="liquid-glass"] .sticker--left .inner { background: rgba(80, 140, 220, 0.92); }
+
+/* ===== Cube + controls column on the homepage ===== */
+.cube-hero__cube {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.cube-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  max-width: 100%;
+}
+
+body[data-theme="neumorphism"] .cube-controls {
+  box-shadow: var(--shadow-out-sm);
+}
+
+body[data-theme="liquid-glass"] .cube-controls {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--border);
+  box-shadow: var(--glass-shadow-sm);
+}
+
+.cube-turns {
+  display: grid;
+  grid-template-columns: repeat(6, auto);
+  gap: var(--space-2);
+}
+
+.cube-turn-btn {
+  width: 38px;
+  height: 34px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  font-family: "Sora", "Manrope", sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: var(--surface-sunken);
+  transition: transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+}
+
+.cube-turn-btn:hover {
+  transform: translateY(-1px);
+}
+.cube-turn-btn:active {
+  transform: translateY(1px) scale(0.96);
+}
+
+body[data-theme="neumorphism"] .cube-turn-btn {
+  box-shadow: var(--shadow-out-sm);
+}
+body[data-theme="neumorphism"] .cube-turn-btn:active {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="liquid-glass"] .cube-turn-btn {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(51, 51, 51, 0.08);
+  box-shadow: var(--glass-shadow-sm);
+}
+
+.cube-actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.cube-actions .btn {
+  padding: 8px 18px;
+  font-size: 0.84rem;
+}
+
+.cube-hint {
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  text-align: center;
+}
 
 /* Hero wrapper for the homepage */
 .cube-hero {

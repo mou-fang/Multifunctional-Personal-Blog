@@ -90,7 +90,7 @@
   // body's computed background when it's a gradient stack).
   const THEME_BG = {
     neumorphism: "#e6efff",
-    "liquid-glass": "#07132a",
+    "liquid-glass": "#f3f3f3",
   };
 
   function setThemeAnimated(nextTheme, origin) {

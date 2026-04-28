@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m http.server 8765)",
+      "Bash(curl -sI http://localhost:8765/index.html)",
+      "Bash(curl -sI http://localhost:8765/game.html)",
+      "Bash(curl -sI http://localhost:8765/ai.html)",
+      "Bash(curl -sI http://localhost:8765/css/base.css)",
+      "Bash(curl -sI http://localhost:8765/js/shell.js)",
+      "Read(//d/eluosizhuanpan/**)",
+      "Bash(curl -s -o /dev/null -w \"index: %{http_code} \\(%{size_download} bytes\\)\\\\n\" http://localhost:8765/index.html)",
+      "Bash(curl -s -o /dev/null -w \"cube.js: %{http_code} \\(%{size_download} bytes\\)\\\\n\" http://localhost:8765/js/cube.js)",
+      "Bash(curl -s -o /dev/null -w \"cube.css: %{http_code} \\(%{size_download} bytes\\)\\\\n\" http://localhost:8765/css/cube.css)",
+      "Bash(kill %1)"
+    ]
+  }
+}

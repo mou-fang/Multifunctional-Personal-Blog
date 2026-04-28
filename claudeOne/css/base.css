@@ -114,41 +114,59 @@ body[data-theme="neumorphism"] {
   --ring: rgba(111, 155, 255, 0.45);
 }
 
-/* ===== Theme: Liquid Glass ===== */
+/* ===== Theme: Liquid Glass =====
+   Light pearl-glass aesthetic: a near-white surface base with subtle grid
+   pattern in the background, multi-shadow glass elements (gleam highlights,
+   dark inner edge, soft drop shadow). Text stays dark and readable. */
 body[data-theme="liquid-glass"] {
-  --bg: #07132a;
-  --bg-soft: #0b1b3b;
-  --surface: rgba(255, 255, 255, 0.07);
-  --surface-raised: rgba(255, 255, 255, 0.1);
-  --surface-sunken: rgba(255, 255, 255, 0.04);
-  --ink: #eaf2ff;
-  --ink-soft: #b9c8e4;
-  --ink-muted: #7f90b4;
-  --accent: #5fc8ff;
-  --accent-ink: #04101e;
-  --accent-soft: rgba(95, 200, 255, 0.22);
-  --danger: #ff6b8a;
-  --success: #70e8be;
-  --warning: #ffd28a;
+  --bg: #f3f3f3;
+  --bg-grid: #e1e1e1;
+  --bg-soft: #ececec;
+  --surface: rgba(255, 255, 255, 0.04);
+  --surface-raised: rgba(255, 255, 255, 0.10);
+  --surface-sunken: rgba(255, 255, 255, 0.02);
+  --ink: #3e3e3e;
+  --ink-soft: #5a5a5a;
+  --ink-muted: #8a8a8a;
+  --accent: #3e3e3e;
+  --accent-ink: #f5f5f5;
+  --accent-soft: rgba(62, 62, 62, 0.10);
+  --danger: #c83a4a;
+  --success: #2f9c6c;
+  --warning: #c08a30;
 
-  --shadow-out: 0 20px 60px rgba(5, 12, 30, 0.55),
-    0 2px 0 rgba(255, 255, 255, 0.06) inset,
-    0 -1px 0 rgba(0, 0, 0, 0.25) inset;
-  --shadow-out-sm: 0 10px 32px rgba(5, 12, 30, 0.5),
-    0 1px 0 rgba(255, 255, 255, 0.06) inset;
-  --shadow-in: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-  --shadow-in-sm: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  /* Glass shadow stack (used by the .glass mixin in liquid-glass.css) */
+  --glass-shadow:
+    inset 2px -2px 1px -1px rgba(255, 255, 255, 0.9),
+    inset -2px 2px 1px -1px rgba(255, 255, 255, 0.9),
+    inset 6px -6px 1px -6px rgba(255, 255, 255, 0.55),
+    inset -6px 6px 1px -6px rgba(255, 255, 255, 0.55),
+    inset 0 0 2px rgba(0, 0, 0, 0.8),
+    0 4px 8px rgba(0, 0, 0, 0.2);
+  --glass-shadow-sm:
+    inset 1px -1px 1px 0 rgba(255, 255, 255, 0.9),
+    inset -1px 1px 1px 0 rgba(255, 255, 255, 0.9),
+    inset 4px -4px 1px -4px rgba(255, 255, 255, 0.55),
+    inset -4px 4px 1px -4px rgba(255, 255, 255, 0.55),
+    inset 0 0 1.5px rgba(0, 0, 0, 0.7),
+    0 2px 6px rgba(0, 0, 0, 0.18);
 
-  --border: rgba(255, 255, 255, 0.14);
-  --border-soft: rgba(255, 255, 255, 0.08);
-  --backdrop-blur: 26px;
+  --shadow-out: var(--glass-shadow);
+  --shadow-out-sm: var(--glass-shadow-sm);
+  --shadow-in: var(--glass-shadow-sm);
+  --shadow-in-sm: var(--glass-shadow-sm);
+
+  --border: rgba(51, 51, 51, 0.08);
+  --border-soft: rgba(51, 51, 51, 0.05);
+  --backdrop-blur: 2px;
   --glass-overlay: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.22) 0%,
-    rgba(255, 255, 255, 0.04) 45%,
-    rgba(255, 255, 255, 0) 100%
+    45deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    transparent 25%,
+    transparent 75%,
+    rgba(255, 255, 255, 0.8) 100%
   );
-  --ring: rgba(95, 200, 255, 0.6);
+  --ring: rgba(62, 62, 62, 0.45);
 }
 
 body {

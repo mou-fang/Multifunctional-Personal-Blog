@@ -22,5 +22,10 @@ window.CLAUDE_ONE_CONFIG = Object.freeze({
     playersMax: 10,
     chamberMin: 4,
     chamberMax: 12,
+    lotteryParticipantsMin: 2,
+    lotteryParticipantsMax: 300,
+    lotteryParticipantNameMax: 24,
+    lotteryPrizeNameMax: 24,
+    lotteryPrizeQuotaMax: 100,
   }),
 });

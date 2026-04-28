@@ -1,20 +1,54 @@
-/* ===== claudeOne :: liquid-glass.css ===== */
-/* Apple-style Liquid Glass: translucent surfaces with backdrop blur, specular
-   diagonal highlights, subtle inner strokes. The ambient orbs declared in
-   base.css become visible under this theme so backdrop-filter has real color
-   to pull from. */
+/* ===== claudeOne :: liquid-glass.css =====
+   Pearl-glass aesthetic adapted from the "纯CSS液态玻璃" reference:
+     - Light grid-patterned background (gray pinstripes on near-white)
+     - Multi-layered inset white shadows for top-right and bottom-left gleams
+     - Dark inner-blur ring (::before) faking a thick refractive lens edge
+     - Diagonal specular gradient (::after) softly blurred
+     - Subtle semi-transparent fill with light backdrop blur
+   Activated by [data-theme="liquid-glass"] on <body>. */
 
 body[data-theme="liquid-glass"] {
-  background: radial-gradient(
-      ellipse at 20% 0%,
-      #0b2146 0%,
-      transparent 45%
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(
+      0deg,
+      transparent 24%,
+      var(--bg-grid) 25%,
+      var(--bg-grid) 26%,
+      transparent 27%,
+      transparent 74%,
+      var(--bg-grid) 75%,
+      var(--bg-grid) 76%,
+      transparent 77%,
+      transparent
     ),
-    radial-gradient(ellipse at 100% 100%, #10102d 0%, transparent 55%),
-    var(--bg);
+    linear-gradient(
+      90deg,
+      transparent 24%,
+      var(--bg-grid) 25%,
+      var(--bg-grid) 26%,
+      transparent 27%,
+      transparent 74%,
+      var(--bg-grid) 75%,
+      var(--bg-grid) 76%,
+      transparent 77%,
+      transparent
+    );
+  background-size: 55px 55px;
+  background-attachment: fixed;
 }
 
-/* Shared glass surface treatment via common selectors */
+/* Hide the dark-mode ambient orbs in this theme — they don't fit a light glass */
+body[data-theme="liquid-glass"] .ambient {
+  opacity: 0;
+}
+
+/* Shared glass surface treatment.
+   Each glassy element gets:
+     - subtle white tint + light backdrop blur
+     - the layered inset shadow stack via --glass-shadow
+     - position:relative so ::before/::after can stack
+   Then each adds a ::before (dark inner ring) and ::after (diagonal gleam). */
 body[data-theme="liquid-glass"] .brand-mark,
 body[data-theme="liquid-glass"] .site-nav,
 body[data-theme="liquid-glass"] .theme-toggle,
@@ -27,138 +61,279 @@ body[data-theme="liquid-glass"] .textarea,
 body[data-theme="liquid-glass"] .select,
 body[data-theme="liquid-glass"] .pill,
 body[data-theme="liquid-glass"] .stepper,
-body[data-theme="liquid-glass"] .radio-option {
-  background: var(--surface);
-  backdrop-filter: blur(var(--backdrop-blur)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--backdrop-blur)) saturate(180%);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-out-sm);
+body[data-theme="liquid-glass"] .radio-option,
+body[data-theme="liquid-glass"] .switch__track,
+body[data-theme="liquid-glass"] .segmented {
   position: relative;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  border: 1px solid var(--border);
+  box-shadow: var(--glass-shadow-sm);
+  color: var(--ink);
+  filter: brightness(0.98);
 }
 
-/* Specular highlight overlay — a diagonal gradient sitting above the glass */
+/* Larger glass surfaces use the full shadow stack */
+body[data-theme="liquid-glass"] .card,
+body[data-theme="liquid-glass"] .modal-card {
+  box-shadow: var(--glass-shadow);
+}
+
+/* ::before — blurred dark inner ring, gives the lens-edge thickness */
+body[data-theme="liquid-glass"] .brand-mark::before,
+body[data-theme="liquid-glass"] .theme-toggle::before,
+body[data-theme="liquid-glass"] .card::before,
+body[data-theme="liquid-glass"] .btn::before,
+body[data-theme="liquid-glass"] .modal-card::before,
+body[data-theme="liquid-glass"] .pill::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  border-radius: inherit;
+  border: 1px solid rgba(0, 0, 0, 0.85);
+  filter: blur(8px);
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+/* ::after — diagonal specular gleam, blurred so it reads as soft reflection */
 body[data-theme="liquid-glass"] .brand-mark::after,
-body[data-theme="liquid-glass"] .site-nav::after,
 body[data-theme="liquid-glass"] .theme-toggle::after,
 body[data-theme="liquid-glass"] .card::after,
 body[data-theme="liquid-glass"] .btn::after,
 body[data-theme="liquid-glass"] .modal-card::after,
-body[data-theme="liquid-glass"] .input::after,
-body[data-theme="liquid-glass"] .textarea::after,
-body[data-theme="liquid-glass"] .select::after,
-body[data-theme="liquid-glass"] .pill::after,
-body[data-theme="liquid-glass"] .radio-option::after {
+body[data-theme="liquid-glass"] .pill::after {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 2;
   border-radius: inherit;
-  background: var(--glass-overlay);
-  mix-blend-mode: screen;
+  filter: blur(3px);
   pointer-events: none;
-  opacity: 0.9;
+  background: var(--glass-overlay);
+  opacity: 0.85;
   transition: opacity var(--dur) var(--ease-out);
 }
 
-/* Card strengthens specular on hover */
-body[data-theme="liquid-glass"] .card-link:hover {
-  border-color: rgba(255, 255, 255, 0.28);
-  transform: translateY(-6px) scale(1.015);
+/* Make sure actual content sits ABOVE the pseudo overlays */
+body[data-theme="liquid-glass"] .brand-mark > *,
+body[data-theme="liquid-glass"] .theme-toggle > *,
+body[data-theme="liquid-glass"] .card > *,
+body[data-theme="liquid-glass"] .btn > *,
+body[data-theme="liquid-glass"] .modal-card > *,
+body[data-theme="liquid-glass"] .pill > * {
+  position: relative;
+  z-index: 3;
 }
 
+/* Hover: brighten + lift card */
+body[data-theme="liquid-glass"] .card-link:hover {
+  filter: brightness(1.02);
+  transform: translateY(-6px);
+}
 body[data-theme="liquid-glass"] .card-link:hover::after {
   opacity: 1;
 }
 
-/* Site nav pill highlight */
+/* Site nav: glass pill row */
+body[data-theme="liquid-glass"] .site-nav {
+  background: rgba(255, 255, 255, 0.05);
+}
 body[data-theme="liquid-glass"] .site-nav a[aria-current="page"] {
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
+  box-shadow: var(--glass-shadow-sm);
 }
 
-/* Theme toggle glass */
+/* Theme toggle */
 body[data-theme="liquid-glass"] .theme-toggle__track {
-  background: rgba(0, 0, 0, 0.28);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.2),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.7);
 }
-
 body[data-theme="liquid-glass"] .theme-toggle__thumb {
   background: linear-gradient(
     160deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(200, 220, 255, 0.8) 100%
+    rgba(255, 255, 255, 1) 0%,
+    rgba(220, 220, 220, 0.9) 100%
   );
-  box-shadow: 0 2px 8px rgba(95, 200, 255, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    inset 1px -1px 1px rgba(255, 255, 255, 0.9),
+    inset -1px 1px 1px rgba(255, 255, 255, 0.9),
+    0 2px 4px rgba(0, 0, 0, 0.25);
+}
+body[data-theme="liquid-glass"] .theme-toggle__label {
+  color: var(--ink-soft);
 }
 
 /* Buttons */
+body[data-theme="liquid-glass"] .btn {
+  color: var(--ink);
+}
 body[data-theme="liquid-glass"] .btn-primary {
+  background: rgba(62, 62, 62, 0.92);
+  color: var(--accent-ink);
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.18),
+    0 4px 10px rgba(0, 0, 0, 0.3);
+}
+body[data-theme="liquid-glass"] .btn-primary::after {
   background: linear-gradient(
     160deg,
-    rgba(95, 200, 255, 0.9) 0%,
-    rgba(70, 160, 255, 0.85) 100%
+    rgba(255, 255, 255, 0.32) 0%,
+    transparent 45%
   );
-  color: #04101e;
-  border-color: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 12px 32px rgba(24, 100, 190, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
-
 body[data-theme="liquid-glass"] .btn-ghost {
   background: transparent;
   border-color: var(--border-soft);
   box-shadow: none;
 }
-
+body[data-theme="liquid-glass"] .btn-ghost::before,
+body[data-theme="liquid-glass"] .btn-ghost::after {
+  display: none;
+}
 body[data-theme="liquid-glass"] .btn:active {
-  filter: brightness(0.9);
+  filter: brightness(0.92);
 }
 
-/* Form focus */
+/* Form fields: pearl-translucent with crisp focus ring */
+body[data-theme="liquid-glass"] .input,
+body[data-theme="liquid-glass"] .textarea,
+body[data-theme="liquid-glass"] .select {
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.08),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.9);
+}
 body[data-theme="liquid-glass"] .input:focus,
 body[data-theme="liquid-glass"] .textarea:focus,
 body[data-theme="liquid-glass"] .select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--ring);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.10),
+    0 0 0 3px var(--ring);
 }
 
-/* Steppers */
+/* Stepper buttons */
+body[data-theme="liquid-glass"] .stepper {
+  background: rgba(255, 255, 255, 0.4);
+}
 body[data-theme="liquid-glass"] .stepper button {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(51, 51, 51, 0.08);
+  box-shadow: var(--glass-shadow-sm);
 }
 
 /* Switch */
 body[data-theme="liquid-glass"] .switch__track {
-  background: rgba(0, 0, 0, 0.4);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.5);
 }
-
 body[data-theme="liquid-glass"] .switch input:checked + .switch__track {
-  background: rgba(95, 200, 255, 0.4);
+  background: rgba(62, 62, 62, 0.85);
+}
+body[data-theme="liquid-glass"] .switch__track::after {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+body[data-theme="liquid-glass"] .switch input:checked + .switch__track::after {
+  background: rgba(255, 255, 255, 1);
 }
 
-/* Radios */
+/* Radio options */
+body[data-theme="liquid-glass"] .radio-option {
+  background: rgba(255, 255, 255, 0.45);
+}
 body[data-theme="liquid-glass"] .radio-option:has(input:checked) {
-  background: rgba(95, 200, 255, 0.16);
-  border-color: rgba(95, 200, 255, 0.5);
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(0, 0, 0, 0.2);
 }
-
 body[data-theme="liquid-glass"] .radio-option__mark {
-  background: rgba(0, 0, 0, 0.35);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
 }
 
-/* Shadows & borders stronger on big cards */
-body[data-theme="liquid-glass"] .card {
-  box-shadow: 0 20px 50px rgba(4, 9, 23, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+/* Pills */
+body[data-theme="liquid-glass"] .pill {
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--ink-soft);
+}
+body[data-theme="liquid-glass"] .pill--accent {
+  background: rgba(62, 62, 62, 0.88);
+  color: var(--accent-ink);
 }
 
+/* Segmented effort control */
+body[data-theme="liquid-glass"] .segmented {
+  background: rgba(255, 255, 255, 0.4);
+}
+body[data-theme="liquid-glass"] .segmented label:has(input:checked) {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--glass-shadow-sm);
+  color: var(--ink);
+}
+
+/* Modal */
+body[data-theme="liquid-glass"] .modal-root {
+  background: rgba(243, 243, 243, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
 body[data-theme="liquid-glass"] .modal-card {
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.7),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* Toast */
+body[data-theme="liquid-glass"] .toast {
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--ink);
+}
+
+/* Chat message bubbles */
+body[data-theme="liquid-glass"] .msg__bubble {
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
+  box-shadow: var(--glass-shadow-sm);
+}
+body[data-theme="liquid-glass"] .msg--user .msg__bubble {
+  background: rgba(62, 62, 62, 0.92);
+  color: var(--accent-ink);
+}
+body[data-theme="liquid-glass"] .msg__reasoning {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Player rows */
+body[data-theme="liquid-glass"] .player-row {
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: var(--glass-shadow-sm);
+}
+
+/* Turn log rows */
+body[data-theme="liquid-glass"] .turn-log__row {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Result banner */
+body[data-theme="liquid-glass"] .result-banner {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+/* Fire button — darker glass for contrast */
+body[data-theme="liquid-glass"] .fire-btn {
+  background: rgba(40, 40, 40, 0.92);
+  color: #fff;
+}
+
+/* Card links keep their pseudo overlays out of the way of arrow text */
+body[data-theme="liquid-glass"] .card-link .card-arrow {
+  color: var(--ink);
 }
