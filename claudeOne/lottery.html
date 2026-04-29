@@ -61,7 +61,7 @@
         <div>
           <span class="pill pill--accent">Live Draw</span>
           <h1>幸运抽奖</h1>
-          <p>使用 Web Crypto 安全随机数抽取中奖者。动画只负责展示，结果由无偏随机整数先行决定。</p>
+          <p>使用 Web Crypto 安全随机数抽取中奖者</p>
         </div>
         <div class="random-badge" data-random-status>
           <span class="random-badge__dot" aria-hidden="true"></span>
@@ -154,7 +154,10 @@
                 <span class="section-kicker">Winners</span>
                 <h2>中奖记录</h2>
               </div>
-              <button class="btn btn-ghost btn-sm" data-reset-all type="button">重置全部</button>
+              <div class="panel-head__actions">
+                <button class="btn btn-ghost btn-sm" data-copy-winners type="button">复制名单</button>
+                <button class="btn btn-ghost btn-sm" data-reset-all type="button">重置全部</button>
+              </div>
             </div>
             <div class="winner-list" data-winner-list></div>
           </section>

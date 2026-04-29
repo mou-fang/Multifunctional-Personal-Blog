@@ -82,6 +82,7 @@
     clearParticipants: root.querySelector("[data-clear-participants]"),
     resetWinners: root.querySelector("[data-reset-winners]"),
     resetAll: root.querySelector("[data-reset-all]"),
+    copyWinners: root.querySelector("[data-copy-winners]"),
     winnerList: root.querySelector("[data-winner-list]"),
     confettiLayer: root.querySelector("[data-confetti-layer]"),
     randomStatus: root.querySelector("[data-random-status]"),
@@ -684,6 +685,36 @@
     els.reveal.hidden = true;
   }
 
+  function copyWinnerNames() {
+    if (state.winners.length === 0) {
+      toast("暂无中奖记录可复制", "err");
+      return;
+    }
+    const text = state.winners.map((w) => w.name).join("\n");
+
+    const fallback = () => {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch { ok = false; }
+      document.body.removeChild(ta);
+      toast(ok ? "已复制 " + state.winners.length + " 位中奖者" : "复制失败，请手动选择", ok ? "ok" : "err");
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(() => toast("已复制 " + state.winners.length + " 位中奖者", "ok"))
+        .catch(fallback);
+    } else {
+      fallback();
+    }
+  }
+
   function resetWinnersOnly() {
     state.winners = [];
     state.currentAngle = 0;
@@ -782,6 +813,7 @@
     els.resetAll.addEventListener("click", () => {
       requireSecondClick(els.resetAll, "pendingResetAll", "再次点击重置", resetEverything);
     });
+    els.copyWinners.addEventListener("click", copyWinnerNames);
     els.revealClose.addEventListener("click", hideWinner);
     els.reveal.addEventListener("click", (e) => {
       if (e.target === els.reveal) hideWinner();
