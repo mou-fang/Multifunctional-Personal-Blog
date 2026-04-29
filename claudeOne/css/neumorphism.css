@@ -111,6 +111,87 @@ body[data-theme="neumorphism"] .toast {
   box-shadow: var(--shadow-out-sm);
 }
 
+/* ===== Chat toolbar (Soft UI) ===== */
+body[data-theme="neumorphism"] .chat-chip,
+body[data-theme="neumorphism"] .chat-toggle,
+body[data-theme="neumorphism"] .chat-iconbtn,
+body[data-theme="neumorphism"] .chat-promptchip,
+body[data-theme="neumorphism"] .chat-segmented {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .chat-chip__select {
+  box-shadow: var(--shadow-out-sm);
+}
+
+body[data-theme="neumorphism"] .chat-iconbtn:hover {
+  box-shadow: var(--shadow-out-sm);
+  background: var(--surface);
+}
+
+body[data-theme="neumorphism"] .chat-iconbtn--accent {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .chat-toggle__track {
+  box-shadow: inset 1px 1px 2px rgba(74, 102, 166, 0.25),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.7);
+}
+
+body[data-theme="neumorphism"] .chat-toggle:has(input:checked) {
+  box-shadow: var(--shadow-in-sm), 0 0 0 1px rgba(111, 155, 255, 0.18) inset;
+}
+
+body[data-theme="neumorphism"] .chat-send {
+  background: linear-gradient(135deg, #7aa6ff 0%, #5b84ff 100%);
+  color: #fff;
+  box-shadow: 8px 8px 18px #c5cee0, -8px -8px 18px #ffffff;
+}
+
+body[data-theme="neumorphism"] .chat-send:active {
+  box-shadow: inset 4px 4px 8px #4d6ec4, inset -4px -4px 8px #8caefd;
+}
+
+body[data-theme="neumorphism"] .chat-stop {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .prompt-preset {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .prompt-preset:hover {
+  box-shadow: var(--shadow-out-sm);
+  background: var(--surface);
+}
+
+body[data-theme="neumorphism"] .prompt-preset[data-active="true"] {
+  background: linear-gradient(135deg, #7aa6ff 0%, #5b84ff 100%);
+  color: #fff;
+  box-shadow: var(--shadow-out-sm);
+}
+
+/* ===== Topic picker (Soft UI) ===== */
+body[data-theme="neumorphism"] .chat-topicpicker__btn {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .chat-topicpicker__btn[aria-expanded="true"] {
+  box-shadow: var(--shadow-out-sm);
+}
+
+body[data-theme="neumorphism"] .chat-topicpicker__panel {
+  box-shadow: var(--shadow-out);
+}
+
+body[data-theme="neumorphism"] .chat-topicpicker__newbtn {
+  box-shadow: var(--shadow-out-sm);
+}
+
+body[data-theme="neumorphism"] .chat-topicpicker__newbtn:active {
+  box-shadow: var(--shadow-in-sm);
+}
+
 /* Site shell gets a subtle grain texture in neumorphism to avoid feeling flat */
 body[data-theme="neumorphism"]::before {
   content: "";

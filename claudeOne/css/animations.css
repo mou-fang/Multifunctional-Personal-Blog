@@ -162,6 +162,24 @@ body[data-theme="liquid-glass"] .cube-stage::before {
 .typing span:nth-child(2) { animation-delay: 0.15s; }
 .typing span:nth-child(3) { animation-delay: 0.3s; }
 
+/* Stop-button halo pulse — visible only while streaming */
+@keyframes chatStopHalo {
+  0% { transform: scale(0.92); opacity: 0.95; }
+  100% { transform: scale(1.22); opacity: 0; }
+}
+
+/* Status-dot blink while a response is streaming */
+@keyframes chatStatusBlink {
+  0%, 100% { transform: scale(0.9); opacity: 0.55; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+/* Topic picker dropdown enter */
+@keyframes topicPanelEnter {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* ===== Drag-and-drop player list ===== */
 .player-row[data-dragging="true"] {
   opacity: 0.5;
