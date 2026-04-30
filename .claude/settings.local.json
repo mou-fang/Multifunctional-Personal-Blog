@@ -12,7 +12,9 @@
       "Bash(curl -s -o /dev/null -w \"cube.js: %{http_code} \\(%{size_download} bytes\\)\\\\n\" http://localhost:8765/js/cube.js)",
       "Bash(curl -s -o /dev/null -w \"cube.css: %{http_code} \\(%{size_download} bytes\\)\\\\n\" http://localhost:8765/css/cube.css)",
       "Bash(kill %1)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }

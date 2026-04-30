@@ -41,6 +41,16 @@
   width: var(--cubelet);
   height: var(--cubelet);
   transform-style: preserve-3d;
+  transform-origin: 50% 50% 0;
+  will-change: transform;
+}
+
+.cubelet__core {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform-origin: 50% 50% 0;
+  will-change: transform;
 }
 
 /* Temporary group used while a layer turn is animating. Same bounds as .cube
@@ -60,6 +70,9 @@
   inset: 0;
   border-radius: 10px;
   backface-visibility: hidden;
+  transform-style: preserve-3d;
+  transition: box-shadow 0.42s var(--ease-out),
+    transform 0.42s var(--ease-out);
 }
 
 /* Standard Rubik face colors. Each sticker is inset slightly from the cubelet
@@ -91,13 +104,59 @@
   transform: rotateY(-90deg) translateZ(calc(var(--cubelet) / 2));
 }
 
-/* Inner sticker — inset via margin to leave the cubelet body (dark) showing
-   between stickers and on internal cubelet faces. */
+/* Full colored shell. External stickers sit slightly above these panels, so
+   separated cubelets still have finished inner faces instead of empty backs. */
 .sticker-face {
   position: absolute;
   inset: 0;
-  border-radius: inherit;
-  background: #11151f;
+  border-radius: 11px;
+  backface-visibility: hidden;
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255, 255, 255, 0.28), transparent 36%),
+    linear-gradient(145deg, var(--core-light, #eef3ff), var(--core-fill, #b9c4dc) 52%, var(--core-dark, #5f6b82));
+  border: 1px solid rgba(18, 24, 36, 0.24);
+  box-shadow:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.28),
+    inset -2px -2px 5px rgba(12, 18, 28, 0.18);
+  transform-style: preserve-3d;
+  transition: box-shadow 0.42s var(--ease-out);
+}
+
+.sticker-face--up {
+  --core-light: #ffffff;
+  --core-fill: #dce7ff;
+  --core-dark: #aab8d2;
+  transform: rotateX(90deg) translateZ(calc(var(--cubelet) / 2 - 1px));
+}
+.sticker-face--down {
+  --core-light: #fff3b8;
+  --core-fill: #ffd96a;
+  --core-dark: #c99d2f;
+  transform: rotateX(-90deg) translateZ(calc(var(--cubelet) / 2 - 1px));
+}
+.sticker-face--front {
+  --core-light: #ffbbc2;
+  --core-fill: #ff7080;
+  --core-dark: #ba3d4b;
+  transform: translateZ(calc(var(--cubelet) / 2 - 1px));
+}
+.sticker-face--back {
+  --core-light: #ffd4ad;
+  --core-fill: #ffa75c;
+  --core-dark: #bd6a2f;
+  transform: rotateY(180deg) translateZ(calc(var(--cubelet) / 2 - 1px));
+}
+.sticker-face--right {
+  --core-light: #b9efba;
+  --core-fill: #73ca77;
+  --core-dark: #3f8f46;
+  transform: rotateY(90deg) translateZ(calc(var(--cubelet) / 2 - 1px));
+}
+.sticker-face--left {
+  --core-light: #b9dbff;
+  --core-fill: #75b8f4;
+  --core-dark: #397abb;
+  transform: rotateY(-90deg) translateZ(calc(var(--cubelet) / 2 - 1px));
 }
 
 .sticker .inner {
@@ -107,6 +166,10 @@
   background: inherit;
   transition: background var(--dur) var(--ease-out),
     box-shadow var(--dur) var(--ease-out);
+}
+
+.scatter-block {
+  display: none;
 }
 
 /* Neumorphism: soft pastel stickers, subtle inner ridge */
@@ -306,4 +369,207 @@ body[data-theme="liquid-glass"] .cube-turn-btn {
   .cube-stage {
     --cubelet: 52px;
   }
+}
+
+/* ===== Scatter mode: cubelets float across viewport ===== */
+.scatter-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  --cubelet: 64px;
+  perspective: 1050px;
+  perspective-origin: 50% 48%;
+}
+
+.scatter-stage .cubelet {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: var(--cubelet);
+  height: var(--cubelet);
+  transform-style: preserve-3d !important;
+  transform-origin: 50% 50%;
+  will-change: transform;
+  transition: none;
+  margin: 0;
+  pointer-events: none;
+}
+
+.scatter-stage .cubelet__core {
+  transform-style: preserve-3d !important;
+}
+
+.scatter-stage .sticker {
+  display: block;
+}
+
+.scatter-stage .sticker-face {
+  display: block;
+}
+
+.scatter-stage .scatter-block {
+  display: none;
+}
+
+/* "Puffy" presentation only while pieces are floating apart. During gather we
+   let the box-shadow + lifted-sticker offset drain back to the base values, so
+   the final frame already matches the assembled cube — no visible snap when
+   the cubelets are re-parented. */
+.scatter-stage[data-cube-mode="scattering"] .sticker,
+.scatter-stage[data-cube-mode="scattered"] .sticker {
+  box-shadow:
+    0 10px 18px rgba(31, 53, 89, 0.14),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.45),
+    inset -2px -2px 7px rgba(22, 35, 58, 0.16);
+}
+
+.scatter-stage[data-cube-mode="scattering"] .sticker-face,
+.scatter-stage[data-cube-mode="scattered"] .sticker-face {
+  box-shadow:
+    0 8px 16px rgba(31, 53, 89, 0.14),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.3),
+    inset -3px -3px 8px rgba(12, 18, 28, 0.24);
+}
+
+.scatter-stage[data-cube-mode="scattering"] .sticker--up,
+.scatter-stage[data-cube-mode="scattered"] .sticker--up {
+  transform: rotateX(90deg) translateZ(calc(var(--cubelet) / 2 + 2px));
+}
+
+.scatter-stage[data-cube-mode="scattering"] .sticker--down,
+.scatter-stage[data-cube-mode="scattered"] .sticker--down {
+  transform: rotateX(-90deg) translateZ(calc(var(--cubelet) / 2 + 2px));
+}
+
+.scatter-stage[data-cube-mode="scattering"] .sticker--front,
+.scatter-stage[data-cube-mode="scattered"] .sticker--front {
+  transform: translateZ(calc(var(--cubelet) / 2 + 2px));
+}
+
+.scatter-stage[data-cube-mode="scattering"] .sticker--back,
+.scatter-stage[data-cube-mode="scattered"] .sticker--back {
+  transform: rotateY(180deg) translateZ(calc(var(--cubelet) / 2 + 2px));
+}
+
+.scatter-stage[data-cube-mode="scattering"] .sticker--right,
+.scatter-stage[data-cube-mode="scattered"] .sticker--right {
+  transform: rotateY(90deg) translateZ(calc(var(--cubelet) / 2 + 2px));
+}
+
+.scatter-stage[data-cube-mode="scattering"] .sticker--left,
+.scatter-stage[data-cube-mode="scattered"] .sticker--left {
+  transform: rotateY(-90deg) translateZ(calc(var(--cubelet) / 2 + 2px));
+}
+
+/* Central axis — shown when cube is scattered */
+.cube-axis {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s var(--ease-out), transform 0.45s var(--ease-out);
+  transform: scale(0.88);
+  will-change: opacity, transform;
+}
+
+.cube-stage--scattered .cube-axis {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* As soon as gather starts, the central axis must vanish — otherwise its
+   cross-lines + center dot stay layered on top of the assembled cube and
+   make the final frame look distorted. The cubelet gather is ~0.76s and
+   this fade is 0.45s, so the axis is fully gone well before the cubelets
+   land. */
+.cube-stage--gathering .cube-axis {
+  opacity: 0;
+  transform: scale(1);
+}
+
+.cube-axis-inner {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  transform-style: preserve-3d;
+}
+
+.cube-axis-line {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: var(--ink-muted);
+  border-radius: 2px;
+  opacity: 0.38;
+  box-shadow: 0 0 18px rgba(111, 155, 255, 0.22);
+}
+
+.cube-axis-line--x {
+  width: 100px;
+  height: 2px;
+  margin-left: -50px;
+  margin-top: -1px;
+}
+
+.cube-axis-line--y {
+  width: 2px;
+  height: 100px;
+  margin-left: -1px;
+  margin-top: -50px;
+}
+
+.cube-axis-line--z {
+  width: 90px;
+  height: 2px;
+  margin-left: -45px;
+  margin-top: -1px;
+  transform: rotateY(90deg);
+}
+
+.cube-axis-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.62;
+  box-shadow: 0 0 18px var(--accent);
+}
+
+/* Hide original cube when scattered — only axis shows */
+.cube-stage--scattered .cube {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.38s var(--ease-out);
+}
+
+.cube-stage:not(.cube-stage--scattered) .cube {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.46s var(--ease-out);
+}
+
+.cube-hero__cube[data-cube-mode="scattering"] .cube-controls,
+.cube-hero__cube[data-cube-mode="scattered"] .cube-controls {
+  opacity: 0.54;
+  transform: translateY(-4px);
+}
+
+.cube-hero__cube[data-cube-mode="gathering"] .cube-controls {
+  opacity: 0.78;
+}
+
+.cube-controls {
+  transition: opacity var(--dur-slow) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    background var(--dur) var(--ease-out);
 }
