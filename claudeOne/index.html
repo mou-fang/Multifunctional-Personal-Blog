@@ -8,7 +8,7 @@
   <!-- CSP: scripts only from self; styles from self + Google Fonts (inline-style
        allowed for the font link's CSS injection); API connect limited to DeepSeek. -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src https://api.deepseek.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'none'">
+        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src https://api.deepseek.com; img-src 'self' data:; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>claudeOne · 魔方工作台</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -44,6 +44,7 @@
         <a href="./index.html" data-nav-link>首页</a>
         <a href="./lottery.html" data-nav-link>幸运抽奖</a>
         <a href="./game.html" data-nav-link>俄罗斯转盘</a>
+        <a href="./sokoban.html" data-nav-link>推箱子</a>
         <a href="./ai.html" data-nav-link>DeepSeek</a>
       </nav>
 
@@ -120,7 +121,17 @@
             <span class="card-arrow">Play &rarr;</span>
           </a>
 
-          <a class="card card-link page-chunk" data-reveal-order="5" href="./ai.html" data-nav-link>
+          <a class="card card-link page-chunk" data-reveal-order="5" href="./sokoban.html" data-nav-link>
+            <span class="card-eyebrow">解谜</span>
+            <h3 class="card-title">推箱子</h3>
+            <p class="card-desc">
+              10 个固定关卡从超级简单一路到超级困难。随机模式会先生成地图再求解验证，
+              还带分层提示、重置和一步一步演示的自动完成。
+            </p>
+            <span class="card-arrow">Solve &rarr;</span>
+          </a>
+
+          <a class="card card-link page-chunk" data-reveal-order="6" href="./ai.html" data-nav-link>
             <span class="card-eyebrow">AI</span>
             <h3 class="card-title">DeepSeek 聊天</h3>
             <p class="card-desc">
@@ -130,7 +141,7 @@
             <span class="card-arrow">Chat &rarr;</span>
           </a>
 
-          <a class="card card-link page-chunk" data-reveal-order="6" href="./lottery.html" data-nav-link>
+          <a class="card card-link page-chunk" data-reveal-order="7" href="./lottery.html" data-nav-link>
             <span class="card-eyebrow">工具</span>
             <h3 class="card-title">幸运抽奖</h3>
             <p class="card-desc">
@@ -139,13 +150,6 @@
             </p>
             <span class="card-arrow">Draw &rarr;</span>
           </a>
-
-          <div class="card card--soon page-chunk" data-reveal-order="7" aria-disabled="true">
-            <span class="card-eyebrow">Coming Soon</span>
-            <h3 class="card-title">预留位 · 02</h3>
-            <p class="card-desc">同上。让它先空着，克制一点更像个工作台。</p>
-            <span class="card-arrow">Waiting</span>
-          </div>
 
           <div class="card card--soon page-chunk" data-reveal-order="8" aria-disabled="true">
             <span class="card-eyebrow">Coming Soon</span>

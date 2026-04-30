@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="description" content="claudeOne 推箱子：固定关卡、随机可解关卡、提示和自动完成演示" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>claudeOne · 推箱子</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23e6efff'/%3E%3Crect x='12' y='12' width='18' height='18' rx='4' fill='%236f9bff'/%3E%3Crect x='34' y='12' width='18' height='18' rx='4' fill='%23ffd76a'/%3E%3Crect x='12' y='34' width='18' height='18' rx='4' fill='%23c98744'/%3E%3Ccircle cx='43' cy='43' r='9' fill='%231f3559'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+  <link rel="stylesheet" href="./css/neumorphism.css" />
+  <link rel="stylesheet" href="./css/liquid-glass.css" />
+  <link rel="stylesheet" href="./css/animations.css" />
+  <link rel="stylesheet" href="./css/sokoban.css" />
+</head>
+<body data-page="sokoban" data-route-state="idle">
+  <script src="./js/theme-init.js"></script>
+
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <div class="ambient ambient-c"></div>
+
+  <div class="site-shell">
+    <header class="site-header page-chunk" data-reveal-order="1">
+      <a class="site-brand" href="./index.html" data-nav-link>
+        <span class="brand-mark" aria-hidden="true">◩</span>
+        <span class="brand-text">
+          <small>魔方的</small>
+          <strong>妙妙工具</strong>
+        </span>
+      </a>
+
+      <nav class="site-nav" aria-label="Main">
+        <a href="./index.html" data-nav-link>首页</a>
+        <a href="./lottery.html" data-nav-link>幸运抽奖</a>
+        <a href="./game.html" data-nav-link>俄罗斯转盘</a>
+        <a href="./sokoban.html" data-nav-link>推箱子</a>
+        <a href="./ai.html" data-nav-link>DeepSeek</a>
+      </nav>
+
+      <div class="header-actions">
+        <label class="theme-toggle" aria-label="切换主题">
+          <span class="theme-toggle__label" data-theme-label>Soft UI</span>
+          <input type="checkbox" data-theme-toggle class="theme-toggle__input" />
+          <span class="theme-toggle__track">
+            <span class="theme-toggle__thumb"></span>
+          </span>
+        </label>
+        <span class="sr-only" data-theme-live aria-live="polite"></span>
+      </div>
+    </header>
+
+    <main class="sokoban-page page-stack" data-sokoban-root>
+      <section class="sokoban-hero page-chunk" data-reveal-order="2">
+        <div>
+          <span class="pill pill--accent">Sokoban</span>
+          <h1>推箱子</h1>
+          <p>
+            选一关，推箱子到发光目标点。固定关卡从超级简单到超级困难；随机模式会先求解验证，只给你可通关的图。
+          </p>
+        </div>
+        <div class="soko-difficulty-badge" data-active-difficulty>
+          难度 1 · 超级简单
+        </div>
+      </section>
+
+      <section class="sokoban-layout page-chunk" data-reveal-order="3">
+        <div class="sokoban-stage card">
+          <header class="sokoban-hud">
+            <div>
+              <span class="card-eyebrow" data-level-mode>固定关卡</span>
+              <h2 data-level-name>入门推箱</h2>
+            </div>
+            <div class="sokoban-stats">
+              <span><strong data-move-count>0</strong> 步</span>
+              <span><strong data-push-count>0</strong> 推</span>
+              <span data-hud-difficulty>难度 1</span>
+            </div>
+          </header>
+
+          <div class="sokoban-board-wrap">
+            <div class="sokoban-board" data-board aria-label="推箱子棋盘" tabindex="0"></div>
+            <div class="sokoban-win" data-win-panel hidden>
+              <div class="sokoban-win__card">
+                <span class="section-kicker">Solved</span>
+                <h2>通关了</h2>
+                <p data-win-summary>你完成了这个关卡。</p>
+                <div class="modal-actions">
+                  <button class="btn btn-ghost" data-win-exit type="button">退出</button>
+                  <button class="btn btn-primary" data-win-next type="button">下一关</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sokoban-actions">
+            <button class="btn btn-primary" data-hint type="button">提示</button>
+            <button class="btn btn-ghost" data-auto type="button">自动完成</button>
+            <button class="btn btn-ghost" data-reset type="button">重置</button>
+          </div>
+
+          <div class="sokoban-status" data-status>
+            方向键或 WASD 移动。提示会逐层展开，自动完成会一步一步演示。
+          </div>
+
+          <div class="sokoban-dpad" aria-label="移动控制">
+            <button class="btn btn-icon" data-move="U" type="button" aria-label="上">↑</button>
+            <button class="btn btn-icon" data-move="L" type="button" aria-label="左">←</button>
+            <button class="btn btn-icon" data-move="D" type="button" aria-label="下">↓</button>
+            <button class="btn btn-icon" data-move="R" type="button" aria-label="右">→</button>
+          </div>
+        </div>
+
+        <aside class="sokoban-control">
+          <section class="card sokoban-panel">
+            <div class="panel-head">
+              <div>
+                <span class="section-kicker">Fixed</span>
+                <h2>固定 10 关</h2>
+              </div>
+            </div>
+            <div class="sokoban-level-list" data-fixed-levels></div>
+          </section>
+
+          <section class="card sokoban-panel">
+            <div class="panel-head">
+              <div>
+                <span class="section-kicker">Random</span>
+                <h2>随机模式</h2>
+              </div>
+            </div>
+
+            <label class="field">
+              <span class="field__label">生成方式</span>
+              <select class="select" data-random-mode>
+                <option value="exact">按指定难度生成</option>
+                <option value="progressive">从简单逐渐变难</option>
+                <option value="mixed">随机难度混合</option>
+                <option value="brutal">超级无敌血妈爆难</option>
+              </select>
+            </label>
+
+            <label class="field" data-random-difficulty-field>
+              <span class="field__label">目标难度</span>
+              <select class="select" data-random-difficulty>
+                <option value="1">1 · 超级简单</option>
+                <option value="2">2 · 简单</option>
+                <option value="3">3 · 轻松</option>
+                <option value="4">4 · 普通</option>
+                <option value="5">5 · 稍难</option>
+                <option value="6">6 · 困难</option>
+                <option value="7">7 · 很难</option>
+                <option value="8">8 · 高难</option>
+                <option value="9">9 · 专家</option>
+                <option value="10">10 · 超级困难</option>
+              </select>
+            </label>
+
+            <button class="btn btn-primary" data-generate-random type="button">
+              生成可通关关卡
+            </button>
+            <p class="muted" data-random-note>
+              生成前会按难度构造地图，再用求解器验证。没验证通过的图不会进入棋盘。
+            </p>
+            <div class="sokoban-brutal-callout">
+              <span class="section-kicker">Challenge</span>
+              <strong>来挑战"超级无敌血妈爆难"</strong>
+              <p>
+                4-5 个箱子，目标数<em>比箱子多</em>——多出来的发光点是干扰目标，看起来能放但放进去就锁死。生成器会用反向拉箱搭出一条蜿蜒解法，再暴力枚举所有推动方案，确认<em>全图只有一个解</em>才会上桌。
+              </p>
+              <button class="btn btn-ghost" data-brutal-challenge type="button">
+                直接挑战
+              </button>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="site-footer page-chunk" data-reveal-order="4">
+      <span>claudeOne · Sokoban · solvable random levels</span>
+    </footer>
+  </div>
+
+  <script src="./js/config.js"></script>
+  <script src="./js/shell.js"></script>
+  <script src="./js/sokoban.js"></script>
+</body>
+</html>
