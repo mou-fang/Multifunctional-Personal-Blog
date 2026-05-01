@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src https://api.deepseek.com; img-src 'self' data:; base-uri 'self'; form-action 'none'">
+        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src https://api.deepseek.com; img-src 'self' data: blob:; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>claudeOne · DeepSeek 聊天</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -34,15 +34,7 @@
         </span>
       </a>
 
-      <nav class="site-nav" aria-label="Main">
-        <a href="./index.html" data-nav-link>首页</a>
-        <a href="./lottery.html" data-nav-link>幸运抽奖</a>
-        <a href="./game.html" data-nav-link>俄罗斯转盘</a>
-        <a href="./sokoban.html" data-nav-link>推箱子</a>
-        <a href="./music.html" data-nav-link>音乐解锁</a>
-        <a href="./ascii.html" data-nav-link>ASCII 艺术</a>
-        <a href="./ai.html" data-nav-link>DeepSeek</a>
-      </nav>
+      <nav class="site-nav" aria-label="Main"></nav>
 
       <div class="header-actions">
         <label class="theme-toggle" aria-label="切换主题">

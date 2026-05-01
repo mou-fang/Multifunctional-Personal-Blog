@@ -19,6 +19,23 @@
     return;
   }
 
+  // --- Navigation config ----------------------------------------------------
+  const NAV_ITEMS = [
+    { label: "首页",   href: "./index.html",  matches: ["index.html", ""] },
+    { label: "游戏",   href: "./games.html",  matches: ["games.html", "game.html", "sokoban.html"] },
+    { label: "工具箱", href: "./tools.html",  matches: ["tools.html", "lottery.html", "music.html", "ascii.html", "pixel.html", "compress.html", "qr.html", "ai.html"] },
+  ];
+
+  function renderNav() {
+    const nav = document.querySelector(".site-nav");
+    if (!nav) return;
+    const here = (location.pathname.split("/").pop() || "index.html").toLowerCase();
+    nav.innerHTML = NAV_ITEMS.map(function (item) {
+      var isActive = item.matches.some(function (m) { return m.toLowerCase() === here; });
+      return '<a href="' + item.href + '" data-nav-link' + (isActive ? ' aria-current="page"' : '') + '>' + item.label + '</a>';
+    }).join("");
+  }
+
   // --- Safe storage ---------------------------------------------------------
   const storage = (() => {
     try {
@@ -142,6 +159,28 @@
     chunks.forEach((c) => obs.observe(c));
   }
 
+  // --- Refresh reveal for dynamically added elements -----------------------
+  function refreshReveal() {
+    const chunks = document.querySelectorAll(".page-chunk:not([data-revealed])");
+    if (!chunks.length) return;
+    if (!("IntersectionObserver" in window)) {
+      chunks.forEach((c) => c.setAttribute("data-revealed", "true"));
+      return;
+    }
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.setAttribute("data-revealed", "true");
+            obs.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: "0px 0px -40px 0px" }
+    );
+    chunks.forEach((c) => obs.observe(c));
+  }
+
   // --- Smooth intra-site navigation ----------------------------------------
   function setupSmoothNav() {
     document.addEventListener("click", (e) => {
@@ -158,12 +197,6 @@
       setTimeout(() => {
         window.location.href = href;
       }, 240);
-    });
-    // Set aria-current on the current-page nav link
-    const here = location.pathname.split("/").pop() || "index.html";
-    document.querySelectorAll("[data-nav-link]").forEach((a) => {
-      const target = (a.getAttribute("href") || "").split("/").pop();
-      if (target === here) a.setAttribute("aria-current", "page");
     });
   }
 
@@ -302,6 +335,8 @@
     setThemeAnimated,
     toast,
     createApiKeyModal,
+    refreshReveal,
+    NAV_ITEMS,
     getDeepSeekKey() {
       return storage.get(CFG.deepseek.storageKey) || "";
     },
@@ -317,6 +352,7 @@
   applyTheme(resolveTheme(), { announce: false });
 
   document.addEventListener("DOMContentLoaded", () => {
+    renderNav();
     setupThemeToggle();
     setupReveal();
     setupSmoothNav();

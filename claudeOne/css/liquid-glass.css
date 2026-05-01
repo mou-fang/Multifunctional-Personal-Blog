@@ -67,7 +67,11 @@ body[data-theme="liquid-glass"] .segmented,
 body[data-theme="liquid-glass"] .upload-zone,
 body[data-theme="liquid-glass"] .file-card,
 body[data-theme="liquid-glass"] .audio-bar,
-body[data-theme="liquid-glass"] .music-options {
+body[data-theme="liquid-glass"] .music-options,
+body[data-theme="liquid-glass"] .pixel-controls,
+body[data-theme="liquid-glass"] .pixel-upload,
+body[data-theme="liquid-glass"] .ascii-upload,
+body[data-theme="liquid-glass"] .music-upload {
   position: relative;
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(var(--backdrop-blur));
@@ -81,7 +85,9 @@ body[data-theme="liquid-glass"] .music-options {
 /* Larger glass surfaces use the full shadow stack */
 body[data-theme="liquid-glass"] .card,
 body[data-theme="liquid-glass"] .modal-card,
-body[data-theme="liquid-glass"] .upload-zone {
+body[data-theme="liquid-glass"] .upload-zone,
+body[data-theme="liquid-glass"] .ascii-upload,
+body[data-theme="liquid-glass"] .music-upload {
   box-shadow: var(--glass-shadow);
 }
 
@@ -93,9 +99,13 @@ body[data-theme="liquid-glass"] .btn::before,
 body[data-theme="liquid-glass"] .modal-card::before,
 body[data-theme="liquid-glass"] .pill::before,
 body[data-theme="liquid-glass"] .upload-zone::before,
+body[data-theme="liquid-glass"] .ascii-upload::before,
+body[data-theme="liquid-glass"] .music-upload::before,
 body[data-theme="liquid-glass"] .file-card::before,
 body[data-theme="liquid-glass"] .audio-bar::before,
-body[data-theme="liquid-glass"] .music-options::before {
+body[data-theme="liquid-glass"] .music-options::before,
+body[data-theme="liquid-glass"] .pixel-controls::before,
+body[data-theme="liquid-glass"] .pixel-upload::before {
   content: "";
   position: absolute;
   z-index: 1;
@@ -118,9 +128,13 @@ body[data-theme="liquid-glass"] .btn::after,
 body[data-theme="liquid-glass"] .modal-card::after,
 body[data-theme="liquid-glass"] .pill::after,
 body[data-theme="liquid-glass"] .upload-zone::after,
+body[data-theme="liquid-glass"] .ascii-upload::after,
+body[data-theme="liquid-glass"] .music-upload::after,
 body[data-theme="liquid-glass"] .file-card::after,
 body[data-theme="liquid-glass"] .audio-bar::after,
-body[data-theme="liquid-glass"] .music-options::after {
+body[data-theme="liquid-glass"] .music-options::after,
+body[data-theme="liquid-glass"] .pixel-controls::after,
+body[data-theme="liquid-glass"] .pixel-upload::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -141,9 +155,13 @@ body[data-theme="liquid-glass"] .btn > *,
 body[data-theme="liquid-glass"] .modal-card > *,
 body[data-theme="liquid-glass"] .pill > *,
 body[data-theme="liquid-glass"] .upload-zone > *,
+body[data-theme="liquid-glass"] .ascii-upload > *,
+body[data-theme="liquid-glass"] .music-upload > *,
 body[data-theme="liquid-glass"] .file-card > *,
 body[data-theme="liquid-glass"] .audio-bar > *,
-body[data-theme="liquid-glass"] .music-options > * {
+body[data-theme="liquid-glass"] .music-options > *,
+body[data-theme="liquid-glass"] .pixel-controls > *,
+body[data-theme="liquid-glass"] .pixel-upload > * {
   position: relative;
   z-index: 3;
 }
@@ -529,10 +547,19 @@ body[data-theme="liquid-glass"] .file-card__cover {
 }
 
 /* Upload zone icon — raised glass circle */
-body[data-theme="liquid-glass"] .upload-zone__icon {
+body[data-theme="liquid-glass"] .upload-zone__icon,
+body[data-theme="liquid-glass"] .ascii-upload__icon,
+body[data-theme="liquid-glass"] .music-upload__icon {
   background: rgba(255, 255, 255, 0.55);
   border: 1px solid var(--border-soft);
   box-shadow: var(--glass-shadow-sm);
+}
+
+/* Upload zone inner — hide dashed border in Liquid Glass */
+body[data-theme="liquid-glass"] .ascii-upload__inner,
+body[data-theme="liquid-glass"] .music-upload__inner,
+body[data-theme="liquid-glass"] .pixel-upload__inner {
+  border-color: transparent;
 }
 
 /* Audio bar progress / volume tracks — inset glass */

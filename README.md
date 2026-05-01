@@ -1,25 +1,45 @@
 # 魔方的妙妙工具
 
-一个前后端结合的个人工具工作台，以 3D 魔方为首页入口，集合了游戏、抽奖、AI 聊天、音乐解锁、ASCII 艺术等七个功能页面。前端采用原生 HTML/CSS/JS，无构建步骤；后端使用 Express 提供 ASCII 图片转换 API。
+一个前后端结合的个人工具工作台，以 3D 魔方为首页入口，通过顶部导航进入「游戏」和「工具箱」两大分类。前端采用原生 HTML/CSS/JS，无构建步骤；后端使用 Express 提供 ASCII 图片转换 API。
 
-## 魔方首页
+## 首页
 
 首页是一个可交互的 3D 魔方，使用 Three.js 渲染。
 
 你可以拖动旋转魔方观察每个面的颜色分布，松开后魔方会以缓慢的惯性自动旋转。下方提供 12 个面转动按钮（U / U' / D / D' / L / L' / R / R' / F / F' / B / B'），也支持键盘快捷键：按字母键转动对应面，按住 Shift 反向转动。空格键打乱魔方，Esc 键还原到初始状态。
 
-魔方两侧环绕着项目导航卡片，点击即可进入各个工具页面。右上角的主题开关可以在 Soft UI（柔和拟物风格）和 Liquid Glass（玻璃拟态风格）之间实时切换，两种风格都是 1:1 像素级复刻。
+右上角的主题开关可以在 Soft UI（柔和拟物风格）和 Liquid Glass（玻璃拟态风格）之间实时切换，两种风格都是 1:1 像素级复刻。
 
-## 工具页面一览
+## 顶部导航
+
+导航栏只保留三个入口：
+
+| 入口 | 页面 | 说明 |
+|------|------|------|
+| **首页** | `index.html` | 魔方工作台 |
+| **游戏** | `games.html` | 游戏中心，展示所有小游戏 |
+| **工具箱** | `tools.html` | 工具箱中心，展示所有工具 |
+
+当前页面所属分组会自动高亮。导航配置集中在 `js/shell.js` 的 `NAV_ITEMS` 中，新增页面只需修改一处。
+
+## 游戏
 
 | 页面 | 说明 |
 |------|------|
 | **俄罗斯转盘** | 设定玩家人数和名字，拖拽排序，选择弹巢与子弹数量，三种结束规则。支持暴露/隐藏弹巢位置 |
 | **推箱子** | 10 个固定关卡从入门到地狱难度；随机模式内置 BFS 求解器验证可解性；深渊难模式含唯一解验证 |
-| **DeepSeek 聊天** | 对接 DeepSeek V4 API，支持流式回复、思维链显示、推理强度调节。Key 只存本地 localStorage |
+
+## 工具箱
+
+| 页面 | 说明 |
+|------|------|
 | **幸运抽奖** | 大转盘 + 真随机算法（Web Crypto），管理参与者名单和奖项，中奖彩带效果 |
 | **音乐解锁** | 纯浏览器端解密网易云/QQ 音乐加密文件，支持 .ncm .qmc* .mflac .mgg 等格式 |
 | **ASCII 艺术** | 上传图片转为 ASCII 字符画，Express 后端调用 Go 工具完成转换，支持彩色/灰度/盲文模式 |
+| **图片像素化** | 上传图片生成复古像素风、8-bit 风、Game Boy 风或自定义调色板像素画，支持导出 PNG |
+| **图片压缩** | 浏览器本地压缩图片、调整尺寸、转换 JPG / PNG / WebP，支持批量处理和 ZIP 打包下载 |
+| **二维码美化** | 生成带 Logo、渐变色、圆点样式和自定义角标的高级二维码，支持 PNG / SVG 导出 |
+| **DeepSeek 聊天** | 对接 DeepSeek V4 API，支持流式回复、思维链显示、推理强度调节。Key 只存本地 localStorage |
 
 ## 如何从零开始部署到本地
 
@@ -146,12 +166,17 @@ Multifunctional-Personal-Blog/
 ├── README.md
 └── claudeOne/
     ├── index.html          首页（魔方工作台）
+    ├── games.html          游戏中心
+    ├── tools.html          工具箱
     ├── game.html           俄罗斯转盘
     ├── sokoban.html        推箱子
     ├── ai.html             DeepSeek 聊天
     ├── lottery.html        幸运抽奖
     ├── music.html          音乐解锁
     ├── ascii.html          ASCII 艺术
+    ├── pixel.html          图片像素化
+    ├── compress.html       图片压缩
+    ├── qr.html             二维码美化
     ├── css/                样式文件
     │   ├── base.css            全局变量与基础样式
     │   ├── components.css      公共组件（按钮、卡片、弹窗等）
@@ -159,14 +184,20 @@ Multifunctional-Personal-Blog/
     │   ├── liquid-glass.css    Liquid Glass 主题
     │   ├── animations.css      页面动画
     │   ├── cube.css            魔方样式
+    │   ├── games.css           游戏中心卡片样式
+    │   ├── tools.css           工具箱卡片样式
     │   ├── lottery.css         抽奖样式
     │   ├── sokoban.css         推箱子样式
     │   ├── music.css           音乐解锁样式
-    │   └── ascii.css           ASCII 艺术样式
+    │   ├── ascii.css           ASCII 艺术样式
+    │   ├── pixel.css           图片像素化样式
+    │   ├── compress.css        图片压缩样式
+    │   └── qr.css              二维码美化样式
     ├── js/                 脚本文件
     │   ├── config.js           全局配置
     │   ├── theme-init.js       首屏主题初始化
-    │   ├── shell.js            公共能力（主题切换、toast、弹窗等）
+    │   ├── shell.js            公共能力（导航渲染、主题切换、toast、弹窗等）
+    │   ├── tool-cards.js       游戏/工具卡片数据与渲染
     │   ├── cube.js             魔方 3D 逻辑
     │   ├── roulette.js         俄罗斯转盘逻辑
     │   ├── ai.js               DeepSeek 聊天逻辑
@@ -174,12 +205,24 @@ Multifunctional-Personal-Blog/
     │   ├── sokoban.js          推箱子逻辑
     │   ├── music.js            音乐解锁逻辑
     │   ├── decrypt-worker.js   解密 Web Worker
-    │   └── ascii.js            ASCII 艺术逻辑
+    │   ├── ascii.js            ASCII 艺术逻辑
+    │   ├── pixel.js            图片像素化逻辑
+    │   ├── compress.js         图片压缩逻辑
+    │   └── qr.js               二维码美化逻辑
     └── server/              后端服务
         ├── package.json
         ├── server.js           Express API（ASCII 图片转换）
         └── uploads/            上传文件临时目录
 ```
+
+## 项目卡片数据
+
+游戏和工具的卡片数据集中在 `js/tool-cards.js` 中维护：
+
+- `GAME_CARDS` — 游戏中心页展示的游戏列表
+- `TOOL_CARDS` — 工具箱页展示的工具列表
+
+新增游戏或工具时，只需在对应数组中添加一项，无需修改 HTML。
 
 ## 浏览器兼容
 

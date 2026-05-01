@@ -1,0 +1,60 @@
+/* ===== claudeOne :: tools.css =====
+ * Card icon and tag styles for tools.html card grid.
+ * Same rules as games.css — kept as separate file per project convention.
+ */
+
+/* --- Card icon ----------------------------------------------------------- */
+.card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--surface-sunken);
+  font-size: 1.6rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* --- Card tags ----------------------------------------------------------- */
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--space-2);
+}
+
+.card-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+}
+
+/* --- Neumorphism theme --------------------------------------------------- */
+body[data-theme="neumorphism"] .card-icon {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .card-tag {
+  box-shadow: var(--shadow-in-sm);
+}
+
+/* --- Liquid Glass theme -------------------------------------------------- */
+body[data-theme="liquid-glass"] .card-icon {
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+body[data-theme="liquid-glass"] .card-tag {
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+}

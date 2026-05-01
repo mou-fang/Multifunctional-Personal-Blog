@@ -31,40 +31,41 @@
   align-items: center;
 }
 
-/* Upload zone */
-.upload-zone {
+/* ===== Upload zone (card, mirrors pixel upload pattern) ===== */
+.music-upload {
   position: relative;
   border-radius: var(--radius-xl);
-  padding: var(--space-12) var(--space-8);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-5);
+  background: var(--surface);
+  overflow: hidden;
   cursor: pointer;
   transition: transform var(--dur) var(--ease-out),
     box-shadow var(--dur) var(--ease-out);
 }
 
-.upload-zone__inner {
+.music-upload[data-dragover="true"] {
+  transform: scale(1.005);
+}
+
+.music-upload__inner {
   width: 100%;
   min-height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-5);
+  gap: var(--space-4);
   border: 2px dashed rgba(128, 128, 128, 0.25);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: var(--space-10) var(--space-8);
   transition: border-color var(--dur) var(--ease-out),
     background var(--dur) var(--ease-out);
 }
 
-.upload-zone[data-dragover="true"] .upload-zone__inner {
+.music-upload[data-dragover="true"] .music-upload__inner {
   border-color: var(--accent);
   background: var(--accent-soft);
 }
 
-.upload-zone__icon {
+.music-upload__icon {
   width: 64px;
   height: 64px;
   border-radius: 50%;
@@ -76,24 +77,24 @@
   transition: transform var(--dur) var(--ease-spring);
 }
 
-.upload-zone[data-dragover="true"] .upload-zone__icon {
+.music-upload[data-dragover="true"] .music-upload__icon {
   transform: scale(1.12);
 }
 
-.upload-zone__title {
+.music-upload__title {
   font-family: "Sora", "Manrope", sans-serif;
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--ink);
 }
 
-.upload-zone__hint {
+.music-upload__hint {
   font-size: 0.85rem;
   color: var(--ink-muted);
   text-align: center;
 }
 
-.upload-zone__input {
+.music-upload__input {
   position: absolute;
   inset: 0;
   opacity: 0;
@@ -449,11 +450,7 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .upload-zone {
-    padding: var(--space-8) var(--space-4);
-  }
-
-  .upload-zone__inner {
+  .music-upload__inner {
     padding: var(--space-8) var(--space-4);
   }
 

@@ -454,7 +454,7 @@
     });
 
     // Also handle drag on the inner zone
-    const innerZone = uploadZone.querySelector(".upload-zone__inner");
+    const innerZone = uploadZone.querySelector(".music-upload__inner");
     if (innerZone) {
       innerZone.addEventListener("dragover", (e) => {
         e.preventDefault();

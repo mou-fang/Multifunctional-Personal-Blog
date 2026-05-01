@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data: blob:; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>claudeOne · 图片像素化</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+  <link rel="stylesheet" href="./css/neumorphism.css" />
+  <link rel="stylesheet" href="./css/liquid-glass.css" />
+  <link rel="stylesheet" href="./css/animations.css" />
+  <link rel="stylesheet" href="./css/pixel.css?v=2" />
+</head>
+<body data-page="pixel" data-route-state="idle">
+  <script src="./js/theme-init.js"></script>
+
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <div class="ambient ambient-c"></div>
+
+  <div class="site-shell">
+    <header class="site-header page-chunk" data-reveal-order="1">
+      <a class="site-brand" href="./index.html" data-nav-link>
+        <span class="brand-mark" aria-hidden="true">&#9705;</span>
+        <span class="brand-text">
+          <small>魔方的</small>
+          <strong>妙妙工具</strong>
+        </span>
+      </a>
+
+      <nav class="site-nav" aria-label="Main"></nav>
+
+      <div class="header-actions">
+        <label class="theme-toggle" aria-label="切换主题">
+          <span class="theme-toggle__label" data-theme-label>Soft UI</span>
+          <input type="checkbox" data-theme-toggle class="theme-toggle__input" />
+          <span class="theme-toggle__track">
+            <span class="theme-toggle__thumb"></span>
+          </span>
+        </label>
+        <span class="sr-only" data-theme-live aria-live="polite"></span>
+      </div>
+    </header>
+
+    <main class="page-stack">
+      <!-- Hero -->
+      <section class="page-chunk" data-reveal-order="2">
+        <span class="pill pill--accent">Image Tool</span>
+        <h1 style="margin-top:12px">图片像素化工具</h1>
+        <p class="muted" style="max-width:62ch; margin-top:8px">
+          把普通图片变成复古像素风、Game Boy 风、8-bit 风或自定义调色板像素画。
+          支持实时预览、多种调色板、色彩调整和特效叠加，完全在浏览器本地处理。
+        </p>
+      </section>
+
+      <!-- Upload zone — full width at top -->
+      <section class="page-chunk" data-reveal-order="3">
+        <div class="pixel-upload" data-upload-zone data-dragover="false">
+          <div class="pixel-upload__inner" data-drop-visual>
+            <div class="pixel-upload__icon">&#9654;</div>
+            <div class="pixel-upload__title">拖拽图片到此处，或点击选择</div>
+            <div class="pixel-upload__hint">支持 JPG / PNG / WebP / BMP 格式</div>
+          </div>
+          <!-- Preview after upload (replaces the drop visual) -->
+          <div class="pixel-upload__preview" data-preview-area hidden>
+            <img class="pixel-upload__thumb" data-preview-img src="" alt="原图预览" />
+            <div class="pixel-upload__info">
+              <span class="pixel-upload__name" data-preview-name></span>
+              <span class="pixel-upload__dims" data-preview-dims></span>
+            </div>
+            <button class="btn btn-sm btn-ghost" data-clear-preview type="button">更换图片</button>
+          </div>
+          <input type="file" class="pixel-upload__input" data-file-input accept="image/jpeg,image/png,image/webp,image/bmp" />
+        </div>
+      </section>
+
+      <!-- Workspace: result + controls side by side -->
+      <section class="pixel-workspace page-chunk" data-reveal-order="4" hidden>
+        <!-- Left: result canvas -->
+        <div class="pixel-main">
+          <div class="pixel-result">
+            <div class="pixel-result__head">
+              <h3>像素化结果</h3>
+              <span class="pixel-result__dims" data-result-dims></span>
+            </div>
+            <div class="pixel-result__canvas-wrap" data-result-wrap>
+              <canvas data-result-canvas></canvas>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="pixel-actions">
+            <button class="btn btn-primary" data-export-png type="button">导出 PNG</button>
+            <button class="btn" data-copy-config type="button">复制配置 JSON</button>
+            <button class="btn btn-ghost" data-reset-defaults type="button">恢复默认</button>
+            <button class="btn btn-ghost" data-clear-all type="button">清空</button>
+          </div>
+        </div>
+
+        <!-- Right: controls panel -->
+        <div class="pixel-controls card" data-controls-panel>
+          <div class="pixel-controls__head">
+            <h3>参数设置</h3>
+            <button class="pixel-controls__collapse" data-collapse-btn type="button" aria-label="折叠参数" hidden>&#9650;</button>
+          </div>
+
+          <div class="pixel-controls__body" data-controls-body>
+            <!-- Pixel block size -->
+            <div class="pixel-field">
+              <span class="pixel-field__label">像素块大小</span>
+              <div class="pixel-range-row">
+                <input type="range" data-block-size min="2" max="64" value="8" step="1" />
+                <span class="pixel-slider-val" data-block-size-val>8</span>
+              </div>
+              <div class="pixel-presets" data-block-presets>
+                <button class="pill" data-preset="4" type="button">细腻 4</button>
+                <button class="pill" data-preset="8" type="button">标准 8</button>
+                <button class="pill" data-preset="16" type="button">粗颗粒 16</button>
+                <button class="pill" data-preset="32" type="button">超低清 32</button>
+              </div>
+            </div>
+
+            <!-- Output max width -->
+            <div class="pixel-field">
+              <span class="pixel-field__label">输出最大宽度</span>
+              <div class="segmented pixel-seg" data-width-group role="radiogroup" aria-label="最大宽度">
+                <label><input type="radio" name="maxW" value="0" data-max-w checked /> 原始</label>
+                <label><input type="radio" name="maxW" value="512" data-max-w /> 512</label>
+                <label><input type="radio" name="maxW" value="1024" data-max-w /> 1024</label>
+                <label><input type="radio" name="maxW" value="1920" data-max-w /> 1920</label>
+                <label><input type="radio" name="maxW" value="custom" data-max-w /> 自定义</label>
+              </div>
+              <input class="input pixel-custom-input" type="number" data-width-custom min="64" max="4096" value="1024" placeholder="px" style="display:none" />
+            </div>
+
+            <!-- Output max height -->
+            <div class="pixel-field">
+              <span class="pixel-field__label">输出最大高度</span>
+              <div class="segmented pixel-seg" data-height-group role="radiogroup" aria-label="最大高度">
+                <label><input type="radio" name="maxH" value="0" data-max-h checked /> 自动</label>
+                <label><input type="radio" name="maxH" value="512" data-max-h /> 512</label>
+                <label><input type="radio" name="maxH" value="1024" data-max-h /> 1024</label>
+                <label><input type="radio" name="maxH" value="custom" data-max-h /> 自定义</label>
+              </div>
+              <input class="input pixel-custom-input" type="number" data-height-custom min="64" max="4096" value="1024" placeholder="px" style="display:none" />
+            </div>
+
+            <!-- Color mode -->
+            <div class="pixel-field">
+              <span class="pixel-field__label">色彩模式</span>
+              <div class="segmented pixel-seg" data-color-mode-group role="radiogroup" aria-label="色彩模式">
+                <label><input type="radio" name="colorMode" value="original" data-color-mode checked /> 原色</label>
+                <label><input type="radio" name="colorMode" value="grayscale" data-color-mode /> 灰度</label>
+                <label><input type="radio" name="colorMode" value="bw" data-color-mode /> 黑白</label>
+                <label><input type="radio" name="colorMode" value="highContrast" data-color-mode /> 高对比</label>
+                <label><input type="radio" name="colorMode" value="invert" data-color-mode /> 反色</label>
+              </div>
+            </div>
+
+            <!-- Adjustment sliders -->
+            <div class="pixel-field">
+              <span class="pixel-field__label">饱和度</span>
+              <div class="pixel-range-row">
+                <input type="range" data-saturation min="-100" max="100" value="0" step="1" />
+                <span class="pixel-slider-val" data-saturation-val>0</span>
+              </div>
+            </div>
+            <div class="pixel-field">
+              <span class="pixel-field__label">亮度</span>
+              <div class="pixel-range-row">
+                <input type="range" data-brightness min="-100" max="100" value="0" step="1" />
+                <span class="pixel-slider-val" data-brightness-val>0</span>
+              </div>
+            </div>
+            <div class="pixel-field">
+              <span class="pixel-field__label">对比度</span>
+              <div class="pixel-range-row">
+                <input type="range" data-contrast min="-100" max="100" value="0" step="1" />
+                <span class="pixel-slider-val" data-contrast-val>0</span>
+              </div>
+            </div>
+
+            <!-- Palette -->
+            <div class="pixel-field">
+              <span class="pixel-field__label">调色板</span>
+              <div class="segmented pixel-seg" data-palette-group role="radiogroup" aria-label="调色板">
+                <label><input type="radio" name="palette" value="none" data-palette checked /> 原图</label>
+                <label><input type="radio" name="palette" value="gb" data-palette /> GB绿屏</label>
+                <label><input type="radio" name="palette" value="nes" data-palette /> NES</label>
+                <label><input type="radio" name="palette" value="pico8" data-palette /> Pico-8</label>
+                <label><input type="radio" name="palette" value="cyberpunk" data-palette /> 霓虹</label>
+                <label><input type="radio" name="palette" value="bw" data-palette /> 黑白</label>
+                <label><input type="radio" name="palette" value="warm" data-palette /> 暖色</label>
+                <label><input type="radio" name="palette" value="cool" data-palette /> 冷色</label>
+                <label><input type="radio" name="palette" value="custom" data-palette /> 自定义</label>
+              </div>
+            </div>
+
+            <!-- Custom palette editor -->
+            <div class="pixel-custom-palette" data-custom-palette hidden>
+              <div class="pixel-palette-colors" data-palette-colors></div>
+              <div class="pixel-palette-actions">
+                <input type="color" data-color-picker value="#000000" class="pixel-color-input" />
+                <button class="btn btn-sm" data-add-color type="button">添加</button>
+                <button class="btn btn-sm btn-ghost" data-copy-palette type="button">复制JSON</button>
+                <button class="btn btn-sm btn-ghost" data-paste-palette type="button">粘贴JSON</button>
+              </div>
+            </div>
+
+            <!-- Dithering -->
+            <div class="pixel-field">
+              <span class="pixel-field__label">抖动 Dithering</span>
+              <div class="segmented pixel-seg" data-dither-group role="radiogroup" aria-label="抖动">
+                <label><input type="radio" name="dither" value="none" data-dither checked /> 无</label>
+                <label><input type="radio" name="dither" value="threshold" data-dither /> 阈值噪点</label>
+              </div>
+            </div>
+
+            <!-- Effects -->
+            <div class="pixel-field">
+              <span class="pixel-field__label">效果</span>
+              <div class="pixel-switches">
+                <label class="switch" data-toggle="pixelStroke">
+                  <input type="checkbox" />
+                  <span class="switch__track"></span>
+                  <span class="switch__label">像素描边</span>
+                </label>
+                <label class="switch" data-toggle="gridLines">
+                  <input type="checkbox" />
+                  <span class="switch__track"></span>
+                  <span class="switch__label">网格线</span>
+                </label>
+                <label class="switch" data-toggle="rounded">
+                  <input type="checkbox" />
+                  <span class="switch__track"></span>
+                  <span class="switch__label">圆角像素</span>
+                </label>
+                <label class="switch" data-toggle="crt">
+                  <input type="checkbox" />
+                  <span class="switch__track"></span>
+                  <span class="switch__label">CRT 扫描线</span>
+                </label>
+                <label class="switch" data-toggle="noise">
+                  <input type="checkbox" />
+                  <span class="switch__track"></span>
+                  <span class="switch__label">噪点</span>
+                </label>
+              </div>
+              <!-- Grid line sub-options -->
+              <div class="pixel-sub-options" data-grid-options hidden>
+                <div class="pixel-sub-row">
+                  <span class="pixel-sub-label">网格颜色</span>
+                  <input type="color" data-grid-color value="#000000" class="pixel-color-input" />
+                </div>
+                <div class="pixel-sub-row">
+                  <span class="pixel-sub-label">透明度</span>
+                  <input type="range" data-grid-opacity min="0" max="100" value="30" step="1" />
+                  <span class="pixel-slider-val" data-grid-opacity-val>30%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Background -->
+            <div class="pixel-field">
+              <span class="pixel-field__label">背景</span>
+              <div class="pixel-switches">
+                <label class="switch" data-toggle="transparentBg">
+                  <input type="checkbox" />
+                  <span class="switch__track"></span>
+                  <span class="switch__label">透明背景</span>
+                </label>
+              </div>
+              <div class="pixel-bg-color" data-bg-color-wrap>
+                <span class="pixel-sub-label">背景色</span>
+                <input type="color" data-bg-color value="#ffffff" class="pixel-color-input" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer page-chunk" data-reveal-order="5">
+      <span>claudeOne · 图片像素化 · 基于 pixelit (MIT) · no build</span>
+    </footer>
+  </div>
+
+  <!-- Hidden elements for pixelit -->
+  <img data-pixelit-src style="display:none" alt="" />
+  <canvas data-pixelit-work style="display:none"></canvas>
+
+  <script src="./js/config.js"></script>
+  <script src="./js/shell.js"></script>
+  <script src="./libs/pixelit/pixelit.js"></script>
+  <script src="./js/pixel.js?v=2"></script>
+</body>
+</html>

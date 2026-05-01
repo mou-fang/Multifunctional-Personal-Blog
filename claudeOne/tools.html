@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data: blob:; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>claudeOne · 工具箱</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+  <link rel="stylesheet" href="./css/neumorphism.css" />
+  <link rel="stylesheet" href="./css/liquid-glass.css" />
+  <link rel="stylesheet" href="./css/animations.css" />
+  <link rel="stylesheet" href="./css/tools.css?v=1" />
+</head>
+<body data-page="tools" data-route-state="idle">
+  <script src="./js/theme-init.js"></script>
+
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <div class="ambient ambient-c"></div>
+
+  <div class="site-shell">
+    <header class="site-header page-chunk" data-reveal-order="1">
+      <a class="site-brand" href="./index.html" data-nav-link>
+        <span class="brand-mark" aria-hidden="true">&#9705;</span>
+        <span class="brand-text">
+          <small>魔方的</small>
+          <strong>妙妙工具</strong>
+        </span>
+      </a>
+
+      <nav class="site-nav" aria-label="Main"></nav>
+
+      <div class="header-actions">
+        <label class="theme-toggle" aria-label="切换主题">
+          <span class="theme-toggle__label" data-theme-label>Soft UI</span>
+          <input type="checkbox" data-theme-toggle class="theme-toggle__input" />
+          <span class="theme-toggle__track">
+            <span class="theme-toggle__thumb"></span>
+          </span>
+        </label>
+        <span class="sr-only" data-theme-live aria-live="polite"></span>
+      </div>
+    </header>
+
+    <main class="page-stack">
+      <section class="page-chunk" data-reveal-order="2">
+        <span class="section-kicker">Tools</span>
+        <h1 style="margin-top:12px">工具箱</h1>
+        <p class="muted" style="max-width:62ch; margin-top:8px">
+          把常用、小众、奇怪但有用的工具都放在这里。
+        </p>
+      </section>
+
+      <div class="feature-grid" data-card-grid="tools"></div>
+    </main>
+
+    <footer class="site-footer page-chunk" data-reveal-order="4">
+      <span>claudeOne · Tools</span>
+    </footer>
+  </div>
+
+  <script src="./js/config.js"></script>
+  <script src="./js/shell.js"></script>
+  <script src="./js/tool-cards.js?v=1"></script>
+</body>
+</html>

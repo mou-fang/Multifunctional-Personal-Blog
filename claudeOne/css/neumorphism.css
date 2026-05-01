@@ -30,10 +30,13 @@ body[data-theme="neumorphism"] .theme-toggle__thumb {
 }
 
 body[data-theme="neumorphism"] .card,
-body[data-theme="neumorphism"] .upload-zone,
 body[data-theme="neumorphism"] .file-card,
 body[data-theme="neumorphism"] .audio-bar,
-body[data-theme="neumorphism"] .music-options {
+body[data-theme="neumorphism"] .music-options,
+body[data-theme="neumorphism"] .pixel-controls,
+body[data-theme="neumorphism"] .pixel-upload,
+body[data-theme="neumorphism"] .ascii-upload,
+body[data-theme="neumorphism"] .music-upload {
   box-shadow: var(--shadow-out);
   border: none;
 }
@@ -41,6 +44,21 @@ body[data-theme="neumorphism"] .music-options {
 body[data-theme="neumorphism"] .card-link:hover,
 body[data-theme="neumorphism"] .file-card:hover {
   box-shadow: 18px 18px 36px #bbc6dc, -18px -18px 36px #ffffff;
+}
+
+/* Pixel page (Soft UI) */
+body[data-theme="neumorphism"] .pixel-result__canvas-wrap {
+  box-shadow: var(--shadow-in);
+}
+
+body[data-theme="neumorphism"] input[type="range"]::-webkit-slider-thumb {
+  box-shadow: 2px 2px 4px rgba(74, 102, 166, 0.4),
+    -2px -2px 4px rgba(255, 255, 255, 0.8);
+}
+
+body[data-theme="neumorphism"] input[type="range"]::-moz-range-thumb {
+  box-shadow: 2px 2px 4px rgba(74, 102, 166, 0.4),
+    -2px -2px 4px rgba(255, 255, 255, 0.8);
 }
 
 /* ===== Music page (Soft UI) ===== */
@@ -51,6 +69,20 @@ body[data-theme="neumorphism"] .file-card__action:active {
   box-shadow: var(--shadow-in-sm);
 }
 body[data-theme="neumorphism"] .upload-zone__icon {
+  box-shadow: var(--shadow-out-sm);
+}
+
+/* Upload zone inner — sunken (凹下去), no dashed border */
+body[data-theme="neumorphism"] .ascii-upload__inner,
+body[data-theme="neumorphism"] .music-upload__inner,
+body[data-theme="neumorphism"] .pixel-upload__inner {
+  border-color: transparent;
+  box-shadow: var(--shadow-in);
+  background: var(--surface-sunken);
+}
+
+body[data-theme="neumorphism"] .ascii-upload__icon,
+body[data-theme="neumorphism"] .music-upload__icon {
   box-shadow: var(--shadow-out-sm);
 }
 body[data-theme="neumorphism"] .file-card__cover {

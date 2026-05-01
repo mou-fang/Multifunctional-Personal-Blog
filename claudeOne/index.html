@@ -8,7 +8,7 @@
   <!-- CSP: scripts only from self; styles from self + Google Fonts (inline-style
        allowed for the font link's CSS injection); API connect limited to DeepSeek. -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src https://api.deepseek.com; img-src 'self' data:; base-uri 'self'; form-action 'none'">
+        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src https://api.deepseek.com; img-src 'self' data: blob:; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>claudeOne · 魔方工作台</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -40,15 +40,7 @@
         </span>
       </a>
 
-      <nav class="site-nav" aria-label="Main">
-        <a href="./index.html" data-nav-link>首页</a>
-        <a href="./lottery.html" data-nav-link>幸运抽奖</a>
-        <a href="./game.html" data-nav-link>俄罗斯转盘</a>
-        <a href="./sokoban.html" data-nav-link>推箱子</a>
-        <a href="./music.html" data-nav-link>音乐解锁</a>
-        <a href="./ascii.html" data-nav-link>ASCII 艺术</a>
-        <a href="./ai.html" data-nav-link>DeepSeek</a>
-      </nav>
+      <nav class="site-nav" aria-label="Main"></nav>
 
       <div class="header-actions">
         <label class="theme-toggle" aria-label="切换主题">
@@ -94,7 +86,7 @@
           <span class="pill pill--accent">claudeOne</span>
           <h1 class="cube-hero__title">无意义的<br />魔方工作台。</h1>
           <p class="cube-hero__lead">
-            这里摆着几件工具，还有更多空位。左边的魔方可以拖动旋转，松开后会自己慢慢转。
+            这里摆着几件工具，还有更多空位。左边的魔方可以把玩，鼠标离开魔方就会散开，反之聚合。
             右上角的开关在 Soft UI 和 Liquid Glass 之间切换，两种风格都按 1:1 复刻。
           </p>
           <div class="cube-hero__tags">
@@ -106,63 +98,8 @@
         </div>
       </section>
 
-      <section class="feature-grid-wrap page-chunk" data-reveal-order="3">
-        <header class="feature-grid-head">
-          <span class="section-kicker">Tools</span>
-          <h2>工作台上有什么</h2>
-        </header>
-
-        <div class="feature-grid">
-          <a class="card card-link page-chunk" data-reveal-order="4" href="./game.html" data-nav-link>
-            <span class="card-eyebrow">游戏</span>
-            <h3 class="card-title">俄罗斯转盘</h3>
-            <p class="card-desc">
-              设定人数、名字、弹巢大小和子弹数量。拖拽排序玩家，三种结束规则任选，
-              弹巢位置可选择是否暴露——气氛松紧自己掌握。
-            </p>
-            <span class="card-arrow">Play &rarr;</span>
-          </a>
-
-          <a class="card card-link page-chunk" data-reveal-order="5" href="./sokoban.html" data-nav-link>
-            <span class="card-eyebrow">解谜</span>
-            <h3 class="card-title">推箱子</h3>
-            <p class="card-desc">
-              10 个固定关卡从超级简单一路到超级困难。随机模式会先生成地图再求解验证，
-              还带分层提示、重置和一步一步演示的自动完成。
-            </p>
-            <span class="card-arrow">Solve &rarr;</span>
-          </a>
-
-          <a class="card card-link page-chunk" data-reveal-order="6" href="./ai.html" data-nav-link>
-            <span class="card-eyebrow">AI</span>
-            <h3 class="card-title">DeepSeek 聊天</h3>
-            <p class="card-desc">
-              连接 DeepSeek V4 Flash / Pro，支持思维链开关与推理强度调节。
-              API Key 只存在你自己的浏览器里，不打包进代码。
-            </p>
-            <span class="card-arrow">Chat &rarr;</span>
-          </a>
-
-          <a class="card card-link page-chunk" data-reveal-order="7" href="./lottery.html" data-nav-link>
-            <span class="card-eyebrow">工具</span>
-            <h3 class="card-title">幸运抽奖</h3>
-            <p class="card-desc">
-              嘉年华风格大转盘，真随机算法驱动。添加参与者，命运交给转盘，
-              粒子爆发和五彩纸屑见证赢家诞生。
-            </p>
-            <span class="card-arrow">Draw &rarr;</span>
-          </a>
-
-          <a class="card card-link page-chunk" data-reveal-order="8" href="./music.html" data-nav-link>
-            <span class="card-eyebrow">工具</span>
-            <h3 class="card-title">音乐解锁</h3>
-            <p class="card-desc">
-              解锁网易云、QQ 音乐的加密歌曲文件。拖拽上传，浏览器本地解密，
-              支持 .ncm .qmc* .mflac .mgg 等格式。
-            </p>
-            <span class="card-arrow">Unlock &rarr;</span>
-          </a>
-        </div>
+      <section class="home-cta page-chunk" data-reveal-order="3">
+        <p class="home-cta__text">从顶部导航选择「游戏」或「工具箱」开始探索</p>
       </section>
     </main>
 

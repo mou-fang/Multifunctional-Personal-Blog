@@ -1,0 +1,497 @@
+/* ===== claudeOne :: pixel.css ===== */
+/* Pixel art tool — upload zone, controls, canvas result, effects */
+
+/* ===== Upload zone (full-width card at top) ===== */
+.pixel-upload {
+  position: relative;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+
+/* Drag-over state */
+.pixel-upload[data-dragover="true"] {
+  transform: scale(1.005);
+}
+
+.pixel-upload__inner {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  border: 2px dashed rgba(128, 128, 128, 0.25);
+  border-radius: var(--radius-xl);
+  padding: var(--space-10) var(--space-8);
+  transition: border-color var(--dur) var(--ease-out),
+    background var(--dur) var(--ease-out);
+}
+
+.pixel-upload[data-dragover="true"] .pixel-upload__inner {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.pixel-upload__icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.8rem;
+  color: var(--accent);
+  background: var(--accent-soft);
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.pixel-upload[data-dragover="true"] .pixel-upload__icon {
+  transform: scale(1.12);
+}
+
+.pixel-upload__title {
+  font-family: "Sora", "Manrope", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.pixel-upload__hint {
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.pixel-upload__input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Preview state (replaces inner after upload) */
+.pixel-upload__preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  min-height: 120px;
+}
+
+.pixel-upload__thumb {
+  width: 100px;
+  height: 80px;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  flex: none;
+  display: block;
+}
+
+.pixel-upload__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pixel-upload__name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pixel-upload__dims {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  font-family: "Cascadia Code", "Fira Code", monospace;
+}
+
+/* ===== Workspace: result (left) + controls (right) ===== */
+.pixel-workspace {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+/* Left column: result + actions */
+.pixel-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+/* ===== Result canvas ===== */
+.pixel-result__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.pixel-result__head h3 {
+  font-family: "Sora", "Manrope", sans-serif;
+  margin: 0;
+}
+
+.pixel-result__dims {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  font-family: "Cascadia Code", "Fira Code", monospace;
+}
+
+.pixel-result__canvas-wrap {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  overflow: auto;
+  max-height: 560px;
+  padding: var(--space-4);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.pixel-result__canvas-wrap canvas {
+  max-width: 100%;
+  height: auto;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: pixelated;
+  display: block;
+}
+
+/* Checkerboard for transparent bg */
+.pixel-result__canvas-wrap[data-checker="true"] {
+  background-image:
+    linear-gradient(45deg, var(--surface-sunken) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--surface-sunken) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--surface-sunken) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--surface-sunken) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
+/* ===== Action buttons ===== */
+.pixel-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* ===== Controls panel (right side) ===== */
+.pixel-controls {
+  position: sticky;
+  top: var(--space-6);
+  max-height: calc(100vh - var(--space-12));
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.pixel-controls h3 {
+  font-family: "Sora", "Manrope", sans-serif;
+  margin: 0;
+}
+
+.pixel-controls__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.pixel-controls__collapse {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  background: transparent;
+  transition: transform var(--dur) var(--ease-out),
+    color var(--dur) var(--ease-out);
+}
+
+.pixel-controls__collapse:hover {
+  color: var(--ink);
+}
+
+.pixel-controls__body {
+  transition: opacity var(--dur) var(--ease-out),
+    max-height var(--dur-slow) var(--ease-out);
+  overflow: hidden;
+}
+
+.pixel-controls__body[data-collapsed="true"] {
+  max-height: 0;
+  opacity: 0;
+  margin: 0;
+}
+
+/* ===== Field (inside controls) ===== */
+.pixel-field {
+  margin-bottom: var(--space-4);
+}
+
+.pixel-field__label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: var(--space-2);
+}
+
+/* ===== Range slider ===== */
+.pixel-range-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+}
+
+.pixel-slider-val {
+  min-width: 32px;
+  text-align: right;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  font-family: "Cascadia Code", "Fira Code", monospace;
+  flex: none;
+}
+
+/* ===== Preset pills ===== */
+.pixel-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.pixel-presets .pill {
+  cursor: pointer;
+  transition: background var(--dur) var(--ease-out),
+    color var(--dur) var(--ease-out);
+}
+
+.pixel-presets .pill:hover,
+.pixel-presets .pill[data-active="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* ===== Segmented (inside controls, allow wrap) ===== */
+.pixel-seg {
+  flex-wrap: wrap;
+}
+
+/* ===== Custom width/height input ===== */
+.pixel-custom-input {
+  width: 100px;
+  margin-top: var(--space-2);
+}
+
+/* ===== Switches group ===== */
+.pixel-switches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* ===== Sub-options (grid line settings) ===== */
+.pixel-sub-options {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pixel-sub-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.pixel-sub-label {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  flex: none;
+  min-width: 60px;
+}
+
+.pixel-color-input {
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: transparent;
+}
+
+/* ===== Background row ===== */
+.pixel-bg-color {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+/* ===== Custom palette ===== */
+.pixel-custom-palette {
+  margin-bottom: var(--space-4);
+}
+
+.pixel-palette-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--space-3);
+  min-height: 28px;
+}
+
+.pixel-palette-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  position: relative;
+  transition: transform var(--dur) var(--ease-spring);
+  border: 2px solid transparent;
+}
+
+.pixel-palette-swatch:hover {
+  transform: scale(1.15);
+  border-color: var(--ink-muted);
+}
+
+.pixel-palette-swatch::after {
+  content: "\00d7";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  color: #fff;
+  opacity: 0;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  pointer-events: none;
+  transition: opacity var(--dur) var(--ease-out);
+}
+
+.pixel-palette-swatch:hover::after {
+  opacity: 1;
+}
+
+.pixel-palette-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 960px) {
+  .pixel-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .pixel-controls {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .pixel-upload__inner {
+    padding: var(--space-8) var(--space-4);
+  }
+
+  .pixel-upload__icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.4rem;
+  }
+
+  .pixel-upload__title {
+    font-size: 0.95rem;
+  }
+
+  .pixel-upload__preview {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--space-4);
+    gap: var(--space-3);
+  }
+
+  .pixel-upload__thumb {
+    width: 100%;
+    height: auto;
+    max-height: 160px;
+  }
+
+  .pixel-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pixel-actions .btn {
+    justify-content: center;
+  }
+
+  .pixel-controls__collapse {
+    display: grid;
+  }
+
+  .pixel-result__canvas-wrap {
+    max-height: 360px;
+  }
+}

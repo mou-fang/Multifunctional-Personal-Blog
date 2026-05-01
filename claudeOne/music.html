@@ -36,15 +36,7 @@
         </span>
       </a>
 
-      <nav class="site-nav" aria-label="Main">
-        <a href="./index.html" data-nav-link>首页</a>
-        <a href="./lottery.html" data-nav-link>幸运抽奖</a>
-        <a href="./game.html" data-nav-link>俄罗斯转盘</a>
-        <a href="./sokoban.html" data-nav-link>推箱子</a>
-        <a href="./music.html" data-nav-link>音乐解锁</a>
-        <a href="./ascii.html" data-nav-link>ASCII 艺术</a>
-        <a href="./ai.html" data-nav-link>DeepSeek</a>
-      </nav>
+      <nav class="site-nav" aria-label="Main"></nav>
 
       <div class="header-actions">
         <label class="theme-toggle" aria-label="切换主题">
@@ -77,15 +69,15 @@
       <!-- Workspace -->
       <section class="music-workspace page-chunk" data-reveal-order="3">
         <!-- Upload zone -->
-        <div class="upload-zone" data-upload-zone data-dragover="false">
-          <div class="upload-zone__inner">
-            <div class="upload-zone__icon">&#9733;</div>
-            <div class="upload-zone__title">拖拽文件到此处，或点击选择</div>
-            <div class="upload-zone__hint">
+        <div class="music-upload" data-upload-zone data-dragover="false">
+          <div class="music-upload__inner">
+            <div class="music-upload__icon">&#9835;</div>
+            <div class="music-upload__title">拖拽文件到此处，或点击选择</div>
+            <div class="music-upload__hint">
               支持网易云音乐 (.ncm)、QQ音乐 (.qmc0 / .qmc3 / .qmcflac / .qmcogg / .mflac / .mgg / .tkm / .bkcmp3 / .bkcflac)
             </div>
           </div>
-          <input type="file" class="upload-zone__input" data-file-input multiple accept=".ncm,.qmc0,.qmc3,.qmcflac,.qmcogg,.mflac,.mgg,.tkm,.bkcmp3,.bkcflac,.tm0,.tm2,.tm3,.tm6" />
+          <input type="file" class="music-upload__input" data-file-input multiple accept=".ncm,.qmc0,.qmc3,.qmcflac,.qmcogg,.mflac,.mgg,.tkm,.bkcmp3,.bkcflac,.tm0,.tm2,.tm3,.tm6" />
         </div>
 
         <!-- Options bar -->

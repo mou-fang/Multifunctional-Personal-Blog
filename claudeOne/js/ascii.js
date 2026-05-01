@@ -114,6 +114,7 @@
     selectedFile = file;
     previewName.textContent = file.name;
     previewImg.src = URL.createObjectURL(file);
+    document.querySelector("[data-drop-visual]").hidden = true;
     previewArea.hidden = false;
     convertBtn.disabled = false;
     statusText.textContent = autoToggle.checked ? "自动转换中…" : "已就绪，点击转换";
@@ -127,6 +128,7 @@
     selectedFile = null;
     if (previewImg.src) URL.revokeObjectURL(previewImg.src);
     previewImg.src = "";
+    document.querySelector("[data-drop-visual]").hidden = false;
     previewArea.hidden = true;
     convertBtn.disabled = true;
     statusText.textContent = "请先上传图片";
