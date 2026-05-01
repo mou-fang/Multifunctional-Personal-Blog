@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="description" content="claudeOne 音乐解锁 — 移除加密音乐文件的保护" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>claudeOne · 音乐解锁</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+  <link rel="stylesheet" href="./css/neumorphism.css" />
+  <link rel="stylesheet" href="./css/liquid-glass.css" />
+  <link rel="stylesheet" href="./css/animations.css" />
+  <link rel="stylesheet" href="./css/music.css" />
+</head>
+<body data-page="music" data-route-state="idle">
+  <script src="./js/theme-init.js"></script>
+
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <div class="ambient ambient-c"></div>
+
+  <div class="site-shell">
+    <header class="site-header page-chunk" data-reveal-order="1">
+      <a class="site-brand" href="./index.html" data-nav-link>
+        <span class="brand-mark" aria-hidden="true">&#9705;</span>
+        <span class="brand-text">
+          <small>魔方的</small>
+          <strong>妙妙工具</strong>
+        </span>
+      </a>
+
+      <nav class="site-nav" aria-label="Main">
+        <a href="./index.html" data-nav-link>首页</a>
+        <a href="./lottery.html" data-nav-link>幸运抽奖</a>
+        <a href="./game.html" data-nav-link>俄罗斯转盘</a>
+        <a href="./sokoban.html" data-nav-link>推箱子</a>
+        <a href="./music.html" data-nav-link>音乐解锁</a>
+        <a href="./ascii.html" data-nav-link>ASCII 艺术</a>
+        <a href="./ai.html" data-nav-link>DeepSeek</a>
+      </nav>
+
+      <div class="header-actions">
+        <label class="theme-toggle" aria-label="切换主题">
+          <span class="theme-toggle__label" data-theme-label>Soft UI</span>
+          <input type="checkbox" data-theme-toggle class="theme-toggle__input" />
+          <span class="theme-toggle__track">
+            <span class="theme-toggle__thumb"></span>
+          </span>
+        </label>
+        <span class="sr-only" data-theme-live aria-live="polite"></span>
+      </div>
+    </header>
+
+    <main class="page-stack">
+      <!-- Hero -->
+      <section class="music-hero page-chunk" data-reveal-order="2">
+        <div class="music-hero__copy">
+          <span class="pill pill--accent">Music Tool</span>
+          <h1>音乐解锁</h1>
+          <p>移除已购音乐文件的加密保护。完全在浏览器本地解密，无需上传服务器，保护你的隐私。</p>
+          <div class="music-hero__formats">
+            <span class="pill">网易云 .ncm</span>
+            <span class="pill">QQ音乐 .qmc*</span>
+            <span class="pill">.mflac</span>
+            <span class="pill">.mgg</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Workspace -->
+      <section class="music-workspace page-chunk" data-reveal-order="3">
+        <!-- Upload zone -->
+        <div class="upload-zone" data-upload-zone data-dragover="false">
+          <div class="upload-zone__inner">
+            <div class="upload-zone__icon">&#9733;</div>
+            <div class="upload-zone__title">拖拽文件到此处，或点击选择</div>
+            <div class="upload-zone__hint">
+              支持网易云音乐 (.ncm)、QQ音乐 (.qmc0 / .qmc3 / .qmcflac / .qmcogg / .mflac / .mgg / .tkm / .bkcmp3 / .bkcflac)
+            </div>
+          </div>
+          <input type="file" class="upload-zone__input" data-file-input multiple accept=".ncm,.qmc0,.qmc3,.qmcflac,.qmcogg,.mflac,.mgg,.tkm,.bkcmp3,.bkcflac,.tm0,.tm2,.tm3,.tm6" />
+        </div>
+
+        <!-- Options bar -->
+        <div class="music-options">
+          <div class="music-options__group">
+            <span class="music-options__label">命名格式</span>
+            <div class="segmented">
+              <label><input type="radio" name="naming" value="2" data-naming-format checked /> 歌手 - 歌曲名</label>
+              <label><input type="radio" name="naming" value="1" data-naming-format /> 歌曲名</label>
+              <label><input type="radio" name="naming" value="3" data-naming-format /> 歌曲名 - 歌手</label>
+            </div>
+          </div>
+          <div class="music-options__group" data-batch-actions hidden>
+            <button class="btn btn-primary btn-sm" data-download-all>下载全部</button>
+            <button class="btn btn-ghost btn-sm" data-clear-all>清空全部</button>
+          </div>
+        </div>
+
+        <!-- Audio preview bar -->
+        <div class="audio-bar" data-audio-player hidden>
+          <button class="audio-bar__play" data-audio-play aria-label="播放/暂停">&#9654;</button>
+          <div class="audio-bar__info">
+            <span class="audio-bar__title" data-now-playing></span>
+          </div>
+          <div class="audio-bar__progress" data-audio-progress-wrap>
+            <span class="audio-bar__progress-fill" data-audio-progress></span>
+          </div>
+          <span class="audio-bar__time" data-audio-time>00:00</span>
+          <div class="audio-bar__volume" data-audio-volume-wrap>
+            <span class="audio-bar__volume-fill" data-audio-volume></span>
+            <input type="range" class="audio-bar__volume-slider" data-audio-volume-slider min="0" max="100" value="100" aria-label="音量" />
+          </div>
+          <button class="audio-bar__close" data-audio-close aria-label="停止播放">&#10005;</button>
+          <audio data-audio-el hidden></audio>
+        </div>
+
+        <!-- File list -->
+        <div class="file-list" data-file-list>
+          <div class="file-list__empty" data-empty-state>
+            <span class="file-list__empty-icon">&#9835;</span>
+            <p>拖拽加密音乐文件到上方区域，开始解锁</p>
+            <p class="muted">你的文件不会离开浏览器</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer page-chunk" data-reveal-order="4">
+      <span>claudeOne · 本地解密 · no build</span>
+    </footer>
+  </div>
+
+  <script src="./js/config.js"></script>
+  <script src="./js/shell.js"></script>
+  <script src="./js/music.js"></script>
+</body>
+</html>

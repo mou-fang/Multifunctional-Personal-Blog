@@ -47,6 +47,15 @@ window.CLAUDE_ONE_CONFIG = Object.freeze({
     default: "neumorphism",
     values: Object.freeze(["neumorphism", "liquid-glass"]),
   }),
+  music: Object.freeze({
+    supportedExts: Object.freeze([
+      ".ncm", ".qmc0", ".qmc3", ".qmcflac", ".qmcogg",
+      ".mflac", ".mgg", ".tkm", ".bkcmp3", ".bkcflac",
+      ".tm0", ".tm2", ".tm3", ".tm6",
+    ]),
+    maxFileSize: 200 * 1024 * 1024,
+    storageKey: "claudeOne:music-naming",
+  }),
   limits: Object.freeze({
     playerNameMax: 16,
     chatInputMax: 4000,

@@ -265,12 +265,18 @@
       input.addEventListener("keydown", (e) => {
         if (e.key === "Enter") save();
       });
-      cancelBtn.addEventListener("click", () => {
+      function tryClose() {
         if (forceOpen && !storage.get(keyStorage)) {
-          toast("需要 Key 才能使用聊天", "err");
-          return;
+          toast("需要 Key 才能使用聊天，可在顶部工具栏重新打开", "err");
         }
         close();
+      }
+      cancelBtn.addEventListener("click", tryClose);
+      existing.addEventListener("click", (e) => {
+        if (e.target === existing) tryClose();
+      });
+      existing.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") tryClose();
       });
     }
 

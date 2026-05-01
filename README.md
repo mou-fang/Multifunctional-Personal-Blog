@@ -1,486 +1,190 @@
 # 魔方的妙妙工具
 
-一个纯前端的个人工具工作台项目。项目主体在 `claudeOne/` 目录下，不依赖构建工具，也不需要安装 npm 包；直接用浏览器打开 HTML，或用任意静态服务器启动即可使用。
+一个前后端结合的个人工具工作台，以 3D 魔方为首页入口，集合了游戏、抽奖、AI 聊天、音乐解锁、ASCII 艺术等七个功能页面。前端采用原生 HTML/CSS/JS，无构建步骤；后端使用 Express 提供 ASCII 图片转换 API。
 
-当前工作台包含五个主要页面：
+## 魔方首页
 
-- 首页魔方工作台
-- 俄罗斯转盘小游戏
-- 推箱子解谜游戏
-- DeepSeek 聊天工具
-- 幸运抽奖活动
+首页是一个可交互的 3D 魔方，使用 Three.js 渲染。
 
-## 项目定位
+你可以拖动旋转魔方观察每个面的颜色分布，松开后魔方会以缓慢的惯性自动旋转。下方提供 12 个面转动按钮（U / U' / D / D' / L / L' / R / R' / F / F' / B / B'），也支持键盘快捷键：按字母键转动对应面，按住 Shift 反向转动。空格键打乱魔方，Esc 键还原到初始状态。
 
-这个项目不是传统后台，也不是单一游戏页面，而是一个带有统一视觉系统的“妙妙工具”集合。首页用可交互魔方作为入口视觉，其他页面则围绕具体工具展开。
+魔方两侧环绕着项目导航卡片，点击即可进入各个工具页面。右上角的主题开关可以在 Soft UI（柔和拟物风格）和 Liquid Glass（玻璃拟态风格）之间实时切换，两种风格都是 1:1 像素级复刻。
 
-整体设计目标：
+## 工具页面一览
 
-- 看起来像一个完整的小型产品，而不是几个散落的 demo。
-- 每个工具都有自己的主题气质，但导航、按钮、输入框、卡片、弹窗等基础体验保持统一。
-- 所有页面都可以独立打开，不依赖后端服务。
-- 用户状态尽量保存在浏览器本地，刷新页面后仍能继续使用。
-
-## 视觉风格
-
-项目内置两套主题，可通过右上角开关切换。
-
-### Soft UI
-
-默认主题。视觉关键词是柔和、浅色、拟物、低对比阴影。
-
-主要特点：
-
-- 浅蓝色背景。
-- 凸起和内凹阴影模拟软质界面。
-- 按钮、卡片、输入框都有柔和浮起感。
-- 适合工具型界面，阅读压力较低。
-
-### Liquid Glass
-
-玻璃拟态主题。视觉关键词是半透明、折射、高光、轻质。
-
-主要特点：
-
-- 近白色背景和细网格纹理。
-- 组件带有玻璃边缘、高光和轻微模糊。
-- 弹窗、卡片、按钮会表现为半透明玻璃面板。
-- 保持深色文字，保证可读性。
-
-### 页面风格统一方式
-
-公共设计变量和组件集中在：
-
-- `claudeOne/css/base.css`
-- `claudeOne/css/components.css`
-- `claudeOne/css/neumorphism.css`
-- `claudeOne/css/liquid-glass.css`
-- `claudeOne/css/animations.css`
-
-
-## 页面功能
-
-### 首页：魔方工作台
-
-入口文件：
-
-- `claudeOne/index.html`
-- `claudeOne/js/cube.js`
-- `claudeOne/css/cube.css`
-
-首页以 3D 魔方为核心视觉和交互对象。
-
-功能包括：
-
-- 可拖动旋转魔方。
-- 魔方在空闲时自动缓慢转动。
-- 支持 U、D、L、R、F、B 等魔方面转动按钮。
-- 支持打乱和还原。
-- 支持键盘快捷键操作。
-- 展示当前已有工具入口：俄罗斯转盘、推箱子、DeepSeek 聊天、幸运抽奖。
-
-首页的作用是建立项目的第一印象：这是一个带趣味性的工具集合，而不是普通列表页。
-
-### 俄罗斯转盘
-
-入口文件：
-
-- `claudeOne/game.html`
-- `claudeOne/js/roulette.js`
-
-这是一个浏览器内运行的俄罗斯转盘小游戏页面。
-
-主要功能：
-
-- 设置玩家数量。
-- 编辑玩家名字。
-- 拖拽调整玩家顺序。
-- 设置弹巢数量。
-- 设置子弹数量。
-- 选择是否自动旋转弹巢。
-- 选择是否暴露弹巢状态。
-- 支持多种结束规则。
-- 游戏过程中显示当前玩家、弹巢、开枪结果和回合记录。
-- 游戏结束后可以重新开始或沿用设置再来一局。
-
-这个页面更偏游戏感，交互流程分为设置、游玩、结束几个阶段。
-
-### DeepSeek 聊天
-
-入口文件：
-
-- `claudeOne/ai.html`
-- `claudeOne/js/ai.js`
-
-这是一个对接 DeepSeek `/chat/completions` 接口的聊天页面。
-
-主要功能：
-
-- 支持输入 DeepSeek API Key。
-- API Key 只保存在浏览器本地 `localStorage`，不会写入项目代码。
-- 支持选择模型。
-- 支持流式回复。
-- 支持思维链/推理内容显示。
-- 支持推理强度设置。
-- 支持停止生成。
-- 支持清空当前聊天。
-- 支持错误提示。
-
-相关配置集中在 `claudeOne/js/config.js` 的 `deepseek` 配置中，包括：
-
-- API base URL
-- chat path
-- 默认模型
-- 可选模型列表
-- 默认温度
-- 默认最大输出长度
-- Key 的本地存储键名
-
-### 幸运抽奖
-
-入口文件：
-
-- `claudeOne/lottery.html`
-- `claudeOne/js/lottery.js`
-- `claudeOne/css/lottery.css`
-
-这是一个活动现场风格的幸运抽奖页面。页面视觉上使用大转盘、金色指针、舞台灯光、彩色扇区和彩带效果，让用户一眼就能知道这是抽奖页。
-
-#### 抽奖视觉
-
-页面由三部分组成：
-
-- 顶部：活动标题和随机源说明。
-- 左侧/上方：大转盘舞台，显示当前奖项、剩余名额、可抽人数。
-- 右侧/下方：奖项设置、参与者管理、中奖记录。
-
-中奖后的提示弹窗会跟随当前主题：
-
-- Soft UI 下是浅色柔和浮起卡片。
-- Liquid Glass 下是半透明玻璃卡片。
-
-#### 随机算法
-
-抽奖结果使用浏览器 Web Crypto：
-
-- 使用 `crypto.getRandomValues()` 获取随机数。
-- 使用拒绝采样生成无偏整数。
-- 不使用 `Math.random()`。
-- 不使用时间戳、动画角度或 CSS 动画结果决定中奖者。
-- 转盘动画只负责展示，中奖者在动画开始前已经确定。
-
-这个设计不能宣称物理意义上的绝对真随机，但在纯前端浏览器环境里，属于安全、公平、非常接近真随机的实现方式。
-
-#### 参与者管理
-
-支持：
-
-- 默认示例名单。
-- 单个添加参与者。
-- 编辑参与者姓名。
-- 删除参与者。
-- 批量导入名单。
-- 每行一个名字的导入格式。
-- 自动去掉空行。
-- 自动过滤重复名字。
-- 中奖后自动从可抽名单中移出。
-- 重置中奖状态后，已中奖者重新回到可抽名单。
-
-#### 奖项管理
-
-默认奖项：
-
-- 一等奖 1 名
-- 二等奖 3 名
-- 三等奖 5 名
-
-支持：
-
-- 添加奖项。
-- 编辑奖项名称和名额。
-- 删除奖项。
-- 选择当前奖项。
-- 当前奖项抽满后禁用抽奖按钮并提示切换奖项。
-
-#### 中奖记录
-
-支持：
-
-- 记录中奖者。
-- 记录中奖奖项。
-- 已中奖者不再参与后续抽奖。
-- 显示中奖顺序。
-- 一键重置中奖状态。
-- 一键重置全部抽奖数据。
-
-#### 状态保存
-
-幸运抽奖会把状态保存到 `localStorage`：
-
-- 参与者名单
-- 奖项列表
-- 中奖记录
-- 当前选中的奖项
-- 转盘角度
-
-刷新页面后，抽奖状态会尽量恢复。
-
-### 推箱子
-
-入口文件：
-
-- `claudeOne/sokoban.html`
-- `claudeOne/js/sokoban.js`
-- `claudeOne/css/sokoban.css`
-
-这是一个经典的仓库番（推箱子）解谜游戏页面，支持固定关卡、随机可解关卡，以及内置的 BFS 求解器提供提示和自动完成。
-
-#### 关卡系统
-
-游戏提供两种关卡来源：
-
-**固定关卡（10 关）**
-
-从超级简单到超级困难的预设关卡，难度逐步递增：
-
-| 关卡 | 名称 | 难度 |
-|------|------|------|
-| 01 | 入门推箱 | 超级简单 |
-| 02 | 直线训练 | 简单 |
-| 03 | 转角 | 轻松 |
-| 04 | 双箱并行 | 普通 |
-| 05 | 错位目标 | 稍难 |
-| 06 | 三箱仓库 | 困难 |
-| 07 | 隔墙推送 | 很难 |
-| 08 | 三箱换位 | 高难 |
-| 09 | 专家仓库 | 专家 |
-| 10 | 超级困难 | 超级困难 |
-
-**随机模式**
-
-可选择四种生成方式：
-
-- **按指定难度生成**：选择 1-10 难度，系统用迷宫算法生成地图并用 BFS 求解器验证可解性。
-- **从简单逐渐变难**：从当前难度开始，通关后自动生成下一档难度。
-- **随机难度混合**：随机抽取 1-10 的难度生成并验证。
-- **深渊难 · 地狱模式**：4-5 个箱子 + 2-3 个陷阱干扰目标的极端复杂地图。采用多房间结构、连续瓶颈、墙角陷阱等高级难度技巧，反向拉箱算法生成蜿蜒解法，再暴力枚举所有推动方案确认全图唯一解才会上桌。推错一步即死锁。
-
-#### 求解器与提示
-
-内置 BFS 求解器贯穿所有模式：
-
-- 所有随机关卡生成前先求解验证，只让可通关的地图进入棋盘。
-- **三层提示系统**：第一步标亮要推的箱子，第二步显示走到推动站位的路线，第三步自动演示该步推动。
-- **自动完成**：一键自动演示整个求解过程，逐步执行求解器找到的解法。
-- 支持死锁检测：墙角陷阱（箱子推到两面临墙的位置）会被求解器识别并剪枝。
-
-#### 游戏操作
-
-- 方向键或 WASD 移动角色、推动箱子。
-- 触屏设备上提供方向键按钮。
-- 棋盘自适应窗口大小，支持深色/浅色主题切换。
-
-#### 难度技巧
-
-深渊难 · 地狱模式运用了以下所有高级难度设计：
-
-| 技巧 | 说明 |
+| 页面 | 说明 |
 |------|------|
-| 干扰陷阱 | 目标数多于箱子数，多余目标放在墙角——推进去就锁死 |
-| 墙角死锁 | 箱子两面临墙时判定为死锁，求解器自动剪枝 |
-| 狭窄走廊 | 单格宽通道强制特定推动方向，限制操作空间 |
-| 唯一解验证 | 暴力枚举所有推动方案，确认全图只有一种解法 |
-| 反向拉箱生成 | 从目标位置反向拉箱搭出蜿蜒解法，保证可解性 |
-| 多房间结构 | 多个独立房间通过单格走廊连接，限制移动自由度 |
-| 连续瓶颈 | 多个箱子必须依次通过同一狭窄通道 |
-| 紧凑地板 | 解法足迹外几乎无多余空间，减少无效操作 |
+| **俄罗斯转盘** | 设定玩家人数和名字，拖拽排序，选择弹巢与子弹数量，三种结束规则。支持暴露/隐藏弹巢位置 |
+| **推箱子** | 10 个固定关卡从入门到地狱难度；随机模式内置 BFS 求解器验证可解性；深渊难模式含唯一解验证 |
+| **DeepSeek 聊天** | 对接 DeepSeek V4 API，支持流式回复、思维链显示、推理强度调节。Key 只存本地 localStorage |
+| **幸运抽奖** | 大转盘 + 真随机算法（Web Crypto），管理参与者名单和奖项，中奖彩带效果 |
+| **音乐解锁** | 纯浏览器端解密网易云/QQ 音乐加密文件，支持 .ncm .qmc* .mflac .mgg 等格式 |
+| **ASCII 艺术** | 上传图片转为 ASCII 字符画，Express 后端调用 Go 工具完成转换，支持彩色/灰度/盲文模式 |
 
-## 技术结构
+## 如何从零开始部署到本地
 
-项目没有构建步骤，使用原生 HTML、CSS、JavaScript。
+以下步骤假设你从未用过 GitHub 和命令行，每一步都有截图式说明。
 
-目录结构：
+### 第一步：下载项目代码
 
-```text
-claudeOne/
-  index.html              首页 / 魔方工作台
-  game.html               俄罗斯转盘页面
-  ai.html                 DeepSeek 聊天页面
-  lottery.html            幸运抽奖页面
-  sokoban.html            推箱子解谜页面
+有三种方式，选一种即可。
 
-  css/
-    base.css              全局变量、布局、字体、主题基础
-    components.css        按钮、卡片、表单、弹窗、toast 等公共组件
-    neumorphism.css       Soft UI 主题
-    liquid-glass.css      Liquid Glass 主题
-    animations.css        页面进入、切换等动画
-    cube.css              首页魔方专用样式
-    lottery.css           幸运抽奖专用样式
-    sokoban.css           推箱子专用样式
+**方式 A：直接下载 ZIP（最简单）**
 
-  js/
-    config.js             全局配置
-    theme-init.js         首屏前主题初始化
-    shell.js              公共能力：主题、导航、toast、storage、API Key 弹窗
-    cube.js               魔方逻辑
-    roulette.js           俄罗斯转盘逻辑
-    ai.js                 DeepSeek 聊天逻辑
-    lottery.js            幸运抽奖逻辑
-    sokoban.js            推箱子逻辑
+1. 打开浏览器，访问：`https://github.com/mou-fang/eluosizhuanpan`
+2. 找到页面上的绿色按钮 **Code**，点击它
+3. 在弹出的菜单里点击 **Download ZIP**
+4. 浏览器会下载一个压缩包，下载完成后解压到你想要的文件夹
+5. 解压后你会看到一个 `eluosizhuanpan-main` 文件夹，里面就是全部代码
+
+**方式 B：用 Git 克隆（如果你已经装了 Git）**
+
+1. 打开终端（Windows 用户：按 Win 键，输入 `cmd` 或 `powershell`，回车）
+2. 进入你想放项目的目录，比如桌面：
+   ```
+   cd Desktop
+   ```
+3. 执行克隆命令：
+   ```
+   git clone https://github.com/mou-fang/eluosizhuanpan.git
+   ```
+4. 等待下载完成，桌面上会出现 `eluosizhuanpan` 文件夹
+
+**方式 C：用 GitHub Desktop（有图形界面）**
+
+1. 下载安装 [GitHub Desktop](https://desktop.github.com/)
+2. 打开后，点击 **File → Clone repository**
+3. 选择 URL 标签页，输入：`https://github.com/mou-fang/eluosizhuanpan`
+4. 选择本地存放路径，点击 **Clone**
+
+### 第二步：安装必需软件
+
+项目需要 Node.js 来运行后端服务。如果你的电脑还没有装，按下面步骤安装：
+
+1. 访问 [nodejs.org](https://nodejs.org/)
+2. 下载左侧的 **LTS 版本**（长期稳定版）
+3. 双击安装包，一路点 Next 即可（Mac 同理）
+
+装好后验证一下。打开终端（Win 键 → 输入 `cmd` → 回车），输入：
+```
+node -v
+```
+如果看到版本号（比如 v20.x.x），说明安装成功。
+
+### 第三步：启动后端
+
+ASCII 艺术功能依赖后端将图片转为字符画，后端还需要调用一个 Go 写的命令行工具。一次性配好后，就不用管它了。
+
+**安装 Go 和 ascii-image-converter**
+
+1. 访问 [go.dev/dl](https://go.dev/dl/)，下载 Windows 安装包，一路 Next
+2. 打开终端，运行：
+   ```
+   go install github.com/TheZoraiz/ascii-image-converter@latest
+   ```
+
+**安装后端依赖并启动**
+
+1. 在终端中进入 `server` 文件夹。如果你把项目放在了桌面：
+   ```
+   cd Desktop\eluosizhuanpan-main\claudeOne\server
+   ```
+   （如果用了 Git 克隆，把 `eluosizhuanpan-main` 换成 `eluosizhuanpan`）
+2. 安装依赖（只需运行一次）：
+   ```
+   npm install
+   ```
+3. 启动后端服务：
+   ```
+   npm start
+   ```
+4. 看到 `[ascii] Server running on http://localhost:3001` 就说明后端启动成功了
+
+这个终端窗口不要关，让它一直运行着。
+
+### 第四步：启动前端
+
+再打开一个**新的终端窗口**（Win 键 → 输入 `cmd` → 回车），进入 `claudeOne` 文件夹：
+
+```
+cd Desktop\eluosizhuanpan-main\claudeOne
 ```
 
-## 公共能力
+**推荐方法：用 Python 启一个本地服务器**
 
-### 主题系统
+Windows 通常自带 Python。如果没有，先去 [python.org](https://www.python.org/downloads/) 下载安装（安装时一定要勾选 "Add Python to PATH"）。
 
-主题保存在：
-
-```text
-claudeOne:theme
+```
+python -m http.server 8080
 ```
 
-`theme-init.js` 会在页面渲染前读取主题，避免页面先闪成默认主题再切换。
+看到 `Serving HTTP on 0.0.0.0 port 8080` 就说明成功了。
 
-`shell.js` 负责：
+**备选方法：用 Node.js（你已经装了）**
 
-- 应用主题。
-- 切换主题。
-- 主题切换动画。
-- 导航当前页高亮。
-- 页面进入动画。
-- 站内链接淡出跳转。
-
-### 本地存储
-
-项目使用 `localStorage` 保存用户配置。
-
-主要键名：
-
-```text
-claudeOne:theme
-claudeOne:deepseek-key
-claudeOne:lottery-state-v2
-claudeOne:sokoban-state-v1
+```
+npx http-server -p 8080
 ```
 
-如果浏览器禁用 `localStorage`，`shell.js` 里有内存降级方案，至少能保证当前页面会话内可用。
+然后打开浏览器，访问：**http://localhost:8080**
 
-### 安全策略
+现在所有功能都可以正常使用了。两个终端窗口各司其职：
+- 第一个终端跑后端（端口 3001），负责 ASCII 图片转换
+- 第二个终端跑前端（端口 8080），负责网页界面
 
-HTML 页面使用了 CSP meta 标签限制资源来源：
+### 第五步：使用 DeepSeek 聊天
 
-- 脚本只允许加载本站脚本。
-- 字体和样式允许 Google Fonts。
-- DeepSeek 页面允许连接 DeepSeek API。
-- 图片允许本地和 data URI。
+1. 访问 **http://localhost:8080/ai.html**
+2. 首次打开会弹出 API Key 输入框。你需要去 [DeepSeek 控制台](https://platform.deepseek.com/api_keys) 注册并生成一个 Key
+3. 将 Key（以 `sk-` 开头）粘贴到输入框，点击保存
+4. Key 只保存在你的浏览器本地，不会上传到任何服务器
 
-注意：如果未来要部署到正式服务器，更推荐在 HTTP header 中设置 CSP，而不是只依赖 meta 标签。
+## 目录结构
 
-## 运行方式
-
-### 方式一：直接打开
-
-可以直接打开：
-
-```text
-claudeOne/index.html
 ```
-
-大多数功能可以直接使用。
-
-### 方式二：本地静态服务器
-
-推荐使用本地服务器，资源加载和部署环境更接近。
-
-在项目根目录运行：
-
-```powershell
-python -m http.server 4173
-```
-
-然后访问：
-
-```text
-http://127.0.0.1:4173/claudeOne/index.html
-```
-
-其他页面：
-
-```text
-http://127.0.0.1:4173/claudeOne/game.html
-http://127.0.0.1:4173/claudeOne/ai.html
-http://127.0.0.1:4173/claudeOne/lottery.html
-http://127.0.0.1:4173/claudeOne/sokoban.html
-```
-
-## 配置说明
-
-全局配置在：
-
-```text
-claudeOne/js/config.js
-```
-
-包含：
-
-- DeepSeek API 配置
-- 可选模型列表
-- 默认模型参数
-- 主题配置
-- 游戏和抽奖限制
-
-幸运抽奖限制示例：
-
-```js
-lotteryParticipantsMax: 300
-lotteryParticipantNameMax: 24
-lotteryPrizeNameMax: 24
-lotteryPrizeQuotaMax: 100
+eluosizhuanpan/
+├── README.md
+└── claudeOne/
+    ├── index.html          首页（魔方工作台）
+    ├── game.html           俄罗斯转盘
+    ├── sokoban.html        推箱子
+    ├── ai.html             DeepSeek 聊天
+    ├── lottery.html        幸运抽奖
+    ├── music.html          音乐解锁
+    ├── ascii.html          ASCII 艺术
+    ├── css/                样式文件
+    │   ├── base.css            全局变量与基础样式
+    │   ├── components.css      公共组件（按钮、卡片、弹窗等）
+    │   ├── neumorphism.css     Soft UI 主题
+    │   ├── liquid-glass.css    Liquid Glass 主题
+    │   ├── animations.css      页面动画
+    │   ├── cube.css            魔方样式
+    │   ├── lottery.css         抽奖样式
+    │   ├── sokoban.css         推箱子样式
+    │   ├── music.css           音乐解锁样式
+    │   └── ascii.css           ASCII 艺术样式
+    ├── js/                 脚本文件
+    │   ├── config.js           全局配置
+    │   ├── theme-init.js       首屏主题初始化
+    │   ├── shell.js            公共能力（主题切换、toast、弹窗等）
+    │   ├── cube.js             魔方 3D 逻辑
+    │   ├── roulette.js         俄罗斯转盘逻辑
+    │   ├── ai.js               DeepSeek 聊天逻辑
+    │   ├── lottery.js          幸运抽奖逻辑
+    │   ├── sokoban.js          推箱子逻辑
+    │   ├── music.js            音乐解锁逻辑
+    │   ├── decrypt-worker.js   解密 Web Worker
+    │   └── ascii.js            ASCII 艺术逻辑
+    └── server/              后端服务
+        ├── package.json
+        ├── server.js           Express API（ASCII 图片转换）
+        └── uploads/            上传文件临时目录
 ```
 
 ## 浏览器兼容
 
-推荐使用现代浏览器：
+推荐 Chrome、Edge、Firefox、Safari 最新版。
 
-- Chrome
-- Edge
-- Firefox
-- Safari 新版本
-
-幸运抽奖需要浏览器支持：
-
-```js
-crypto.getRandomValues()
-```
-
-如果浏览器不支持 Web Crypto，抽奖按钮会不可用，因为项目不使用低质量随机数作为降级方案。
-
-## 设计注意事项
-
-后续扩展页面时，建议遵守这些约定：
-
-- 继续复用顶部导航和主题切换。
-- 页面专属样式单独放入独立 CSS 文件。
-- 公共按钮、输入框、弹窗优先复用 `components.css`。
-- 不要在页面里硬写大量不跟随主题的颜色。
-- 如果是工具页，优先保证文字清晰和操作直观。
-- 如果是游戏或活动页，可以增强舞台感，但仍要和两套主题协调。
-
-## 当前项目特点总结
-
-这是一个轻量但完整的浏览器工具项目：
-
-- 不需要构建。
-- 不需要后端。
-- 有统一品牌和导航。
-- 有两套可切换视觉主题。
-- 有可交互 3D 魔方首页。
-- 有完整俄罗斯转盘小游戏。
-- 有可连接 DeepSeek 的聊天工具。
-- 有活动级幸运抽奖页面。
-- 有经典推箱子解谜游戏，内置 BFS 求解器、分层提示和自动完成。
-- 状态保存在浏览器本地。
-- 抽奖随机性使用 Web Crypto 实现，避免伪随机和动画决定结果。
-
-适合继续扩展成个人工具箱、小型互动站点、活动现场页面或课堂/展示用前端项目。
+- 抽奖功能需要浏览器支持 `crypto.getRandomValues()`
+- 音乐解锁需要浏览器支持 Web Worker 和 ES Module
+- 魔方 3D 需要浏览器支持 WebGL

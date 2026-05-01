@@ -29,13 +29,44 @@ body[data-theme="neumorphism"] .theme-toggle__thumb {
     inset 0 0 0 0 rgba(255, 255, 255, 0);
 }
 
-body[data-theme="neumorphism"] .card {
+body[data-theme="neumorphism"] .card,
+body[data-theme="neumorphism"] .upload-zone,
+body[data-theme="neumorphism"] .file-card,
+body[data-theme="neumorphism"] .audio-bar,
+body[data-theme="neumorphism"] .music-options {
   box-shadow: var(--shadow-out);
   border: none;
 }
 
-body[data-theme="neumorphism"] .card-link:hover {
+body[data-theme="neumorphism"] .card-link:hover,
+body[data-theme="neumorphism"] .file-card:hover {
   box-shadow: 18px 18px 36px #bbc6dc, -18px -18px 36px #ffffff;
+}
+
+/* ===== Music page (Soft UI) ===== */
+body[data-theme="neumorphism"] .file-card__action {
+  box-shadow: var(--shadow-out-sm);
+}
+body[data-theme="neumorphism"] .file-card__action:active {
+  box-shadow: var(--shadow-in-sm);
+}
+body[data-theme="neumorphism"] .upload-zone__icon {
+  box-shadow: var(--shadow-out-sm);
+}
+body[data-theme="neumorphism"] .file-card__cover {
+  box-shadow: var(--shadow-in-sm);
+}
+body[data-theme="neumorphism"] .audio-bar__progress {
+  box-shadow: var(--shadow-in-sm);
+}
+body[data-theme="neumorphism"] .audio-bar__volume {
+  box-shadow: var(--shadow-in-sm);
+}
+body[data-theme="neumorphism"] .audio-bar__play {
+  box-shadow: var(--shadow-out-sm);
+}
+body[data-theme="neumorphism"] .audio-bar__play:active {
+  box-shadow: var(--shadow-in-sm);
 }
 
 body[data-theme="neumorphism"] .card--soon {

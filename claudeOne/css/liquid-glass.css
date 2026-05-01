@@ -63,7 +63,11 @@ body[data-theme="liquid-glass"] .pill,
 body[data-theme="liquid-glass"] .stepper,
 body[data-theme="liquid-glass"] .radio-option,
 body[data-theme="liquid-glass"] .switch__track,
-body[data-theme="liquid-glass"] .segmented {
+body[data-theme="liquid-glass"] .segmented,
+body[data-theme="liquid-glass"] .upload-zone,
+body[data-theme="liquid-glass"] .file-card,
+body[data-theme="liquid-glass"] .audio-bar,
+body[data-theme="liquid-glass"] .music-options {
   position: relative;
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(var(--backdrop-blur));
@@ -76,7 +80,8 @@ body[data-theme="liquid-glass"] .segmented {
 
 /* Larger glass surfaces use the full shadow stack */
 body[data-theme="liquid-glass"] .card,
-body[data-theme="liquid-glass"] .modal-card {
+body[data-theme="liquid-glass"] .modal-card,
+body[data-theme="liquid-glass"] .upload-zone {
   box-shadow: var(--glass-shadow);
 }
 
@@ -86,7 +91,11 @@ body[data-theme="liquid-glass"] .theme-toggle::before,
 body[data-theme="liquid-glass"] .card::before,
 body[data-theme="liquid-glass"] .btn::before,
 body[data-theme="liquid-glass"] .modal-card::before,
-body[data-theme="liquid-glass"] .pill::before {
+body[data-theme="liquid-glass"] .pill::before,
+body[data-theme="liquid-glass"] .upload-zone::before,
+body[data-theme="liquid-glass"] .file-card::before,
+body[data-theme="liquid-glass"] .audio-bar::before,
+body[data-theme="liquid-glass"] .music-options::before {
   content: "";
   position: absolute;
   z-index: 1;
@@ -107,7 +116,11 @@ body[data-theme="liquid-glass"] .theme-toggle::after,
 body[data-theme="liquid-glass"] .card::after,
 body[data-theme="liquid-glass"] .btn::after,
 body[data-theme="liquid-glass"] .modal-card::after,
-body[data-theme="liquid-glass"] .pill::after {
+body[data-theme="liquid-glass"] .pill::after,
+body[data-theme="liquid-glass"] .upload-zone::after,
+body[data-theme="liquid-glass"] .file-card::after,
+body[data-theme="liquid-glass"] .audio-bar::after,
+body[data-theme="liquid-glass"] .music-options::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -126,7 +139,11 @@ body[data-theme="liquid-glass"] .theme-toggle > *,
 body[data-theme="liquid-glass"] .card > *,
 body[data-theme="liquid-glass"] .btn > *,
 body[data-theme="liquid-glass"] .modal-card > *,
-body[data-theme="liquid-glass"] .pill > * {
+body[data-theme="liquid-glass"] .pill > *,
+body[data-theme="liquid-glass"] .upload-zone > *,
+body[data-theme="liquid-glass"] .file-card > *,
+body[data-theme="liquid-glass"] .audio-bar > *,
+body[data-theme="liquid-glass"] .music-options > * {
   position: relative;
   z-index: 3;
 }
@@ -489,4 +506,64 @@ body[data-theme="liquid-glass"] .chat-topicpicker__newbtn {
 
 body[data-theme="liquid-glass"] .chat-topicpicker__newbtn:hover {
   background: rgba(20, 20, 20, 0.96);
+}
+
+/* ===== Music page (Liquid Glass) ===== */
+/* File card action buttons — glass circles */
+body[data-theme="liquid-glass"] .file-card__action {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--glass-shadow-sm);
+  color: var(--ink-soft);
+}
+body[data-theme="liquid-glass"] .file-card__action:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink);
+}
+
+/* File card cover placeholder — inset glass */
+body[data-theme="liquid-glass"] .file-card__cover {
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.08),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.9);
+}
+
+/* Upload zone icon — raised glass circle */
+body[data-theme="liquid-glass"] .upload-zone__icon {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--glass-shadow-sm);
+}
+
+/* Audio bar progress / volume tracks — inset glass */
+body[data-theme="liquid-glass"] .audio-bar__progress {
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.08),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.9);
+}
+body[data-theme="liquid-glass"] .audio-bar__volume {
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.08),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.9);
+}
+
+/* Audio bar play button — dark glass */
+body[data-theme="liquid-glass"] .audio-bar__play {
+  background: rgba(40, 40, 40, 0.92);
+  color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.18),
+    0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+/* Audio bar close button — glass circle */
+body[data-theme="liquid-glass"] .audio-bar__close {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--glass-shadow-sm);
+}
+body[data-theme="liquid-glass"] .audio-bar__close:hover {
+  background: rgba(255, 107, 122, 0.15);
+  color: var(--danger);
 }
