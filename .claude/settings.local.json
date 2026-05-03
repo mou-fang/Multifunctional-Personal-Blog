@@ -106,7 +106,8 @@
       "Bash(node -e \"const p = require\\('d:/eluosizhuanpan/claudeOne/server/node_modules/music-metadata/package.json'\\); console.log\\(JSON.stringify\\({main: p.main, exports: p.exports, type: p.type}, null, 2\\)\\)\")",
       "Bash(node -e \"const fs=require\\('fs'\\); const c=fs.readFileSync\\('d:/eluosizhuanpan/claudeOne/music/playlist.js','utf-8'\\); console.log\\('Has cover:', c.includes\\('cover'\\)\\); console.log\\('Has data:image:', c.includes\\('data:image'\\)\\); console.log\\('Has base64:', c.includes\\('base64'\\)\\); console.log\\('Length:', c.length\\);\")",
       "Bash(netstat -ano)",
-      "Bash(Select-String \"3001\")"
+      "Bash(Select-String \"3001\")",
+      "Bash(Get-ChildItem -Name)"
     ]
   }
 }

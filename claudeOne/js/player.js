@@ -771,43 +771,43 @@
         setMinimized(true);
       } else {
         setMinimized(false);
-        var track = playlist[currentIdx >= 0 ? currentIdx : 0];
+        var playIdx = currentIdx >= 0 ? currentIdx : 0;
+        currentIdx = playIdx;
+        var track = playlist[playIdx];
         updateTrackInfo(track);
-        if (currentIdx >= 0) {
-          audioEl.src = track.src;
-          try {
-            var savedTime = parseFloat(localStorage.getItem(STORAGE_TIME));
-            if (savedTime > 0) {
-              audioEl.addEventListener("loadedmetadata", function restore() {
-                audioEl.currentTime = savedTime;
-                updateProgress();
-                audioEl.removeEventListener("loadedmetadata", restore);
-              }, { once: true });
-            }
-          } catch (_) {}
-          audioEl.play().then(function () {
-            isPlaying = true;
-            root.setAttribute("data-playing", "");
-            updatePlayBtn();
-          }).catch(function () {
-            isPlaying = false;
-            updatePlayBtn();
-            // Browser blocked autoplay — wait for first user interaction
-            root.setAttribute("data-waiting-interaction", "");
-            var resumeOnInteract = function () {
-              root.removeAttribute("data-waiting-interaction");
-              if (isPlaying || !playlist.length) return;
-              audioEl.play().then(function () {
-                isPlaying = true;
-                root.setAttribute("data-playing", "");
-                updatePlayBtn();
-              }).catch(function () {});
-            };
-            document.addEventListener("click", resumeOnInteract, { once: true });
-            document.addEventListener("keydown", resumeOnInteract, { once: true });
-            document.addEventListener("touchstart", resumeOnInteract, { once: true });
-          });
-        }
+        audioEl.src = track.src;
+        try {
+          var savedTime = parseFloat(localStorage.getItem(STORAGE_TIME));
+          if (savedTime > 0) {
+            audioEl.addEventListener("loadedmetadata", function restore() {
+              audioEl.currentTime = savedTime;
+              updateProgress();
+              audioEl.removeEventListener("loadedmetadata", restore);
+            }, { once: true });
+          }
+        } catch (_) {}
+        audioEl.play().then(function () {
+          isPlaying = true;
+          root.setAttribute("data-playing", "");
+          updatePlayBtn();
+        }).catch(function () {
+          isPlaying = false;
+          updatePlayBtn();
+          // Browser blocked autoplay — wait for first user interaction
+          root.setAttribute("data-waiting-interaction", "");
+          var resumeOnInteract = function () {
+            root.removeAttribute("data-waiting-interaction");
+            if (isPlaying || !playlist.length) return;
+            audioEl.play().then(function () {
+              isPlaying = true;
+              root.setAttribute("data-playing", "");
+              updatePlayBtn();
+            }).catch(function () {});
+          };
+          document.addEventListener("click", resumeOnInteract, { once: true });
+          document.addEventListener("keydown", resumeOnInteract, { once: true });
+          document.addEventListener("touchstart", resumeOnInteract, { once: true });
+        });
       }
     } else {
       updateTrackInfo(null);
