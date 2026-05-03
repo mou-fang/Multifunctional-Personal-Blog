@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
+  <meta name="description" content="claudeOne 图片压缩 — 浏览器本地压缩与格式转换" />
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data: blob:; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
@@ -69,7 +70,7 @@
               <div class="compress-upload__title">拖拽图片到此处，或点击选择</div>
               <div class="compress-upload__hint">支持 JPG / PNG / WebP / BMP，可多选</div>
             </div>
-            <input type="file" class="compress-upload__input" data-file-input accept="image/jpeg,image/png,image/webp,image/bmp" multiple />
+            <input type="file" class="compress-upload__input" data-file-input accept="image/jpeg,image/png,image/webp,image/bmp" multiple aria-label="选择图片文件" />
           </div>
 
           <!-- File list -->
@@ -101,7 +102,7 @@
             <div class="compress-params__head">压缩质量</div>
             <div class="compress-field">
               <div class="compress-range-row">
-                <input type="range" data-quality min="0.1" max="1" value="0.7" step="0.01" />
+                <input type="range" data-quality min="0.1" max="1" value="0.7" step="0.01" aria-label="压缩质量" />
                 <span class="compress-slider-val" data-quality-val>0.70</span>
               </div>
               <div class="compress-presets" data-quality-presets>
@@ -127,7 +128,7 @@
               </div>
               <div class="compress-field" data-custom-maxsize-wrap hidden>
                 <div class="compress-range-row">
-                  <input type="number" class="input compress-custom-input" data-custom-maxsize min="0.01" max="100" step="0.1" value="5" placeholder="MB" />
+                  <input type="number" class="input compress-custom-input" data-custom-maxsize min="0.01" max="100" step="0.1" value="5" placeholder="MB" aria-label="自定义目标大小" />
                   <span style="font-size:0.82rem;color:var(--ink-muted)">MB</span>
                 </div>
               </div>
@@ -148,7 +149,7 @@
                 <span class="pill" data-maxdim="4096">4096</span>
                 <span class="pill" data-maxdim="custom">自定义</span>
               </div>
-              <input class="input compress-custom-input" type="number" data-custom-maxdim min="32" max="8192" value="1920" placeholder="px" style="display:none" />
+              <input class="input compress-custom-input" type="number" data-custom-maxdim min="32" max="8192" value="1920" placeholder="px" aria-label="自定义最大尺寸" style="display:none" />
             </div>
             <div class="compress-field">
               <label class="switch" data-switch="keepRatio">
@@ -160,11 +161,11 @@
             <div class="compress-field" style="flex-direction:row;gap:var(--space-4)">
               <div style="flex:1">
                 <span class="compress-field__label">手动宽度</span>
-                <input class="input compress-custom-input" type="number" data-manual-width min="1" max="8192" placeholder="自动" style="width:100%" />
+                <input class="input compress-custom-input" type="number" data-manual-width min="1" max="8192" placeholder="自动" aria-label="手动宽度" style="width:100%" />
               </div>
               <div style="flex:1">
                 <span class="compress-field__label">手动高度</span>
-                <input class="input compress-custom-input" type="number" data-manual-height min="1" max="8192" placeholder="自动" style="width:100%" />
+                <input class="input compress-custom-input" type="number" data-manual-height min="1" max="8192" placeholder="自动" aria-label="手动高度" style="width:100%" />
               </div>
             </div>
           </div>
@@ -206,21 +207,21 @@
             <div class="compress-field">
               <span class="compress-field__label">初始质量 (initialQuality)</span>
               <div class="compress-range-row">
-                <input type="range" data-initial-quality min="0.1" max="1" value="0.8" step="0.01" />
+                <input type="range" data-initial-quality min="0.1" max="1" value="0.8" step="0.01" aria-label="初始质量" />
                 <span class="compress-slider-val" data-initial-quality-val>0.80</span>
               </div>
             </div>
             <div class="compress-field">
               <span class="compress-field__label">最大迭代次数</span>
               <div class="compress-range-row">
-                <input type="range" data-max-iteration min="1" max="20" value="10" step="1" />
+                <input type="range" data-max-iteration min="1" max="20" value="10" step="1" aria-label="最大迭代次数" />
                 <span class="compress-slider-val" data-max-iteration-val>10</span>
               </div>
             </div>
             <div class="compress-field">
               <span class="compress-field__label">背景填充色 (PNG 转 JPG 时)</span>
               <div class="compress-range-row" style="gap:var(--space-2)">
-                <input type="color" data-bg-color value="#ffffff" style="width:40px;height:32px;border:none;cursor:pointer" />
+                <input type="color" data-bg-color value="#ffffff" aria-label="背景填充色" style="width:40px;height:32px;border:none;cursor:pointer" />
                 <span style="font-size:0.82rem;color:var(--ink-muted)">透明区域将填充此颜色</span>
               </div>
             </div>
@@ -249,11 +250,11 @@
               <div style="display:flex;gap:var(--space-3)">
                 <div style="flex:1">
                   <span class="compress-field__label">前缀</span>
-                  <input class="input compress-custom-input" type="text" data-naming-prefix placeholder="如: small_" style="width:100%" />
+                  <input class="input compress-custom-input" type="text" data-naming-prefix placeholder="如: small_" aria-label="文件名前缀" style="width:100%" />
                 </div>
                 <div style="flex:1">
                   <span class="compress-field__label">后缀</span>
-                  <input class="input compress-custom-input" type="text" data-naming-suffix placeholder="如: _webp" style="width:100%" />
+                  <input class="input compress-custom-input" type="text" data-naming-suffix placeholder="如: _webp" aria-label="文件名后缀" style="width:100%" />
                 </div>
               </div>
             </div>

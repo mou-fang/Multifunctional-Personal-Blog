@@ -110,7 +110,7 @@
             <div class="prize-list" data-prize-list></div>
 
             <form class="inline-form" data-prize-form>
-              <input class="input" data-prize-name type="text" maxlength="24" placeholder="奖项名称，例如 特等奖" autocomplete="off" />
+              <input class="input" data-prize-name type="text" maxlength="24" placeholder="奖项名称，例如 特等奖" autocomplete="off" aria-label="奖项名称" />
               <input class="input input-quota" data-prize-quota type="number" min="1" max="100" value="1" aria-label="名额" />
               <button class="btn btn-primary btn-sm" data-prize-submit type="submit">添加奖项</button>
               <button class="btn btn-ghost btn-sm" data-prize-cancel type="button" hidden>取消</button>
@@ -127,13 +127,13 @@
             </div>
 
             <form class="inline-form" data-participant-form>
-              <input class="input" data-participant-name type="text" maxlength="24" placeholder="输入姓名" autocomplete="off" />
+              <input class="input" data-participant-name type="text" maxlength="24" placeholder="输入姓名" autocomplete="off" aria-label="参与者姓名" />
               <button class="btn btn-primary btn-sm" data-participant-submit type="submit">添加</button>
               <button class="btn btn-ghost btn-sm" data-participant-cancel type="button" hidden>取消</button>
             </form>
 
             <div class="bulk-import">
-              <textarea class="textarea" data-bulk-input rows="5" placeholder="批量导入名单：每行一个名字"></textarea>
+              <textarea class="textarea" data-bulk-input rows="5" placeholder="批量导入名单：每行一个名字" aria-label="批量导入名单"></textarea>
               <div class="bulk-actions">
                 <button class="btn btn-primary btn-sm" data-import-participants type="button">导入名单</button>
                 <button class="btn btn-ghost btn-sm" data-clear-bulk type="button">清空输入</button>

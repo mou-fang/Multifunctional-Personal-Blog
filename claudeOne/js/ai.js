@@ -611,9 +611,10 @@
     const sys = (state.systemPrompt || CFG.systemPrompt || "").trim();
     const msgs = [];
     if (sys) msgs.push({ role: "system", content: sys });
-    // Trim to last N turns to keep payload modest
+    // Trim to last N turns to keep payload modest, skip error entries
     const maxTurns = 16;
-    const tail = state.history.slice(-maxTurns * 2);
+    const clean = state.history.filter((t) => !t.error);
+    const tail = clean.slice(-maxTurns * 2);
     tail.forEach((t) => {
       msgs.push({ role: t.role, content: t.content });
     });

@@ -16,8 +16,14 @@
   const root = document.querySelector("[data-roulette-root]");
   if (!root) return;
 
-  const C = window.CLAUDE_ONE_CONFIG.limits;
-  const { escapeHtml, clamp, toast } = window.ClaudeOne;
+  const CFG = window.CLAUDE_ONE_CONFIG;
+  const CS = window.ClaudeOne;
+  if (!CFG || !CS) {
+    console.error("[roulette] Config or shell missing");
+    return;
+  }
+  const C = CFG.limits;
+  const { escapeHtml, clamp, toast } = CS;
 
   // --- State ---------------------------------------------------------------
   const COLORS = ["#6f9bff", "#5fc8ff", "#8c83ff", "#ff8a7a", "#ffb457",
@@ -45,6 +51,7 @@
     roundsCompleted: 0,  // tracked to implement "one-round"
     ended: false,
     outcome: null,       // {kind, winners: [names], eliminated: [names]}
+    firing: false,       // guard against rapid clicks during autoSpin delay
   };
 
   function makePlayer(name) {
@@ -346,13 +353,14 @@
   }
 
   function fire() {
-    if (state.ended) return;
+    if (state.ended || state.firing) return;
     const playerRef = state.players[state.playOrder[state.currentIdx]];
     if (!playerRef || !playerRef.alive) {
       advanceCurrentIdx();
       return;
     }
 
+    state.firing = true;
     els.fireBtn.setAttribute("data-firing", "true");
     setTimeout(() => els.fireBtn.removeAttribute("data-firing"), 460);
 
@@ -394,6 +402,7 @@
       renderChamber(state.autoSpin);
       renderCurrentPlayer();
       renderTurnLog();
+      state.firing = false;
     };
 
     if (state.autoSpin) {
@@ -405,9 +414,19 @@
   }
 
   function rebuildChamberBetweenTurns() {
-    // Shuffle remaining (unfired) bullets among remaining slots.
-    // Only applies when autoSpin is on. Simulates spinning the cylinder.
-    buildChamber();
+    // Simulate spinning the cylinder: randomize which of the remaining
+    // unfired slots contains a bullet, without resetting chamberPointer.
+    const remaining = state.chamber.length - state.chamberPointer;
+    if (remaining <= 0) return;
+    const unfiredBullets = state.chamber.slice(state.chamberPointer).filter(Boolean).length;
+    const slots = new Array(remaining).fill(false);
+    const positions = [];
+    while (positions.length < unfiredBullets) {
+      const p = Math.floor(Math.random() * remaining);
+      if (!positions.includes(p)) positions.push(p);
+    }
+    positions.forEach((p) => (slots[p] = true));
+    state.chamber = state.chamber.slice(0, state.chamberPointer).concat(slots);
   }
 
   function showResult(entry) {

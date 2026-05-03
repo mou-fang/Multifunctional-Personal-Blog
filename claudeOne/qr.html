@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
+  <meta name="description" content="claudeOne 二维码美化器 — 带 Logo、渐变与自定义样式" />
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data: blob:; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
@@ -97,7 +98,7 @@
             <div class="qr-export__row">
               <div class="qr-export__filename">
                 <span class="qr-field__label">文件名</span>
-                <input class="input" type="text" data-export-name value="my-qrcode" placeholder="my-qrcode" />
+                <input class="input" type="text" data-export-name value="my-qrcode" placeholder="my-qrcode" aria-label="导出文件名" />
               </div>
               <div class="qr-export__scale">
                 <span class="qr-field__label">倍率</span>
@@ -150,7 +151,7 @@
             <!-- URL / Text input -->
             <div class="qr-field" data-content-simple>
               <span class="qr-field__label" data-content-label>网址</span>
-              <textarea class="textarea qr-content-input" data-content-input rows="3" placeholder="https://example.com"></textarea>
+              <textarea class="textarea qr-content-input" data-content-input rows="3" placeholder="https://example.com" aria-label="二维码内容"></textarea>
               <p class="muted qr-url-hint" data-url-hint style="font-size:0.75rem;display:none">
                 提示：建议以 https:// 开头
               </p>
@@ -160,11 +161,11 @@
             <div class="qr-wifi-fields" data-wifi-fields hidden>
               <div class="qr-field">
                 <span class="qr-field__label">SSID（网络名称）</span>
-                <input class="input" type="text" data-wifi-ssid placeholder="MyWiFi" />
+                <input class="input" type="text" data-wifi-ssid placeholder="MyWiFi" aria-label="Wi-Fi SSID" />
               </div>
               <div class="qr-field">
                 <span class="qr-field__label">密码</span>
-                <input class="input" type="text" data-wifi-pass placeholder="password" />
+                <input class="input" type="text" data-wifi-pass placeholder="password" aria-label="Wi-Fi 密码" />
               </div>
               <div class="qr-field">
                 <span class="qr-field__label">加密类型</span>
@@ -187,15 +188,15 @@
             <div class="qr-email-fields" data-email-fields hidden>
               <div class="qr-field">
                 <span class="qr-field__label">邮箱地址</span>
-                <input class="input" type="email" data-email-to placeholder="user@example.com" />
+                <input class="input" type="email" data-email-to placeholder="user@example.com" aria-label="邮箱地址" />
               </div>
               <div class="qr-field">
                 <span class="qr-field__label">主题</span>
-                <input class="input" type="text" data-email-subject placeholder="Hello" />
+                <input class="input" type="text" data-email-subject placeholder="Hello" aria-label="邮件主题" />
               </div>
               <div class="qr-field">
                 <span class="qr-field__label">正文</span>
-                <textarea class="textarea" data-email-body rows="2" placeholder="邮件正文..."></textarea>
+                <textarea class="textarea" data-email-body rows="2" placeholder="邮件正文..." aria-label="邮件正文"></textarea>
               </div>
             </div>
 
@@ -203,7 +204,7 @@
             <div class="qr-phone-fields" data-phone-fields hidden>
               <div class="qr-field">
                 <span class="qr-field__label">电话号码</span>
-                <input class="input" type="tel" data-phone-num placeholder="+8613800138000" />
+                <input class="input" type="tel" data-phone-num placeholder="+8613800138000" aria-label="电话号码" />
               </div>
             </div>
 
@@ -211,11 +212,11 @@
             <div class="qr-sms-fields" data-sms-fields hidden>
               <div class="qr-field">
                 <span class="qr-field__label">手机号码</span>
-                <input class="input" type="tel" data-sms-num placeholder="+8613800138000" />
+                <input class="input" type="tel" data-sms-num placeholder="+8613800138000" aria-label="手机号码" />
               </div>
               <div class="qr-field">
                 <span class="qr-field__label">短信内容</span>
-                <textarea class="textarea" data-sms-body rows="2" placeholder="短信内容..."></textarea>
+                <textarea class="textarea" data-sms-body rows="2" placeholder="短信内容..." aria-label="短信内容"></textarea>
               </div>
             </div>
           </div>
@@ -226,14 +227,14 @@
             <div class="qr-field">
               <span class="qr-field__label">宽度</span>
               <div class="qr-range-row">
-                <input type="range" data-width min="128" max="1024" value="300" step="1" />
+                <input type="range" data-width min="128" max="1024" value="300" step="1" aria-label="宽度" />
                 <span class="qr-slider-val" data-width-val>300</span>
               </div>
             </div>
             <div class="qr-field">
               <span class="qr-field__label">高度</span>
               <div class="qr-range-row">
-                <input type="range" data-height min="128" max="1024" value="300" step="1" />
+                <input type="range" data-height min="128" max="1024" value="300" step="1" aria-label="高度" />
                 <span class="qr-slider-val" data-height-val>300</span>
               </div>
             </div>
@@ -249,7 +250,7 @@
             <div class="qr-field">
               <span class="qr-field__label">边距</span>
               <div class="qr-range-row">
-                <input type="range" data-margin min="0" max="100" value="20" step="1" />
+                <input type="range" data-margin min="0" max="100" value="20" step="1" aria-label="边距" />
                 <span class="qr-slider-val" data-margin-val>20</span>
               </div>
             </div>
@@ -263,7 +264,7 @@
             <div class="qr-field" data-bg-color-wrap>
               <span class="qr-field__label">背景颜色</span>
               <div class="qr-color-row">
-                <input type="color" data-bg-color value="#ffffff" class="qr-color-input" />
+                <input type="color" data-bg-color value="#ffffff" class="qr-color-input" aria-label="背景颜色" />
                 <span class="qr-color-hex" data-bg-color-hex>#ffffff</span>
               </div>
             </div>
@@ -286,7 +287,7 @@
             <div class="qr-field">
               <span class="qr-field__label">主颜色</span>
               <div class="qr-color-row">
-                <input type="color" data-dots-color value="#6f9bff" class="qr-color-input" />
+                <input type="color" data-dots-color value="#6f9bff" class="qr-color-input" aria-label="主颜色" />
                 <span class="qr-color-hex" data-dots-color-hex>#6f9bff</span>
               </div>
             </div>
@@ -308,21 +309,21 @@
               <div class="qr-field">
                 <span class="qr-field__label">渐变色 1</span>
                 <div class="qr-color-row">
-                  <input type="color" data-dots-grad1 value="#6f9bff" class="qr-color-input" />
+                  <input type="color" data-dots-grad1 value="#6f9bff" class="qr-color-input" aria-label="渐变色 1" />
                   <span class="qr-color-hex" data-dots-grad1-hex>#6f9bff</span>
                 </div>
               </div>
               <div class="qr-field">
                 <span class="qr-field__label">渐变色 2</span>
                 <div class="qr-color-row">
-                  <input type="color" data-dots-grad2 value="#ff6b7a" class="qr-color-input" />
+                  <input type="color" data-dots-grad2 value="#ff6b7a" class="qr-color-input" aria-label="渐变色 2" />
                   <span class="qr-color-hex" data-dots-grad2-hex>#ff6b7a</span>
                 </div>
               </div>
               <div class="qr-field">
                 <span class="qr-field__label">旋转角度</span>
                 <div class="qr-range-row">
-                  <input type="range" data-dots-grad-rotation min="0" max="360" value="0" step="1" />
+                  <input type="range" data-dots-grad-rotation min="0" max="360" value="0" step="1" aria-label="渐变旋转角度" />
                   <span class="qr-slider-val" data-dots-grad-rotation-val>0&deg;</span>
                 </div>
               </div>
@@ -350,7 +351,7 @@
             <div class="qr-field" data-corners-square-color-wrap hidden>
               <span class="qr-field__label">角标颜色</span>
               <div class="qr-color-row">
-                <input type="color" data-corners-square-color value="#6f9bff" class="qr-color-input" />
+                <input type="color" data-corners-square-color value="#6f9bff" class="qr-color-input" aria-label="角标颜色" />
                 <span class="qr-color-hex" data-corners-square-color-hex>#6f9bff</span>
               </div>
             </div>
@@ -376,7 +377,7 @@
             <div class="qr-field" data-corners-dot-color-wrap hidden>
               <span class="qr-field__label">角点颜色</span>
               <div class="qr-color-row">
-                <input type="color" data-corners-dot-color value="#6f9bff" class="qr-color-input" />
+                <input type="color" data-corners-dot-color value="#6f9bff" class="qr-color-input" aria-label="角点颜色" />
                 <span class="qr-color-hex" data-corners-dot-color-hex>#6f9bff</span>
               </div>
             </div>
@@ -397,19 +398,19 @@
                   <button class="btn btn-sm btn-ghost" data-remove-logo type="button">移除 Logo</button>
                 </div>
               </div>
-              <input type="file" class="qr-logo-upload__input" data-logo-input accept="image/jpeg,image/png,image/svg+xml" />
+              <input type="file" class="qr-logo-upload__input" data-logo-input accept="image/jpeg,image/png,image/svg+xml" aria-label="上传 Logo" />
             </div>
             <div class="qr-field">
               <span class="qr-field__label">Logo 大小</span>
               <div class="qr-range-row">
-                <input type="range" data-logo-size min="0.1" max="0.5" value="0.3" step="0.01" />
+                <input type="range" data-logo-size min="0.1" max="0.5" value="0.3" step="0.01" aria-label="Logo 大小" />
                 <span class="qr-slider-val" data-logo-size-val>30%</span>
               </div>
             </div>
             <div class="qr-field">
               <span class="qr-field__label">Logo 边距</span>
               <div class="qr-range-row">
-                <input type="range" data-logo-margin min="0" max="30" value="5" step="1" />
+                <input type="range" data-logo-margin min="0" max="30" value="5" step="1" aria-label="Logo 边距" />
                 <span class="qr-slider-val" data-logo-margin-val>5</span>
               </div>
             </div>

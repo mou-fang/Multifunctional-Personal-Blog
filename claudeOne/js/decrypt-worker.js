@@ -51,9 +51,24 @@ self.onmessage=async function(e){
     const fn=self.__wpr("9f07").CommonDecrypt;
     const r=await fn({name:d.name,raw:new Blob([d.buffer])});
     let picture=null,file=null;
-    if(r.picture&&r.picture.startsWith("blob:")){
-      picture=await(await fetch(r.picture)).arrayBuffer();
-    }
+    if(r.picture){try{
+      var pp=r.picture;
+      if(typeof pp==="string"&&(pp.startsWith("blob:")||pp.startsWith("data:")||pp.startsWith("http://")||pp.startsWith("https://"))){
+        picture=await(await fetch(pp)).arrayBuffer();
+      }else if(pp instanceof Blob){
+        picture=await pp.arrayBuffer();
+      }else if(pp instanceof ArrayBuffer){
+        picture=pp;
+      }else if(ArrayBuffer.isView(pp)){
+        picture=pp.buffer.slice(pp.byteOffset,pp.byteOffset+pp.byteLength);
+      }else if(pp&&pp.data){
+        var pd=pp.data;
+        if(typeof pd==="string"&&(pd.startsWith("blob:")||pd.startsWith("data:")||pd.startsWith("http://")||pd.startsWith("https://"))){picture=await(await fetch(pd)).arrayBuffer();}
+        else if(pd instanceof Blob){picture=await pd.arrayBuffer();}
+        else if(pd instanceof ArrayBuffer){picture=pd;}
+        else if(ArrayBuffer.isView(pd)){picture=pd.buffer.slice(pd.byteOffset,pd.byteOffset+pd.byteLength);}
+      }
+    }catch(e){/* picture fetch failed, continue without cover */}}
     if(r.file&&r.file.startsWith("blob:")){
       file=await(await fetch(r.file)).arrayBuffer();
     }

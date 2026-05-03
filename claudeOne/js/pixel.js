@@ -223,8 +223,7 @@
       maxWRadios.forEach(r => { if (r.value === "0") r.checked = true; });
     }
     widthCustom.value = config.maxWCustom;
-    widthCustom.style.display = config.maxW === 0 ? "none" : "none";
-    // Check if custom is selected
+    widthCustom.style.display = "none";
     for (const r of maxWRadios) {
       if (r.value === "custom" && r.checked) widthCustom.style.display = "";
     }
@@ -300,7 +299,7 @@
   // ===== Image upload =====
   function handleFile(file) {
     if (!file || !file.type.startsWith("image/")) {
-      CS.toast("请选择图片文件", "warning");
+      CS.toast("请选择图片文件", "info");
       return;
     }
     selectedFile = file;
@@ -648,7 +647,7 @@
       a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      CS.toast("PNG 已导出", "success");
+      CS.toast("PNG 已导出", "ok");
     }, "image/png");
   }
 
@@ -657,9 +656,9 @@
     readConfig();
     const json = JSON.stringify(config, null, 2);
     navigator.clipboard.writeText(json).then(() => {
-      CS.toast("配置已复制到剪贴板", "success");
+      CS.toast("配置已复制到剪贴板", "ok");
     }).catch(() => {
-      CS.toast("复制失败", "error");
+      CS.toast("复制失败", "err");
     });
   }
 
@@ -669,7 +668,7 @@
     applyConfigToUI();
     saveConfig();
     if (originalImage) processImage();
-    CS.toast("已恢复默认设置", "success");
+    CS.toast("已恢复默认设置", "ok");
   }
 
   // ===== Event wiring =====
@@ -776,8 +775,8 @@
     copyPaletteBtn.addEventListener("click", () => {
       const json = JSON.stringify(config.customPalette);
       navigator.clipboard.writeText(json).then(() => {
-        CS.toast("调色板 JSON 已复制", "success");
-      }).catch(() => CS.toast("复制失败", "error"));
+        CS.toast("调色板 JSON 已复制", "ok");
+      }).catch(() => CS.toast("复制失败", "err"));
     });
     pastePaletteBtn.addEventListener("click", () => {
       const input = prompt("粘贴调色板 JSON（格式: [[r,g,b], ...]）");
@@ -788,12 +787,12 @@
           config.customPalette = arr;
           renderCustomPalette();
           scheduleProcess();
-          CS.toast("调色板已导入", "success");
+          CS.toast("调色板已导入", "ok");
         } else {
-          CS.toast("格式不正确", "error");
+          CS.toast("格式不正确", "err");
         }
       } catch (_) {
-        CS.toast("JSON 解析失败", "error");
+        CS.toast("JSON 解析失败", "err");
       }
     });
 

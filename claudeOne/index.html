@@ -8,7 +8,7 @@
   <!-- CSP: scripts only from self; styles from self + Google Fonts (inline-style
        allowed for the font link's CSS injection); API connect limited to DeepSeek. -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src https://api.deepseek.com; img-src 'self' data: blob:; base-uri 'self'; form-action 'none'">
+        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data: blob:; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>claudeOne · 魔方工作台</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -18,8 +18,8 @@
   <link rel="stylesheet" href="./css/components.css" />
   <link rel="stylesheet" href="./css/neumorphism.css" />
   <link rel="stylesheet" href="./css/liquid-glass.css" />
-  <link rel="stylesheet" href="./css/cube.css" />
   <link rel="stylesheet" href="./css/animations.css" />
+  <link rel="stylesheet" href="./css/cube.css" />
 </head>
 <body data-page="home" data-route-state="idle">
   <!-- Theme init runs synchronously before anything else in body paints -->

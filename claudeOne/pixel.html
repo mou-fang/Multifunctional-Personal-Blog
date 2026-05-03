@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
+  <meta name="description" content="claudeOne 图片像素化 — 复古像素风与自定义调色板" />
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data: blob:; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
@@ -77,7 +78,7 @@
             </div>
             <button class="btn btn-sm btn-ghost" data-clear-preview type="button">更换图片</button>
           </div>
-          <input type="file" class="pixel-upload__input" data-file-input accept="image/jpeg,image/png,image/webp,image/bmp" />
+          <input type="file" class="pixel-upload__input" data-file-input accept="image/jpeg,image/png,image/webp,image/bmp" aria-label="选择图片文件" />
         </div>
       </section>
 
@@ -116,7 +117,7 @@
             <div class="pixel-field">
               <span class="pixel-field__label">像素块大小</span>
               <div class="pixel-range-row">
-                <input type="range" data-block-size min="2" max="64" value="8" step="1" />
+                <input type="range" data-block-size min="2" max="64" value="8" step="1" aria-label="像素块大小" />
                 <span class="pixel-slider-val" data-block-size-val>8</span>
               </div>
               <div class="pixel-presets" data-block-presets>
@@ -137,7 +138,7 @@
                 <label><input type="radio" name="maxW" value="1920" data-max-w /> 1920</label>
                 <label><input type="radio" name="maxW" value="custom" data-max-w /> 自定义</label>
               </div>
-              <input class="input pixel-custom-input" type="number" data-width-custom min="64" max="4096" value="1024" placeholder="px" style="display:none" />
+              <input class="input pixel-custom-input" type="number" data-width-custom min="64" max="4096" value="1024" placeholder="px" aria-label="自定义宽度" style="display:none" />
             </div>
 
             <!-- Output max height -->
@@ -149,7 +150,7 @@
                 <label><input type="radio" name="maxH" value="1024" data-max-h /> 1024</label>
                 <label><input type="radio" name="maxH" value="custom" data-max-h /> 自定义</label>
               </div>
-              <input class="input pixel-custom-input" type="number" data-height-custom min="64" max="4096" value="1024" placeholder="px" style="display:none" />
+              <input class="input pixel-custom-input" type="number" data-height-custom min="64" max="4096" value="1024" placeholder="px" aria-label="自定义高度" style="display:none" />
             </div>
 
             <!-- Color mode -->
@@ -168,21 +169,21 @@
             <div class="pixel-field">
               <span class="pixel-field__label">饱和度</span>
               <div class="pixel-range-row">
-                <input type="range" data-saturation min="-100" max="100" value="0" step="1" />
+                <input type="range" data-saturation min="-100" max="100" value="0" step="1" aria-label="饱和度" />
                 <span class="pixel-slider-val" data-saturation-val>0</span>
               </div>
             </div>
             <div class="pixel-field">
               <span class="pixel-field__label">亮度</span>
               <div class="pixel-range-row">
-                <input type="range" data-brightness min="-100" max="100" value="0" step="1" />
+                <input type="range" data-brightness min="-100" max="100" value="0" step="1" aria-label="亮度" />
                 <span class="pixel-slider-val" data-brightness-val>0</span>
               </div>
             </div>
             <div class="pixel-field">
               <span class="pixel-field__label">对比度</span>
               <div class="pixel-range-row">
-                <input type="range" data-contrast min="-100" max="100" value="0" step="1" />
+                <input type="range" data-contrast min="-100" max="100" value="0" step="1" aria-label="对比度" />
                 <span class="pixel-slider-val" data-contrast-val>0</span>
               </div>
             </div>
@@ -257,11 +258,11 @@
               <div class="pixel-sub-options" data-grid-options hidden>
                 <div class="pixel-sub-row">
                   <span class="pixel-sub-label">网格颜色</span>
-                  <input type="color" data-grid-color value="#000000" class="pixel-color-input" />
+                  <input type="color" data-grid-color value="#000000" class="pixel-color-input" aria-label="网格颜色" />
                 </div>
                 <div class="pixel-sub-row">
                   <span class="pixel-sub-label">透明度</span>
-                  <input type="range" data-grid-opacity min="0" max="100" value="30" step="1" />
+                  <input type="range" data-grid-opacity min="0" max="100" value="30" step="1" aria-label="网格透明度" />
                   <span class="pixel-slider-val" data-grid-opacity-val>30%</span>
                 </div>
               </div>
@@ -279,7 +280,7 @@
               </div>
               <div class="pixel-bg-color" data-bg-color-wrap>
                 <span class="pixel-sub-label">背景色</span>
-                <input type="color" data-bg-color value="#ffffff" class="pixel-color-input" />
+                <input type="color" data-bg-color value="#ffffff" class="pixel-color-input" aria-label="背景色" />
               </div>
             </div>
           </div>

@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark" />
   <meta name="description" content="claudeOne 音乐解锁 — 移除加密音乐文件的保护" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self'; base-uri 'self'; form-action 'none'">
+        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self' https:; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>claudeOne · 音乐解锁</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -77,7 +77,7 @@
               支持网易云音乐 (.ncm)、QQ音乐 (.qmc0 / .qmc3 / .qmcflac / .qmcogg / .mflac / .mgg / .tkm / .bkcmp3 / .bkcflac)
             </div>
           </div>
-          <input type="file" class="music-upload__input" data-file-input multiple accept=".ncm,.qmc0,.qmc3,.qmcflac,.qmcogg,.mflac,.mgg,.tkm,.bkcmp3,.bkcflac,.tm0,.tm2,.tm3,.tm6" />
+          <input type="file" class="music-upload__input" data-file-input multiple accept=".ncm,.qmc0,.qmc3,.qmcflac,.qmcogg,.mflac,.mgg,.tkm,.bkcmp3,.bkcflac,.tm0,.tm2,.tm3,.tm6" aria-label="选择音乐文件" />
         </div>
 
         <!-- Options bar -->
@@ -91,14 +91,14 @@
             </div>
           </div>
           <div class="music-options__group" data-batch-actions hidden>
-            <button class="btn btn-primary btn-sm" data-download-all>下载全部</button>
-            <button class="btn btn-ghost btn-sm" data-clear-all>清空全部</button>
+            <button class="btn btn-primary btn-sm" data-download-all type="button">下载全部</button>
+            <button class="btn btn-ghost btn-sm" data-clear-all type="button">清空全部</button>
           </div>
         </div>
 
         <!-- Audio preview bar -->
         <div class="audio-bar" data-audio-player hidden>
-          <button class="audio-bar__play" data-audio-play aria-label="播放/暂停">&#9654;</button>
+          <button class="audio-bar__play" data-audio-play type="button" aria-label="播放/暂停">&#9654;</button>
           <div class="audio-bar__info">
             <span class="audio-bar__title" data-now-playing></span>
           </div>
@@ -110,7 +110,7 @@
             <span class="audio-bar__volume-fill" data-audio-volume></span>
             <input type="range" class="audio-bar__volume-slider" data-audio-volume-slider min="0" max="100" value="100" aria-label="音量" />
           </div>
-          <button class="audio-bar__close" data-audio-close aria-label="停止播放">&#10005;</button>
+          <button class="audio-bar__close" data-audio-close type="button" aria-label="停止播放">&#10005;</button>
           <audio data-audio-el hidden></audio>
         </div>
 

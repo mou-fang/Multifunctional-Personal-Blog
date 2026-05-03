@@ -389,7 +389,7 @@
   // ---- History (localStorage) ----
   function loadHistory() {
     try {
-      const raw = localStorage.getItem(HISTORY_KEY);
+      const raw = CS.storage.get(HISTORY_KEY);
       return raw ? JSON.parse(raw) : [];
     } catch { return []; }
   }
@@ -432,11 +432,11 @@
     }
 
     try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      CS.storage.set(HISTORY_KEY, JSON.stringify(history));
     } catch {
       // Storage full — trim oldest
       history.pop();
-      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch { /* give up */ }
+      try { CS.storage.set(HISTORY_KEY, JSON.stringify(history)); } catch { /* give up */ }
     }
 
     renderHistory();
@@ -506,12 +506,12 @@
 
   function removeHistoryItem(id) {
     const history = loadHistory().filter((h) => h.id !== id);
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    CS.storage.set(HISTORY_KEY, JSON.stringify(history));
     renderHistory();
   }
 
   document.querySelector("[data-history-clear-all]").addEventListener("click", () => {
-    localStorage.removeItem(HISTORY_KEY);
+    CS.storage.remove(HISTORY_KEY);
     renderHistory();
     CS.toast("历史记录已清空", "ok");
   });

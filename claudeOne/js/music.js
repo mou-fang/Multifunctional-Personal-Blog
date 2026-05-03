@@ -83,8 +83,14 @@
 
     // Create blob URL for cover picture
     if (data.picture && data.picture.byteLength > 0) {
+      var head = new Uint8Array(data.picture.slice(0, 4));
+      var mime = "image/jpeg";
+      if (head[0]===0x89 && head[1]===0x50 && head[2]===0x4E && head[3]===0x47) mime = "image/png";
+      else if (head[0]===0x47 && head[1]===0x49 && head[2]===0x46) mime = "image/gif";
+      else if (head[0]===0x52 && head[1]===0x49 && head[2]===0x46 && head[3]===0x46) mime = "image/webp";
+      else if (head[0]===0x42 && head[1]===0x4D) mime = "image/bmp";
       entry.coverUrl = URL.createObjectURL(
-        new Blob([data.picture], { type: "image/jpeg" })
+        new Blob([data.picture], { type: mime })
       );
     }
 
@@ -422,7 +428,10 @@
     if (!uploadZone || !fileInput) return;
 
     // Click to open file picker
-    uploadZone.addEventListener("click", () => fileInput.click());
+    uploadZone.addEventListener("click", () => {
+      fileInput.value = "";
+      fileInput.click();
+    });
 
     fileInput.addEventListener("change", () => {
       if (fileInput.files.length > 0) {

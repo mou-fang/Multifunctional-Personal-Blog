@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
+  <meta name="description" content="claudeOne ASCII 艺术生成器 — 图片转字符画" />
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src http://localhost:3001; img-src 'self' data: blob:; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
@@ -76,7 +77,7 @@
             </div>
             <button class="btn btn-sm btn-ghost" data-clear-preview type="button">更换图片</button>
           </div>
-          <input type="file" class="ascii-upload__input" data-file-input accept="image/jpeg,image/png,image/webp,image/bmp,image/tiff,image/gif" />
+          <input type="file" class="ascii-upload__input" data-file-input accept="image/jpeg,image/png,image/webp,image/bmp,image/tiff,image/gif" aria-label="选择图片文件" />
         </div>
 
         <!-- Right: controls -->
@@ -107,7 +108,7 @@
                   <label><input type="radio" name="widthPreset" value="160" data-width-preset /> 160</label>
                   <label><input type="radio" name="widthPreset" value="custom" data-width-preset /> 自定义</label>
                 </div>
-                <input class="input ascii-width-custom" type="number" data-width-custom min="20" max="320" value="80" placeholder="20-320" style="width:90px;display:none" />
+                <input class="input ascii-width-custom" type="number" data-width-custom min="20" max="320" value="80" placeholder="20-320" aria-label="自定义宽度" style="width:90px;display:none" />
               </div>
             </div>
 
@@ -119,7 +120,7 @@
                   <label><input type="radio" name="heightMode" value="auto" data-height-mode checked /> 自动（保持比例）</label>
                   <label><input type="radio" name="heightMode" value="custom" data-height-mode /> 自定义</label>
                 </div>
-                <input class="input ascii-width-custom" type="number" data-height-custom min="10" max="320" value="40" placeholder="10-320" style="width:90px;display:none" />
+                <input class="input ascii-width-custom" type="number" data-height-custom min="10" max="320" value="40" placeholder="10-320" aria-label="自定义高度" style="width:90px;display:none" />
               </div>
             </div>
 
@@ -132,7 +133,7 @@
                 <label><input type="radio" name="charSet" value="complex" data-char-set /> 复杂</label>
                 <label><input type="radio" name="charSet" value="custom" data-char-set /> 自定义</label>
               </div>
-              <input class="input" type="text" data-custom-map placeholder="自定义字符映射（从暗到亮）" maxlength="80" style="margin-top:var(--space-2);display:none" />
+              <input class="input" type="text" data-custom-map placeholder="自定义字符映射（从暗到亮）" maxlength="80" aria-label="自定义字符映射" style="margin-top:var(--space-2);display:none" />
             </div>
 
             <!-- Toggles -->
@@ -163,7 +164,7 @@
               </label>
             </div>
 
-            <button class="btn btn-primary" data-convert-btn style="width:100%" disabled>
+            <button class="btn btn-primary" data-convert-btn type="button" style="width:100%" disabled>
               <span data-convert-text>开始转换</span>
               <span data-convert-spinner style="display:none">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="animation: ascii-spin 0.8s linear infinite">
@@ -182,8 +183,8 @@
       <!-- Output -->
       <section class="page-chunk" data-reveal-order="4" data-output-section hidden>
           <div class="ascii-output-tabs" data-output-tabs>
-            <button class="ascii-tab active" data-tab="text">文本预览</button>
-            <button class="ascii-tab" data-tab="png">PNG 预览</button>
+            <button class="ascii-tab active" data-tab="text" type="button">文本预览</button>
+            <button class="ascii-tab" data-tab="png" type="button">PNG 预览</button>
           </div>
 
           <div class="ascii-output-wrapper" data-output-text-wrapper>
@@ -196,10 +197,10 @@
 
           <!-- Actions -->
           <div class="ascii-actions">
-            <button class="btn btn-sm" data-action-copy>复制文本</button>
-            <button class="btn btn-sm btn-primary" data-action-download-txt>下载 TXT</button>
-            <button class="btn btn-sm btn-primary" data-action-download-png>下载 PNG</button>
-            <button class="btn btn-sm btn-ghost" data-action-clear>清空</button>
+            <button class="btn btn-sm" data-action-copy type="button">复制文本</button>
+            <button class="btn btn-sm btn-primary" data-action-download-txt type="button">下载 TXT</button>
+            <button class="btn btn-sm btn-primary" data-action-download-png type="button">下载 PNG</button>
+            <button class="btn btn-sm btn-ghost" data-action-clear type="button">清空</button>
           </div>
       </section>
 
@@ -208,7 +209,7 @@
         <div class="ascii-history">
           <div class="ascii-history__head">
             <h3>历史记录</h3>
-            <button class="btn btn-sm btn-ghost" data-history-clear-all>清空历史</button>
+            <button class="btn btn-sm btn-ghost" data-history-clear-all type="button">清空历史</button>
           </div>
           <div class="ascii-history__list" data-history-list></div>
         </div>

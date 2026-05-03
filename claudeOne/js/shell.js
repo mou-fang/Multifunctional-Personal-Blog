@@ -111,12 +111,13 @@
   };
 
   function setThemeAnimated(nextTheme, origin) {
-    const supportsVT = typeof document.startViewTransition === "function";
-    if (supportsVT) {
-      // Native crossfade handles painting of both states automatically.
-      document.startViewTransition(() => applyTheme(nextTheme));
-      return;
-    }
+    try {
+      const supportsVT = typeof document.startViewTransition === "function";
+      if (supportsVT) {
+        document.startViewTransition(() => applyTheme(nextTheme));
+        return;
+      }
+    } catch (_) { /* fallback below */ }
     // Fallback: overlay holds the OLD bg color, then shrinks toward origin to
     // reveal the NEW theme underneath.
     const currentTheme = document.body.getAttribute("data-theme") || CFG.theme.default;
@@ -138,24 +139,33 @@
   }
 
   // --- Reveal-on-scroll -----------------------------------------------------
-  function setupReveal() {
-    const chunks = document.querySelectorAll(".page-chunk");
-    if (!chunks.length) return;
-    if (!("IntersectionObserver" in window)) {
-      chunks.forEach((c) => c.setAttribute("data-revealed", "true"));
-      return;
-    }
-    const obs = new IntersectionObserver(
+  let revealObs = null;
+
+  function getRevealObserver() {
+    if (revealObs) return revealObs;
+    if (!("IntersectionObserver" in window)) return null;
+    revealObs = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
           if (e.isIntersecting) {
             e.target.setAttribute("data-revealed", "true");
-            obs.unobserve(e.target);
+            revealObs.unobserve(e.target);
           }
         });
       },
       { threshold: 0.08, rootMargin: "0px 0px -40px 0px" }
     );
+    return revealObs;
+  }
+
+  function setupReveal() {
+    const chunks = document.querySelectorAll(".page-chunk");
+    if (!chunks.length) return;
+    const obs = getRevealObserver();
+    if (!obs) {
+      chunks.forEach((c) => c.setAttribute("data-revealed", "true"));
+      return;
+    }
     chunks.forEach((c) => obs.observe(c));
   }
 
@@ -163,21 +173,11 @@
   function refreshReveal() {
     const chunks = document.querySelectorAll(".page-chunk:not([data-revealed])");
     if (!chunks.length) return;
-    if (!("IntersectionObserver" in window)) {
+    const obs = getRevealObserver();
+    if (!obs) {
       chunks.forEach((c) => c.setAttribute("data-revealed", "true"));
       return;
     }
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            e.target.setAttribute("data-revealed", "true");
-            obs.unobserve(e.target);
-          }
-        });
-      },
-      { threshold: 0.08, rootMargin: "0px 0px -40px 0px" }
-    );
     chunks.forEach((c) => obs.observe(c));
   }
 

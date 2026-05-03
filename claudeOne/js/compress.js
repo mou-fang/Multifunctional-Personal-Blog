@@ -218,27 +218,6 @@
     return hslToRgb(h, s, l)
   }
 
-  function applyPixelEffects (ctx, w, h, img, params) {
-    if (!params.pixelStroke && !params.gridLines) return
-    const imgData = ctx.getImageData(0, 0, w, h)
-    const d = imgData.data
-    if (params.pixelStroke) {
-      const bs = params.blockSize || 8
-      ctx.strokeStyle = 'rgba(0,0,0,0.15)'
-      ctx.lineWidth = 0.5
-      for (let y = 0; y < h; y += bs) for (let x = 0; x < w; x += bs) ctx.strokeRect(x, y, bs, bs)
-    }
-    if (params.gridLines) {
-      ctx.strokeStyle = params.gridColor || '#000'
-      ctx.globalAlpha = (params.gridOpacity || 30) / 100
-      const bs = params.blockSize || 8
-      ctx.lineWidth = 0.5
-      for (let y = 0; y < h; y += bs) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke() }
-      for (let x = 0; x < w; x += bs) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke() }
-      ctx.globalAlpha = 1
-    }
-  }
-
   function canvasPipeline (img, file, params) {
     const ow = img.naturalWidth, oh = img.naturalHeight
     const { tw, th } = calcScale(ow, oh, params.maxDim, params.manualW, params.manualH, params.keepRatio)
@@ -246,9 +225,9 @@
     cvs.width = tw; cvs.height = th
     const ctx = cvs.getContext('2d')
 
-    // Fill background for JPEG
+    // Fill background for JPEG (no alpha) or PNG/WebP when user set a bg color
     const outMime = getOutputMime(params, file.type)
-    if (outMime === 'image/jpeg' || outMime === 'image/png' && params.bgColor) {
+    if (outMime === 'image/jpeg' || ((outMime === 'image/png' || outMime === 'image/webp') && params.bgColor)) {
       ctx.fillStyle = params.bgColor
       ctx.fillRect(0, 0, tw, th)
     }
@@ -355,7 +334,7 @@
 
   /* ---- Concurrent batch ---- */
   async function processAll () {
-    if (!state.files.length) { toast('请先上传图片', 'warn'); return }
+    if (!state.files.length) { toast('请先上传图片', 'err'); return }
     const params = getParams()
     const files = [...state.files]
     const total = files.length

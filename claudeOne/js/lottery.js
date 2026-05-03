@@ -52,6 +52,7 @@
     editingPrizeId: "",
     pendingResetAll: false,
     pendingClearParticipants: false,
+    pendingWinner: null,
   };
 
   const els = {
