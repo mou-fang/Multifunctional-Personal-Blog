@@ -107,7 +107,8 @@
       "Bash(node -e \"const fs=require\\('fs'\\); const c=fs.readFileSync\\('d:/eluosizhuanpan/claudeOne/music/playlist.js','utf-8'\\); console.log\\('Has cover:', c.includes\\('cover'\\)\\); console.log\\('Has data:image:', c.includes\\('data:image'\\)\\); console.log\\('Has base64:', c.includes\\('base64'\\)\\); console.log\\('Length:', c.length\\);\")",
       "Bash(netstat -ano)",
       "Bash(Select-String \"3001\")",
-      "Bash(Get-ChildItem -Name)"
+      "Bash(Get-ChildItem -Name)",
+      "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"d:\\\\eluosizhuanpan\\\\claudeOne\\\\addmusic.bat\"\\); Write-Host \"Size: $\\($bytes.Length\\) bytes\"; Write-Host \"BOM: $\\($bytes[0]\\) $\\($bytes[1]\\) $\\($bytes[2]\\)\"; Write-Host \"First line:\"; [System.IO.File]::ReadAllText\\(\"d:\\\\eluosizhuanpan\\\\claudeOne\\\\addmusic.bat\", [System.Text.Encoding]::UTF8\\).Split\\(\"`n\"\\)[0..3] | ForEach-Object { Write-Host $_ })"
     ]
   }
 }

@@ -248,6 +248,11 @@
       root.removeAttribute("data-minimized");
       document.body.setAttribute("data-player-expanded", "");
     }
+    if (expandBtn) {
+      expandBtn.innerHTML = min ? "&#x25B2;" : "&#x2500;";
+      expandBtn.setAttribute("title", min ? "Expand player" : "Minimize player");
+      expandBtn.setAttribute("aria-label", min ? "Expand player" : "Minimize player");
+    }
     saveState();
   }
 
@@ -386,7 +391,6 @@
 
     toggle: function () {
       if (!playlist.length) return;
-      if (minimized) setMinimized(false);
       if (isPlaying) pauseCurrent(); else playCurrent();
     },
 
@@ -624,9 +628,9 @@
   });
 
   /* ---- Click events ------------------------------------------------------- */
-  playBtn && playBtn.addEventListener("click", function () {
+  playBtn && playBtn.addEventListener("click", function (e) {
     if (!playlist.length) return;
-    if (minimized) setMinimized(false);
+    e.stopPropagation();
     if (isPlaying) pauseCurrent(); else playCurrent();
   });
 
@@ -670,7 +674,9 @@
   });
 
   root.addEventListener("click", function (e) {
-    if (minimized && e.target === root) {
+    if (!minimized) return;
+    if (e.target.closest("button, input, [data-gp-progress-wrap]")) return;
+    if (root.contains(e.target)) {
       setMinimized(false);
     }
   });
