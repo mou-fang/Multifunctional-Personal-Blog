@@ -1,233 +1,215 @@
-# 魔方的妙妙工具
+# claudeOne · 魔方工作台
 
-一个前后端结合的个人工具工作台，以 3D 魔方为首页入口，通过顶部导航进入「游戏」和「工具箱」两大分类。前端采用原生 HTML/CSS/JS，无构建步骤；后端使用 Express 提供 ASCII 图片转换 API。
+一个前后端结合的个人工具工作台，以 3D 魔方为首页入口，通过顶部导航进入「游戏」和「工具箱」两大分类。纯原生 HTML/CSS/JS 实现，无构建步骤；内置全局音乐播放器，切页不中断；支持双主题一键切换。
 
-## 首页
+## 项目架构
 
-首页是一个可交互的 3D 魔方，使用 Three.js 渲染。
+```
+SPA 单页应用（Hash 路由）
+├── index.html           SPA 壳子 + 所有页面模板
+├── js/router.js         Hash 路由器，动态加载/卸载页面
+├── js/page-registry.js  页面注册表（路由 → 模板/CSS/JS/生命周期）
+├── js/player.js         全局音乐播放引擎（DOM 在 SPA 壳子之外，切页不中断）
+├── js/shell.js          公共能力（导航、主题切换、Toast、弹窗、存储）
+├── js/config.js         全局配置（API、限制、播放器参数等）
+└── js/tool-cards.js     游戏/工具卡片数据与渲染
+```
 
-你可以拖动旋转魔方观察每个面的颜色分布，松开后魔方会以缓慢的惯性自动旋转。下方提供 12 个面转动按钮（U / U' / D / D' / L / L' / R / R' / F / F' / B / B'），也支持键盘快捷键：按字母键转动对应面，按住 Shift 反向转动。空格键打乱魔方，Esc 键还原到初始状态。
+**核心设计：**
+- **SPA 路由**：所有页面通过 `<template>` 标签内嵌在 `index.html`，切换页面时从模板克隆内容注入 `<main>` 槽位，旧页面先 `unmount()` 清理事件。
+- **全局播放器**：播放器 DOM 在 `<main>` 之外，不受页面切换影响。支持展开/最小化两种状态。
+- **双主题**：Soft UI（柔和拟物风）和 Liquid Glass（玻璃拟态风），CSS 变量驱动，播放器深度适配两种风格。
+- **单端口服务**：Express 同时托管前端静态文件和 ASCII 转换 API，统一在 `localhost:3001`。
 
-右上角的主题开关可以在 Soft UI（柔和拟物风格）和 Liquid Glass（玻璃拟态风格）之间实时切换，两种风格都是 1:1 像素级复刻。
+## 快速开始
 
-## 顶部导航
+### 前提条件
 
-导航栏只保留三个入口：
+- [Node.js](https://nodejs.org/) LTS 版本（用于运行后端和音乐扫描）
+- 可选：[Go](https://go.dev/dl/)（ASCII 艺术功能需要 `ascii-image-converter`）
 
-| 入口 | 页面 | 说明 |
+### 一键启动
+
+双击项目根目录下的 `addmusic.bat`：
+
+1. 启动 Express 服务器（前端 + 后端，端口 3001）
+2. 扫描 `music/` 文件夹，提取音乐元数据生成播放列表
+3. 打开浏览器访问 `http://localhost:3001`
+
+之后往 `music/` 文件夹添加新歌曲，再次双击 `addmusic.bat` 即可更新播放列表。
+
+### 控制面板
+
+双击 `control.bat` 提供完整管理菜单：
+
+| 选项 | 功能 |
+|------|------|
+| Start All | 启动服务器 + 扫描音乐 + 打开浏览器 |
+| Start Server Only | 仅启动服务器 |
+| Scan Music Only | 仅重新扫描音乐文件夹 |
+| Restart Server | 重启服务器 |
+| Stop Server | 停止服务器 |
+
+面板顶部显示服务器运行状态（RUNNING/STOPPED + PID）。
+
+## 页面功能
+
+### 首页
+
+可交互的 3D 魔方（Three.js）。拖动旋转观察，松开后惯性自转。提供 12 个面转动按钮（U/U'/D/D'/L/L'/R/R'/F/F'/B/B'），支持键盘快捷键（字母键转面，Shift+字母反向，空格打乱，Esc 还原）。
+
+### 游戏
+
+| 页面 | 路由 | 说明 |
 |------|------|------|
-| **首页** | `index.html` | 魔方工作台 |
-| **游戏** | `games.html` | 游戏中心，展示所有小游戏 |
-| **工具箱** | `tools.html` | 工具箱中心，展示所有工具 |
+| **俄罗斯转盘** | `#/game` | 设定玩家人数和名字，拖拽排序，选择弹巢与子弹数量，三种结束规则，支持暴露/隐藏弹巢位置 |
+| **推箱子** | `#/sokoban` | 10 个固定关卡从入门到地狱；随机模式内置 BFS 求解器验证可解性；深渊模式含唯一解验证 |
 
-当前页面所属分组会自动高亮。导航配置集中在 `js/shell.js` 的 `NAV_ITEMS` 中，新增页面只需修改一处。
+### 工具箱
 
-## 游戏
+| 页面 | 路由 | 说明 |
+|------|------|------|
+| **幸运抽奖** | `#/lottery` | 大转盘 + Web Crypto 真随机算法，管理参与者名单和奖项，中奖彩带效果 |
+| **音乐解锁** | `#/music` | 纯浏览器端解密网易云/QQ 音乐加密文件（.ncm .qmc* .mflac .mgg 等），解密后自动加入全局播放器 |
+| **ASCII 艺术** | `#/ascii` | 上传图片转为 ASCII 字符画，后端调用 Go 工具完成转换，支持彩色/灰度/盲文模式 |
+| **图片像素化** | `#/pixel` | 上传图片生成复古像素风、8-bit 风、Game Boy 风或自定义调色板像素画，支持导出 PNG |
+| **图片压缩** | `#/compress` | 浏览器本地压缩图片、调整尺寸、转换 JPG/PNG/WebP，支持批量处理和 ZIP 打包下载 |
+| **二维码美化** | `#/qr` | 生成带 Logo、渐变色、圆点样式和自定义角标的高级二维码，支持 PNG/SVG 导出 |
+| **DeepSeek 聊天** | `#/ai` | 对接 DeepSeek API，流式回复，思维链显示，推理强度调节，多轮对话 + 话题管理。Key 仅存 localStorage |
 
-| 页面 | 说明 |
-|------|------|
-| **俄罗斯转盘** | 设定玩家人数和名字，拖拽排序，选择弹巢与子弹数量，三种结束规则。支持暴露/隐藏弹巢位置 |
-| **推箱子** | 10 个固定关卡从入门到地狱难度；随机模式内置 BFS 求解器验证可解性；深渊难模式含唯一解验证 |
+### 全局音乐播放器
 
-## 工具箱
+固定在页面底部，展开态显示封面、歌曲信息、进度条和完整控制栏；最小化态收缩为右下角浮动窄条。
 
-| 页面 | 说明 |
-|------|------|
-| **幸运抽奖** | 大转盘 + 真随机算法（Web Crypto），管理参与者名单和奖项，中奖彩带效果 |
-| **音乐解锁** | 纯浏览器端解密网易云/QQ 音乐加密文件，支持 .ncm .qmc* .mflac .mgg 等格式 |
-| **ASCII 艺术** | 上传图片转为 ASCII 字符画，Express 后端调用 Go 工具完成转换，支持彩色/灰度/盲文模式 |
-| **图片像素化** | 上传图片生成复古像素风、8-bit 风、Game Boy 风或自定义调色板像素画，支持导出 PNG |
-| **图片压缩** | 浏览器本地压缩图片、调整尺寸、转换 JPG / PNG / WebP，支持批量处理和 ZIP 打包下载 |
-| **二维码美化** | 生成带 Logo、渐变色、圆点样式和自定义角标的高级二维码，支持 PNG / SVG 导出 |
-| **DeepSeek 聊天** | 对接 DeepSeek V4 API，支持流式回复、思维链显示、推理强度调节。Key 只存本地 localStorage |
+- **音乐来源**：`music/` 文件夹（自动扫描，支持 mp3/flac/wav/ogg/aac/m4a 等格式）
+- **元数据提取**：自动从音频文件 ID3 标签读取歌名、歌手、专辑、封面图
+- **封面回退**：内嵌封面 → 同目录同名图片 → cover.jpg → 默认渐变色
+- **播放模式**：顺序 / 随机 / 列表循环 / 单曲循环，一键切换，右上角 Toast 提示
+- **拖拽添加**：拖拽音频文件到播放器即可临时播放
+- **来源标记**：显示当前曲目来自「项目文件夹」还是「音乐解锁」或「拖拽添加」
 
-## 如何从零开始部署到本地
+## 主题切换
 
-以下步骤假设你从未用过 GitHub 和命令行，每一步都有截图式说明。
+右上角主题开关在两种风格之间切换：
 
-### 第一步：下载项目代码
+- **Soft UI**（新拟物）：浅蓝色画布，凸起/凹陷的柔和阴影，没有可见边框
+- **Liquid Glass**（液态玻璃）：网格背景 + 毛玻璃面板，多层堆叠阴影 + 透镜边缘 + 对角高光
 
-有三种方式，选一种即可。
+切换时从开关位置播放涟漪动画，掩盖元素重排。
 
-**方式 A：直接下载 ZIP（最简单）**
+## 部署到本地
 
-1. 打开浏览器，访问：`https://github.com/mou-fang/Multifunctional-Personal-Blog`
-2. 找到页面上的绿色按钮 **Code**，点击它
-3. 在弹出的菜单里点击 **Download ZIP**
-4. 浏览器会下载一个压缩包，下载完成后解压到你想要的文件夹
-5. 解压后你会看到一个 `Multifunctional-Personal-Blog-main` 文件夹，里面就是全部代码
+### 1. 下载项目
 
-**方式 B：用 Git 克隆（如果你已经装了 Git）**
-
-1. 打开终端（Windows 用户：按 Win 键，输入 `cmd` 或 `powershell`，回车）
-2. 进入你想放项目的目录，比如桌面：
-   ```
-   cd Desktop
-   ```
-3. 执行克隆命令：
-   ```
-   git clone https://github.com/mou-fang/Multifunctional-Personal-Blog.git
-   ```
-4. 等待下载完成，桌面上会出现 `Multifunctional-Personal-Blog` 文件夹
-
-**方式 C：用 GitHub Desktop（有图形界面）**
-
-1. 下载安装 [GitHub Desktop](https://desktop.github.com/)
-2. 打开后，点击 **File → Clone repository**
-3. 选择 URL 标签页，输入：`https://github.com/mou-fang/Multifunctional-Personal-Blog`
-4. 选择本地存放路径，点击 **Clone**
-
-### 第二步：安装必需软件
-
-项目需要 Node.js 来运行后端服务。如果你的电脑还没有装，按下面步骤安装：
-
-1. 访问 [nodejs.org](https://nodejs.org/)
-2. 下载左侧的 **LTS 版本**（长期稳定版）
-3. 双击安装包，一路点 Next 即可（Mac 同理）
-
-装好后验证一下。打开终端（Win 键 → 输入 `cmd` → 回车），输入：
-```
-node -v
-```
-如果看到版本号（比如 v20.x.x），说明安装成功。
-
-### 第三步：启动后端
-
-ASCII 艺术功能依赖后端将图片转为字符画，后端还需要调用一个 Go 写的命令行工具。一次性配好后，就不用管它了。
-
-**安装 Go 和 ascii-image-converter**
-
-1. 访问 [go.dev/dl](https://go.dev/dl/)，下载 Windows 安装包，一路 Next
-2. 打开终端，运行：
-   ```
-   go install github.com/TheZoraiz/ascii-image-converter@latest
-   ```
-
-**安装后端依赖并启动**
-
-1. 在终端中进入 `server` 文件夹。如果你把项目放在了桌面：
-   ```
-   cd Desktop\Multifunctional-Personal-Blog-main\claudeOne\server
-   ```
-   （如果用了 Git 克隆，把 `Multifunctional-Personal-Blog-main` 换成 `Multifunctional-Personal-Blog`）
-2. 安装依赖（只需运行一次）：
-   ```
-   npm install
-   ```
-3. 启动后端服务：
-   ```
-   npm start
-   ```
-4. 看到 `[ascii] Server running on http://localhost:3001` 就说明后端启动成功了
-
-这个终端窗口不要关，让它一直运行着。
-
-### 第四步：启动前端
-
-再打开一个**新的终端窗口**（Win 键 → 输入 `cmd` → 回车），进入 `claudeOne` 文件夹：
-
-```
-cd Desktop\Multifunctional-Personal-Blog-main\claudeOne
+```bash
+git clone https://github.com/mou-fang/eluosizhuanpan.git
+cd eluosizhuanpan
 ```
 
-**推荐方法：用 Python 启一个本地服务器**
+或直接在 GitHub 页面点击 **Code → Download ZIP** 下载解压。
 
-Windows 通常自带 Python。如果没有，先去 [python.org](https://www.python.org/downloads/) 下载安装（安装时一定要勾选 "Add Python to PATH"）。
+### 2. 安装依赖
 
-```
-python -m http.server 8080
-```
-
-看到 `Serving HTTP on 0.0.0.0 port 8080` 就说明成功了。
-
-**备选方法：用 Node.js（你已经装了）**
-
-```
-npx http-server -p 8080
+```bash
+cd claudeOne/server
+npm install
 ```
 
-然后打开浏览器，访问：**http://localhost:8080**
+### 3. 安装 Go 工具（ASCII 艺术需要）
 
-现在所有功能都可以正常使用了。两个终端窗口各司其职：
-- 第一个终端跑后端（端口 3001），负责 ASCII 图片转换
-- 第二个终端跑前端（端口 8080），负责网页界面
+```bash
+# 安装 Go 后运行
+go install github.com/TheZoraiz/ascii-image-converter@latest
+```
 
-### 第五步：使用 DeepSeek 聊天
+确保 `ascii-image-converter` 在系统 PATH 中，否则 ASCII 转换功能不可用（其他功能不受影响）。
 
-1. 访问 **http://localhost:8080/ai.html**
-2. 首次打开会弹出 API Key 输入框。你需要去 [DeepSeek 控制台](https://platform.deepseek.com/api_keys) 注册并生成一个 Key
-3. 将 Key（以 `sk-` 开头）粘贴到输入框，点击保存
-4. Key 只保存在你的浏览器本地，不会上传到任何服务器
+### 4. 启动
+
+双击 `claudeOne/addmusic.bat` 一键启动，或手动：
+
+```bash
+cd claudeOne/server
+node server.js
+```
+
+然后访问 `http://localhost:3001`。
+
+### 5. 放置音乐
+
+将音频文件（mp3/flac/wav 等）放入 `claudeOne/music/` 文件夹，重新运行 `addmusic.bat` 或在控制面板选择 "Scan Music Only" 更新播放列表。
 
 ## 目录结构
 
 ```
-Multifunctional-Personal-Blog/
+eluosizhuanpan/
 ├── README.md
-└── claudeOne/
-    ├── index.html          首页（魔方工作台）
-    ├── games.html          游戏中心
-    ├── tools.html          工具箱
-    ├── game.html           俄罗斯转盘
-    ├── sokoban.html        推箱子
-    ├── ai.html             DeepSeek 聊天
-    ├── lottery.html        幸运抽奖
-    ├── music.html          音乐解锁
-    ├── ascii.html          ASCII 艺术
-    ├── pixel.html          图片像素化
-    ├── compress.html       图片压缩
-    ├── qr.html             二维码美化
-    ├── css/                样式文件
-    │   ├── base.css            全局变量与基础样式
-    │   ├── components.css      公共组件（按钮、卡片、弹窗等）
-    │   ├── neumorphism.css     Soft UI 主题
-    │   ├── liquid-glass.css    Liquid Glass 主题
-    │   ├── animations.css      页面动画
-    │   ├── cube.css            魔方样式
-    │   ├── games.css           游戏中心卡片样式
-    │   ├── tools.css           工具箱卡片样式
-    │   ├── lottery.css         抽奖样式
-    │   ├── sokoban.css         推箱子样式
-    │   ├── music.css           音乐解锁样式
-    │   ├── ascii.css           ASCII 艺术样式
-    │   ├── pixel.css           图片像素化样式
-    │   ├── compress.css        图片压缩样式
-    │   └── qr.css              二维码美化样式
-    ├── js/                 脚本文件
-    │   ├── config.js           全局配置
-    │   ├── theme-init.js       首屏主题初始化
-    │   ├── shell.js            公共能力（导航渲染、主题切换、toast、弹窗等）
-    │   ├── tool-cards.js       游戏/工具卡片数据与渲染
-    │   ├── cube.js             魔方 3D 逻辑
-    │   ├── roulette.js         俄罗斯转盘逻辑
-    │   ├── ai.js               DeepSeek 聊天逻辑
-    │   ├── lottery.js          幸运抽奖逻辑
-    │   ├── sokoban.js          推箱子逻辑
-    │   ├── music.js            音乐解锁逻辑
-    │   ├── decrypt-worker.js   解密 Web Worker
-    │   ├── ascii.js            ASCII 艺术逻辑
-    │   ├── pixel.js            图片像素化逻辑
-    │   ├── compress.js         图片压缩逻辑
-    │   └── qr.js               二维码美化逻辑
-    └── server/              后端服务
-        ├── package.json
-        ├── server.js           Express API（ASCII 图片转换）
-        └── uploads/            上传文件临时目录
+├── claudeOne/
+│   ├── index.html              SPA 壳子 + 所有页面模板
+│   ├── addmusic.bat            一键启动器
+│   ├── control.bat             服务器管理面板
+│   ├── music/                  音乐文件夹
+│   │   ├── .gitkeep
+│   │   ├── playlist.js         自动生成的播放列表
+│   │   └── *.mp3               用户放入的音乐文件
+│   ├── scripts/
+│   │   ├── scan-music.js       Node.js 音乐扫描器
+│   │   └── scan-music.ps1      PowerShell 备选方案（已弃用）
+│   ├── css/
+│   │   ├── base.css            全局变量、重置、排版
+│   │   ├── components.css      公共组件（按钮、卡片、弹窗、Toast 等）
+│   │   ├── neumorphism.css     Soft UI 主题覆盖
+│   │   ├── liquid-glass.css    Liquid Glass 主题覆盖
+│   │   ├── animations.css      页面过渡动画
+│   │   ├── player.css          全局播放器样式（双主题深度适配）
+│   │   ├── cube.css            魔方 3D 样式
+│   │   ├── games.css / tools.css  卡片网格
+│   │   └── *.css               各页面独立样式
+│   ├── js/
+│   │   ├── config.js           全局配置
+│   │   ├── theme-init.js       首屏主题初始化（防闪烁）
+│   │   ├── shell.js            公共能力（导航、主题、Toast、弹窗）
+│   │   ├── router.js           SPA Hash 路由器
+│   │   ├── page-registry.js    页面注册表
+│   │   ├── player.js           全局播放引擎
+│   │   ├── tool-cards.js       游戏/工具卡片渲染
+│   │   ├── cube.js             魔方 3D（Three.js）
+│   │   ├── roulette.js         俄罗斯转盘
+│   │   ├── sokoban.js          推箱子
+│   │   ├── lottery.js          幸运抽奖
+│   │   ├── music.js            音乐解锁
+│   │   ├── decrypt-worker.js   解密 Web Worker
+│   │   ├── ascii.js            ASCII 艺术
+│   │   ├── pixel.js            图片像素化
+│   │   ├── compress.js         图片压缩
+│   │   ├── qr.js               二维码美化
+│   │   └── ai.js               DeepSeek 聊天
+│   ├── libs/
+│   │   ├── pixelit/pixelit.js  像素化库
+│   │   ├── jszip/jszip.min.js  ZIP 打包库
+│   │   ├── qr-code-styling/    二维码渲染库
+│   │   └── browser-image-compression/  图片压缩库
+│   └── server/
+│       ├── package.json
+│       ├── server.js           Express 服务（前端静态 + ASCII API）
+│       └── uploads/            上传临时目录
 ```
 
-## 项目卡片数据
+## 技术栈
 
-游戏和工具的卡片数据集中在 `js/tool-cards.js` 中维护：
-
-- `GAME_CARDS` — 游戏中心页展示的游戏列表
-- `TOOL_CARDS` — 工具箱页展示的工具列表
-
-新增游戏或工具时，只需在对应数组中添加一项，无需修改 HTML。
+- **前端**：原生 HTML / CSS / JavaScript，Three.js（CDN 引入）
+- **路由**：Hash 路由 + `<template>` 模板克隆
+- **后端**：Express（Node.js），multer 处理上传
+- **ASCII 转换**：Go 编写的 `ascii-image-converter` 命令行工具
+- **音乐元数据**：music-metadata（Node.js，ES Module）
+- **主题**：CSS 自定义属性，无运行时开销
+- **无构建步骤**：零依赖前端，所有库都是静态文件
 
 ## 浏览器兼容
 
-推荐 Chrome、Edge、Firefox、Safari 最新版。
+推荐 Chrome、Edge、Firefox 最新版。
 
-- 抽奖功能需要浏览器支持 `crypto.getRandomValues()`
-- 音乐解锁需要浏览器支持 Web Worker 和 ES Module
-- 魔方 3D 需要浏览器支持 WebGL
+- 魔方需要 WebGL 支持
+- 抽奖需要 `crypto.getRandomValues()`
+- 音乐解锁需要 Web Worker + ES Module
+- 主题动画需要 CSS `clip-path` 和 `backdrop-filter`
