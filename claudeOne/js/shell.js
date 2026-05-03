@@ -21,17 +21,24 @@
 
   // --- Navigation config ----------------------------------------------------
   const NAV_ITEMS = [
-    { label: "首页",   href: "./index.html",  matches: ["index.html", ""] },
-    { label: "游戏",   href: "./games.html",  matches: ["games.html", "game.html", "sokoban.html"] },
-    { label: "工具箱", href: "./tools.html",  matches: ["tools.html", "lottery.html", "music.html", "ascii.html", "pixel.html", "compress.html", "qr.html", "ai.html"] },
+    { label: "首页",   href: "#/home",   matches: ["home"] },
+    { label: "游戏",   href: "#/games",  matches: ["games", "game", "sokoban"] },
+    { label: "工具箱", href: "#/tools",  matches: ["tools", "lottery", "music", "ascii", "pixel", "compress", "qr", "ai"] },
   ];
+
+  function resolveCurrentRoute() {
+    var hash = window.location.hash;
+    if (hash && hash.indexOf("#/") === 0) return hash.slice(2).split("?")[0];
+    var page = document.body.getAttribute("data-page");
+    return page || "home";
+  }
 
   function renderNav() {
     const nav = document.querySelector(".site-nav");
     if (!nav) return;
-    const here = (location.pathname.split("/").pop() || "index.html").toLowerCase();
+    const here = resolveCurrentRoute();
     nav.innerHTML = NAV_ITEMS.map(function (item) {
-      var isActive = item.matches.some(function (m) { return m.toLowerCase() === here; });
+      var isActive = item.matches.some(function (m) { return m === here; });
       return '<a href="' + item.href + '" data-nav-link' + (isActive ? ' aria-current="page"' : '') + '>' + item.label + '</a>';
     }).join("");
   }
@@ -111,18 +118,12 @@
   };
 
   function setThemeAnimated(nextTheme, origin) {
-    try {
-      const supportsVT = typeof document.startViewTransition === "function";
-      if (supportsVT) {
-        document.startViewTransition(() => applyTheme(nextTheme));
-        return;
-      }
-    } catch (_) { /* fallback below */ }
-    // Fallback: overlay holds the OLD bg color, then shrinks toward origin to
-    // reveal the NEW theme underneath.
-    const currentTheme = document.body.getAttribute("data-theme") || CFG.theme.default;
-    const oldBg = THEME_BG[currentTheme] || THEME_BG.neumorphism;
-    const overlay = document.createElement("div");
+    // Ripple overlay: covers page with OLD theme bg, then shrinks toward
+    // the toggle button origin to reveal the NEW theme underneath.
+    // This masks layout shifts during theme switch better than a crossfade.
+    var currentTheme = document.body.getAttribute("data-theme") || CFG.theme.default;
+    var oldBg = THEME_BG[currentTheme] || THEME_BG.neumorphism;
+    var overlay = document.createElement("div");
     overlay.className = "theme-transition-overlay";
     overlay.style.background = oldBg;
     if (origin) {
@@ -132,9 +133,9 @@
     document.body.appendChild(overlay);
     // Apply new theme underneath, then start the clip-path shrink next frame.
     applyTheme(nextTheme);
-    requestAnimationFrame(() => {
+    requestAnimationFrame(function () {
       overlay.setAttribute("data-anim", "true");
-      setTimeout(() => overlay.remove(), 820);
+      setTimeout(function () { overlay.remove(); }, 820);
     });
   }
 
@@ -180,26 +181,6 @@
     }
     chunks.forEach((c) => obs.observe(c));
   }
-
-  // --- Smooth intra-site navigation ----------------------------------------
-  function setupSmoothNav() {
-    document.addEventListener("click", (e) => {
-      const a = e.target.closest("a[data-nav-link]");
-      if (!a) return;
-      const href = a.getAttribute("href");
-      if (!href || href.startsWith("#") || a.target === "_blank") return;
-      if (a.getAttribute("aria-current") === "page") {
-        e.preventDefault();
-        return;
-      }
-      e.preventDefault();
-      document.body.setAttribute("data-route-state", "exiting");
-      setTimeout(() => {
-        window.location.href = href;
-      }, 240);
-    });
-  }
-
   // --- Toast ----------------------------------------------------------------
   function ensureToastRail() {
     let rail = document.querySelector(".toast-rail");
@@ -335,6 +316,7 @@
     setThemeAnimated,
     toast,
     createApiKeyModal,
+    renderNav,
     refreshReveal,
     NAV_ITEMS,
     getDeepSeekKey() {
@@ -355,7 +337,6 @@
     renderNav();
     setupThemeToggle();
     setupReveal();
-    setupSmoothNav();
   });
 
   // On page show (back/forward from bfcache), reset exit state so layout returns.

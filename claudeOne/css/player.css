@@ -1,0 +1,838 @@
+/* ===== claudeOne :: player.css =====
+ * Global audio player — two visual states:
+ *   Expanded: full-width bottom bar, cover art, metadata, controls.
+ *   Minimized: thin floating strip, click to expand.
+ * Deeply integrated with both Neumorphism (Soft UI) and Liquid Glass themes.
+ */
+
+/* --- Container (shared) --- */
+.global-player {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              left 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              right 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              border-radius 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.4s ease,
+              background 0.4s ease;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  font-family: Manrope, system-ui, sans-serif;
+}
+
+/* --- Expanded state --- */
+.global-player:not([data-minimized]) {
+  height: 120px;
+  border-radius: 20px 20px 0 0;
+}
+
+/* --- Minimized state: floating strip --- */
+.global-player[data-minimized] {
+  left: auto;
+  width: 200px;
+  right: 28px;
+  bottom: 0;
+  height: 30px;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  opacity: 0.55;
+}
+.global-player[data-minimized]:hover {
+  opacity: 0.85;
+  height: 36px;
+}
+.global-player[data-minimized][data-playing] {
+  animation: player-mini-pulse 2s ease-in-out infinite;
+}
+@keyframes player-mini-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.8; }
+}
+
+/* --- Inner layout --- */
+.global-player__inner {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 10px 20px 10px 16px;
+  gap: 16px;
+  position: relative;
+  opacity: 1;
+  transition: opacity 0.25s ease;
+}
+.global-player[data-minimized] .global-player__inner {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* --- Cover art (shared) --- */
+.global-player__cover-wrap {
+  width: 100px;
+  height: 100px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.global-player__cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.global-player__cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 2.5rem;
+  font-weight: 700;
+  font-family: Sora, sans-serif;
+}
+
+/* --- Info + progress column --- */
+.global-player__center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+.global-player__title {
+  font-family: Sora, sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.global-player__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.global-player__meta {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+.global-player__source {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  line-height: 1.6;
+}
+.global-player__source--project {
+  background: color-mix(in srgb, var(--accent, #5b84ff) 18%, transparent);
+  color: var(--accent, #5b84ff);
+}
+.global-player__source--tool {
+  background: color-mix(in srgb, #f0a040 18%, transparent);
+  color: #d08020;
+}
+
+/* --- Progress bar (shared structure) --- */
+.global-player__progress-wrap {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  margin-top: 6px;
+  flex-shrink: 0;
+  transition: height 0.15s, margin-top 0.15s, border-radius 0.15s;
+}
+.global-player__progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--accent, #5b84ff);
+  border-radius: 3px;
+  transition: width 0.1s linear;
+}
+.global-player__progress-thumb {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent, #5b84ff);
+  border: 2px solid #fff;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+  z-index: 2;
+}
+.global-player__progress-wrap:hover .global-player__progress-thumb,
+.global-player[data-seeking] .global-player__progress-thumb {
+  opacity: 1;
+}
+.global-player__progress-wrap:hover {
+  height: 10px;
+  margin-top: 4px;
+  border-radius: 5px;
+}
+.global-player__progress-wrap:hover .global-player__progress-fill {
+  border-radius: 5px;
+}
+.global-player__time-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2px;
+}
+.global-player__time {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Controls bar --- */
+.global-player__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.global-player__btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 1.15rem;
+  padding: 6px;
+  border-radius: 8px;
+  transition: color 0.15s, background 0.15s, transform 0.1s, box-shadow 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  line-height: 1;
+}
+.global-player__btn:hover {
+  color: var(--accent, #5b84ff);
+}
+.global-player__btn:active {
+  transform: scale(0.92);
+}
+.global-player__btn--play {
+  font-size: 1.4rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+.global-player__btn--active {
+  color: var(--accent, #5b84ff);
+}
+
+/* --- Volume --- */
+.global-player__volume-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+}
+.global-player__volume-icon {
+  font-size: 1.05rem;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.global-player__volume-icon:hover {
+  color: var(--accent, #5b84ff);
+}
+.global-player__volume-slider {
+  width: 80px;
+  height: 5px;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+.global-player__volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent, #5b84ff);
+  cursor: pointer;
+  border: 2px solid #fff;
+}
+.global-player__volume-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent, #5b84ff);
+  cursor: pointer;
+  border: 2px solid #fff;
+}
+.global-player__volume-slider::-moz-range-track {
+  height: 5px;
+  border-radius: 3px;
+}
+
+/* --- Minimize / expand button --- */
+.global-player__btn--expand {
+  font-size: 1.1rem;
+  color: var(--ink-soft);
+  margin-left: 4px;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+}
+
+/* --- Drag & drop overlay --- */
+.global-player__drop-overlay {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--accent, #5b84ff) 15%, transparent);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  color: var(--accent, #5b84ff);
+  font-weight: 600;
+  pointer-events: none;
+  display: flex;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-radius: inherit;
+}
+.global-player[data-dragover] .global-player__drop-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* --- Waiting for interaction (autoplay blocked) --- */
+.global-player[data-waiting-interaction] .global-player__btn--play {
+  animation: player-play-pulse 1.5s ease-in-out infinite;
+}
+@keyframes player-play-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent, #5b84ff) 40%, transparent); }
+  50%      { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent, #5b84ff) 0%, transparent); }
+}
+
+/* --- Empty state --- */
+.global-player__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  padding: 20px;
+  width: 100%;
+  text-align: center;
+  line-height: 1.5;
+}
+.global-player__empty strong {
+  color: var(--ink);
+}
+
+/* ============================================================
+   Neumorphism (Soft UI) — raised/sunken soft shadows
+   ============================================================ */
+body[data-theme="neumorphism"] .global-player {
+  background: var(--surface);
+  box-shadow: 0 -6px 30px rgba(0, 0, 0, 0.12);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+/* Expanded: raised panel with soft shadow */
+body[data-theme="neumorphism"] .global-player:not([data-minimized]) {
+  box-shadow: 0 -12px 36px rgba(74, 102, 166, 0.18),
+              0 -4px 12px rgba(74, 102, 166, 0.08);
+}
+
+/* Minimized: raised floating pill */
+body[data-theme="neumorphism"] .global-player[data-minimized] {
+  background: var(--accent, #6f9bff);
+  box-shadow: 6px 6px 14px #c5cee0, -6px -6px 14px #ffffff;
+}
+
+/* Cover — raised frame */
+body[data-theme="neumorphism"] .global-player__cover-wrap {
+  box-shadow: 8px 8px 18px #c5cee0, -8px -8px 18px #ffffff;
+}
+body[data-theme="neumorphism"] .global-player__cover-placeholder {
+  background: linear-gradient(135deg, #7aa6ff 0%, #5b84ff 100%);
+}
+
+/* Progress track — sunken */
+body[data-theme="neumorphism"] .global-player__progress-wrap {
+  background: var(--surface-sunken);
+  box-shadow: var(--shadow-in-sm);
+}
+/* Slider thumb — raised dot */
+body[data-theme="neumorphism"] .global-player__progress-thumb {
+  box-shadow: 2px 2px 4px rgba(74, 102, 166, 0.4),
+              -2px -2px 4px rgba(255, 255, 255, 0.8);
+}
+
+/* Volume slider track — sunken */
+body[data-theme="neumorphism"] .global-player__volume-slider {
+  background: var(--surface-sunken);
+  box-shadow: var(--shadow-in-sm);
+}
+body[data-theme="neumorphism"] .global-player__volume-slider::-webkit-slider-thumb {
+  box-shadow: 2px 2px 4px rgba(74, 102, 166, 0.4),
+              -2px -2px 4px rgba(255, 255, 255, 0.8);
+}
+body[data-theme="neumorphism"] .global-player__volume-slider::-moz-range-thumb {
+  box-shadow: 2px 2px 4px rgba(74, 102, 166, 0.4),
+              -2px -2px 4px rgba(255, 255, 255, 0.8);
+}
+body[data-theme="neumorphism"] .global-player__volume-slider::-moz-range-track {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Buttons — raised circles */
+body[data-theme="neumorphism"] .global-player__btn {
+  border-radius: 50%;
+  box-shadow: var(--shadow-out-sm);
+  background: var(--surface);
+}
+body[data-theme="neumorphism"] .global-player__btn:hover {
+  color: var(--accent);
+  background: var(--surface);
+  box-shadow: 4px 4px 10px #c5cee0, -4px -4px 10px #ffffff;
+}
+body[data-theme="neumorphism"] .global-player__btn:active {
+  box-shadow: var(--shadow-in-sm);
+  background: var(--surface-sunken);
+}
+
+/* Play button — gradient raised (matching .btn-primary) */
+body[data-theme="neumorphism"] .global-player__btn--play {
+  color: #fff;
+  background: linear-gradient(135deg, #7aa6ff 0%, #5b84ff 100%);
+  box-shadow: 8px 8px 18px #c5cee0, -8px -8px 18px #ffffff;
+  border-radius: 50%;
+}
+body[data-theme="neumorphism"] .global-player__btn--play:hover {
+  color: #fff;
+  background: linear-gradient(135deg, #8ab5ff 0%, #6b94ff 100%);
+  box-shadow: 6px 6px 14px #c5cee0, -6px -6px 14px #ffffff;
+}
+body[data-theme="neumorphism"] .global-player__btn--play:active {
+  color: #fff;
+  box-shadow: inset 4px 4px 8px #4d6ec4, inset -4px -4px 8px #8caefd;
+  background: linear-gradient(135deg, #6a96ef 0%, #4b74ef 100%);
+}
+
+/* Active button — sunken (toggled on) */
+body[data-theme="neumorphism"] .global-player__btn--active {
+  color: var(--accent);
+  box-shadow: var(--shadow-in-sm);
+  background: var(--surface-sunken);
+}
+
+/* Volume icon */
+body[data-theme="neumorphism"] .global-player__volume-icon {
+  border-radius: 6px;
+}
+body[data-theme="neumorphism"] .global-player__volume-icon:hover {
+  color: var(--accent);
+  background: var(--surface);
+  box-shadow: var(--shadow-out-sm);
+}
+
+/* Expand button — raised */
+body[data-theme="neumorphism"] .global-player__btn--expand {
+  border-radius: 8px;
+  border: none;
+  background: var(--surface);
+  box-shadow: var(--shadow-out-sm);
+}
+body[data-theme="neumorphism"] .global-player__btn--expand:hover {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: 4px 4px 10px #c5cee0, -4px -4px 10px #ffffff;
+}
+body[data-theme="neumorphism"] .global-player__btn--expand:active {
+  box-shadow: var(--shadow-in-sm);
+  background: var(--surface-sunken);
+}
+
+/* Source badge — neumorphic pill */
+body[data-theme="neumorphism"] .global-player__source--project {
+  background: var(--accent-soft, #c9d8ff);
+  color: var(--accent);
+}
+body[data-theme="neumorphism"] .global-player__source--tool {
+  background: rgba(240, 160, 64, 0.18);
+  color: #b87020;
+}
+
+/* Empty state icon area */
+body[data-theme="neumorphism"] .global-player__empty {
+  color: var(--ink-muted);
+}
+
+
+/* ============================================================
+   Liquid Glass — pearl-glass with lens-edge + gleam
+   ============================================================ */
+
+/* Container — full glass surface */
+body[data-theme="liquid-glass"] .global-player {
+  background: rgba(255, 255, 255, 0.6);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.7),
+    inset 2px -2px 1px -1px rgba(255, 255, 255, 0.85),
+    inset -2px 2px 1px -1px rgba(255, 255, 255, 0.85),
+    inset 0 0 3px rgba(0, 0, 0, 0.55),
+    0 -8px 32px rgba(0, 0, 0, 0.12),
+    0 -2px 8px rgba(0, 0, 0, 0.06);
+}
+/* No ::before/::after on container — overflow:hidden clips blurred pseudo-elements.
+   Glass effect achieved through box-shadow stack + backdrop-filter instead. */
+/* Inner content sits above pseudo-elements */
+body[data-theme="liquid-glass"] .global-player__inner {
+  position: relative;
+}
+
+/* Minimized — dark glass floating strip */
+body[data-theme="liquid-glass"] .global-player[data-minimized] {
+  background: rgba(40, 40, 40, 0.88);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.12),
+    0 -4px 16px rgba(0, 0, 0, 0.25);
+}
+body[data-theme="liquid-glass"] .global-player[data-minimized]::before,
+body[data-theme="liquid-glass"] .global-player[data-minimized]::after {
+  display: none;
+}
+
+/* Cover — glass frame with inner shadow */
+body[data-theme="liquid-glass"] .global-player__cover-wrap {
+  position: relative;
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.08),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.9),
+    0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(51, 51, 51, 0.06);
+}
+body[data-theme="liquid-glass"] .global-player__cover-placeholder {
+  background: linear-gradient(135deg, rgba(62, 62, 62, 0.85), rgba(30, 30, 30, 0.95));
+}
+
+/* Progress track — inset glass */
+body[data-theme="liquid-glass"] .global-player__progress-wrap {
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.08),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.9);
+}
+/* Progress fill — dark glass accent */
+body[data-theme="liquid-glass"] .global-player__progress-fill {
+  background: rgba(40, 40, 40, 0.85);
+}
+/* Progress thumb — raised glass dot */
+body[data-theme="liquid-glass"] .global-player__progress-thumb {
+  background: rgba(40, 40, 40, 0.9);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.2),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Volume slider track — inset glass */
+body[data-theme="liquid-glass"] .global-player__volume-slider {
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.08),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.9);
+}
+body[data-theme="liquid-glass"] .global-player__volume-slider::-webkit-slider-thumb {
+  background: rgba(40, 40, 40, 0.9);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.2),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+}
+body[data-theme="liquid-glass"] .global-player__volume-slider::-moz-range-thumb {
+  background: rgba(40, 40, 40, 0.9);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.2),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+}
+body[data-theme="liquid-glass"] .global-player__volume-slider::-moz-range-track {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Buttons — glass circles with lens-edge + gleam */
+body[data-theme="liquid-glass"] .global-player__btn {
+  position: relative;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(51, 51, 51, 0.06);
+  box-shadow:
+    inset 1px -1px 1px 0 rgba(255, 255, 255, 0.9),
+    inset -1px 1px 1px 0 rgba(255, 255, 255, 0.9),
+    inset 4px -4px 1px -4px rgba(255, 255, 255, 0.55),
+    inset -4px 4px 1px -4px rgba(255, 255, 255, 0.55),
+    inset 0 0 1.5px rgba(0, 0, 0, 0.7),
+    0 2px 6px rgba(0, 0, 0, 0.12);
+  color: var(--ink-soft);
+}
+/* Button ::before — dark inner ring */
+body[data-theme="liquid-glass"] .global-player__btn::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 3px;
+  left: 3px;
+  right: 3px;
+  bottom: 3px;
+  border-radius: inherit;
+  border: 1px solid rgba(0, 0, 0, 0.7);
+  filter: blur(5px);
+  pointer-events: none;
+  opacity: 0.45;
+}
+/* Button ::after — diagonal gleam */
+body[data-theme="liquid-glass"] .global-player__btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  filter: blur(2px);
+  pointer-events: none;
+  background: linear-gradient(
+    140deg,
+    rgba(255, 255, 255, 0.7) 0%,
+    transparent 40%,
+    transparent 60%,
+    rgba(255, 255, 255, 0.7) 100%
+  );
+  opacity: 0.7;
+}
+body[data-theme="liquid-glass"] .global-player__btn:hover {
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--ink);
+  box-shadow:
+    inset 1px -1px 1px 0 rgba(255, 255, 255, 0.95),
+    inset -1px 1px 1px 0 rgba(255, 255, 255, 0.95),
+    inset 4px -4px 1px -4px rgba(255, 255, 255, 0.6),
+    inset -4px 4px 1px -4px rgba(255, 255, 255, 0.6),
+    inset 0 0 1.5px rgba(0, 0, 0, 0.6),
+    0 4px 10px rgba(0, 0, 0, 0.16);
+}
+body[data-theme="liquid-glass"] .global-player__btn:active {
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow:
+    inset 2px 2px 3px rgba(0, 0, 0, 0.1),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.7);
+  transform: scale(0.94);
+}
+
+/* Play button — dark glass (matching .btn-primary in liquid glass) */
+body[data-theme="liquid-glass"] .global-player__btn--play {
+  background: rgba(40, 40, 40, 0.92);
+  color: #f5f5f5;
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.18),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+}
+body[data-theme="liquid-glass"] .global-player__btn--play::before {
+  border-color: rgba(0, 0, 0, 0.85);
+  opacity: 0.55;
+}
+body[data-theme="liquid-glass"] .global-player__btn--play::after {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.32) 0%,
+    transparent 45%
+  );
+  opacity: 0.85;
+}
+body[data-theme="liquid-glass"] .global-player__btn--play:hover {
+  background: rgba(20, 20, 20, 0.95);
+  color: #fff;
+  box-shadow:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.22),
+    0 6px 16px rgba(0, 0, 0, 0.35);
+}
+body[data-theme="liquid-glass"] .global-player__btn--play:active {
+  background: rgba(15, 15, 15, 0.96);
+  box-shadow:
+    inset 2px 2px 4px rgba(0, 0, 0, 0.3),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Active button — darker glass */
+body[data-theme="liquid-glass"] .global-player__btn--active {
+  background: rgba(62, 62, 62, 0.12);
+  color: var(--accent);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.1),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.7);
+}
+
+/* Volume icon */
+body[data-theme="liquid-glass"] .global-player__volume-icon {
+  border-radius: 6px;
+}
+body[data-theme="liquid-glass"] .global-player__volume-icon:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 1px -1px 1px 0 rgba(255, 255, 255, 0.8),
+    inset -1px 1px 1px 0 rgba(255, 255, 255, 0.8),
+    0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Expand button — glass rect */
+body[data-theme="liquid-glass"] .global-player__btn--expand {
+  border-radius: 8px;
+  border: 1px solid rgba(51, 51, 51, 0.08);
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset 1px -1px 1px 0 rgba(255, 255, 255, 0.8),
+    inset -1px 1px 1px 0 rgba(255, 255, 255, 0.8),
+    0 2px 4px rgba(0, 0, 0, 0.08);
+}
+body[data-theme="liquid-glass"] .global-player__btn--expand::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  border-radius: inherit;
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  filter: blur(4px);
+  pointer-events: none;
+  opacity: 0.35;
+}
+body[data-theme="liquid-glass"] .global-player__btn--expand::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  filter: blur(2px);
+  pointer-events: none;
+  background: linear-gradient(
+    140deg,
+    rgba(255, 255, 255, 0.6) 0%,
+    transparent 40%
+  );
+  opacity: 0.6;
+}
+body[data-theme="liquid-glass"] .global-player__btn--expand:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow:
+    inset 1px -1px 1px 0 rgba(255, 255, 255, 0.95),
+    0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Source badges — glass pills */
+body[data-theme="liquid-glass"] .global-player__source--project {
+  background: rgba(62, 62, 62, 0.1);
+  color: var(--accent);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+body[data-theme="liquid-glass"] .global-player__source--tool {
+  background: rgba(200, 138, 48, 0.12);
+  color: #a06820;
+  border: 1px solid rgba(200, 138, 48, 0.15);
+}
+
+/* Drop overlay — glass tint */
+body[data-theme="liquid-glass"] .global-player__drop-overlay {
+  background: rgba(62, 62, 62, 0.08);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  color: var(--accent);
+}
+
+/* Empty state */
+body[data-theme="liquid-glass"] .global-player__empty {
+  color: var(--ink-muted);
+}
+body[data-theme="liquid-glass"] .global-player__empty strong {
+  color: var(--ink);
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 700px) {
+  .global-player:not([data-minimized]) {
+    height: 100px;
+  }
+  .global-player__inner {
+    padding: 8px 12px 8px 10px;
+    gap: 10px;
+  }
+  .global-player__cover-wrap {
+    width: 70px;
+    height: 70px;
+    border-radius: 8px;
+  }
+  .global-player__title { font-size: 0.9rem; }
+  .global-player__meta  { font-size: 0.72rem; }
+  .global-player__btn {
+    width: 30px;
+    height: 30px;
+    font-size: 1rem;
+  }
+  .global-player__btn--play {
+    width: 36px;
+    height: 36px;
+    font-size: 1.2rem;
+  }
+  .global-player__volume-slider { width: 50px; }
+  .global-player__controls { gap: 6px; }
+}
+
+/* --- Body bottom padding when expanded --- */
+body[data-player-expanded] {
+  padding-bottom: 130px;
+}
+@media (max-width: 700px) {
+  body[data-player-expanded] {
+    padding-bottom: 110px;
+  }
+}

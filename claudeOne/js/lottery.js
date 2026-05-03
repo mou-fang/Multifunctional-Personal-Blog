@@ -1,33 +1,29 @@
 /* ===== claudeOne :: lottery.js =====
  * Live-event lottery. Winner selection uses Web Crypto only:
  * crypto.getRandomValues() + rejection sampling for unbiased integers.
- * Animation is presentation-only and never decides the result. */
+ * Animation is presentation-only and never decides the result.
+ * SPA lifecycle: window.__page_lottery
+ */
 
 (function lottery() {
-  const root = document.querySelector("[data-lottery-root]");
-  if (!root) return;
+  "use strict";
 
-  const CFG = window.CLAUDE_ONE_CONFIG || {};
-  const limits = CFG.limits || {};
-  const app = window.ClaudeOne || {};
-  const storage = app.storage || {
-    get: (key) => {
-      try { return window.localStorage.getItem(key); } catch { return null; }
-    },
-    set: (key, value) => {
-      try { window.localStorage.setItem(key, value); return true; } catch { return false; }
-    },
-    remove: (key) => {
-      try { window.localStorage.removeItem(key); } catch { /* noop */ }
-    },
-  };
-  const toast = typeof app.toast === "function" ? app.toast : () => {};
+  var container = null;
+  var ac = null;
+
+  /* Dependencies (kept as locals so mount always works even if globals change) */
+  function _storageGet(key) {
+    try { return window.localStorage.getItem(key); } catch(e) { return null; }
+  }
+  function _storageSet(key, value) {
+    try { window.localStorage.setItem(key, value); return true; } catch(e) { return false; }
+  }
 
   const STORAGE_KEY = "claudeOne:lottery-state-v2";
-  const NAME_MAX = limits.lotteryParticipantNameMax || 24;
-  const PARTICIPANT_MAX = limits.lotteryParticipantsMax || 300;
-  const PRIZE_NAME_MAX = limits.lotteryPrizeNameMax || 24;
-  const PRIZE_QUOTA_MAX = limits.lotteryPrizeQuotaMax || 100;
+  const NAME_MAX = 24;
+  const PARTICIPANT_MAX = 300;
+  const PRIZE_NAME_MAX = 24;
+  const PRIZE_QUOTA_MAX = 100;
 
   const SECTOR_COLORS = [
     "#ffd76a", "#ff5d7c", "#8f6cff", "#5fd18d", "#5ba8ff", "#ff9a4b",
@@ -55,47 +51,10 @@
     pendingWinner: null,
   };
 
-  const els = {
-    wheelFrame: root.querySelector("[data-wheel-frame]"),
-    wheelRotor: root.querySelector("[data-wheel-rotor]"),
-    bulbRing: root.querySelector("[data-bulb-ring]"),
-    spinBtn: root.querySelector("[data-spin-btn]"),
-    spinSubtitle: root.querySelector("[data-spin-subtitle]"),
-    currentPrize: root.querySelector("[data-current-prize]"),
-    prizeProgress: root.querySelector("[data-prize-progress]"),
-    activeCount: root.querySelector("[data-active-count]"),
-    winnerCount: root.querySelector("[data-winner-count]"),
-    prizeCount: root.querySelector("[data-prize-count]"),
-    prizeList: root.querySelector("[data-prize-list]"),
-    prizeForm: root.querySelector("[data-prize-form]"),
-    prizeName: root.querySelector("[data-prize-name]"),
-    prizeQuota: root.querySelector("[data-prize-quota]"),
-    prizeSubmit: root.querySelector("[data-prize-submit]"),
-    prizeCancel: root.querySelector("[data-prize-cancel]"),
-    participantList: root.querySelector("[data-participant-list]"),
-    participantForm: root.querySelector("[data-participant-form]"),
-    participantName: root.querySelector("[data-participant-name]"),
-    participantSubmit: root.querySelector("[data-participant-submit]"),
-    participantCancel: root.querySelector("[data-participant-cancel]"),
-    bulkInput: root.querySelector("[data-bulk-input]"),
-    importParticipants: root.querySelector("[data-import-participants]"),
-    clearBulk: root.querySelector("[data-clear-bulk]"),
-    clearParticipants: root.querySelector("[data-clear-participants]"),
-    resetWinners: root.querySelector("[data-reset-winners]"),
-    resetAll: root.querySelector("[data-reset-all]"),
-    copyWinners: root.querySelector("[data-copy-winners]"),
-    winnerList: root.querySelector("[data-winner-list]"),
-    confettiLayer: root.querySelector("[data-confetti-layer]"),
-    randomStatus: root.querySelector("[data-random-status]"),
-    reveal: document.querySelector("[data-winner-reveal]"),
-    revealPrize: document.querySelector("[data-reveal-prize]"),
-    revealName: document.querySelector("[data-reveal-name]"),
-    revealCopy: document.querySelector("[data-reveal-copy]"),
-    revealClose: document.querySelector("[data-reveal-close]"),
-  };
+  var els = {};
+  var spinFallbackTimer = null;
 
-  let spinFallbackTimer = null;
-
+  /* Helpers */
   function hasWebCrypto() {
     return !!(window.crypto && typeof window.crypto.getRandomValues === "function");
   }
@@ -141,7 +100,8 @@
     return Math.max(min, Math.min(max, Math.round(n)));
   }
 
-  function normalizeName(value, maxLen = NAME_MAX) {
+  function normalizeName(value, maxLen) {
+    maxLen = maxLen || NAME_MAX;
     return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLen);
   }
 
@@ -165,8 +125,8 @@
     const participants = DEFAULT_NAMES.map(makeParticipant);
     const prizes = DEFAULT_PRIZES.map((p) => makePrize(p.name, p.quota));
     return {
-      participants,
-      prizes,
+      participants: participants,
+      prizes: prizes,
       winners: [],
       currentPrizeId: prizes[0].id,
       currentAngle: 0,
@@ -207,9 +167,9 @@
     if (participants.length === 0 || prizes.length === 0) return defaultState();
 
     return {
-      participants,
-      prizes,
-      winners,
+      participants: participants,
+      prizes: prizes,
+      winners: winners,
       currentPrizeId: prizeIds.has(raw.currentPrizeId) ? raw.currentPrizeId : prizes[0].id,
       currentAngle: Number.isFinite(raw.currentAngle) ? raw.currentAngle : 0,
     };
@@ -218,16 +178,16 @@
   function loadState() {
     let loaded = null;
     try {
-      const raw = storage.get(STORAGE_KEY);
+      const raw = _storageGet(STORAGE_KEY);
       loaded = raw ? JSON.parse(raw) : null;
-    } catch {
+    } catch (e) {
       loaded = null;
     }
     Object.assign(state, sanitizeSaved(loaded));
   }
 
   function saveState() {
-    storage.set(STORAGE_KEY, JSON.stringify({
+    _storageSet(STORAGE_KEY, JSON.stringify({
       participants: state.participants,
       prizes: state.prizes,
       winners: state.winners,
@@ -258,7 +218,48 @@
     return Math.max(0, prize.quota - prizeWinners(prize.id).length);
   }
 
+  function collectElements() {
+    els.wheelFrame = container.querySelector("[data-wheel-frame]");
+    els.wheelRotor = container.querySelector("[data-wheel-rotor]");
+    els.bulbRing = container.querySelector("[data-bulb-ring]");
+    els.spinBtn = container.querySelector("[data-spin-btn]");
+    els.spinSubtitle = container.querySelector("[data-spin-subtitle]");
+    els.currentPrize = container.querySelector("[data-current-prize]");
+    els.prizeProgress = container.querySelector("[data-prize-progress]");
+    els.activeCount = container.querySelector("[data-active-count]");
+    els.winnerCount = container.querySelector("[data-winner-count]");
+    els.prizeCount = container.querySelector("[data-prize-count]");
+    els.prizeList = container.querySelector("[data-prize-list]");
+    els.prizeForm = container.querySelector("[data-prize-form]");
+    els.prizeName = container.querySelector("[data-prize-name]");
+    els.prizeQuota = container.querySelector("[data-prize-quota]");
+    els.prizeSubmit = container.querySelector("[data-prize-submit]");
+    els.prizeCancel = container.querySelector("[data-prize-cancel]");
+    els.participantList = container.querySelector("[data-participant-list]");
+    els.participantForm = container.querySelector("[data-participant-form]");
+    els.participantName = container.querySelector("[data-participant-name]");
+    els.participantSubmit = container.querySelector("[data-participant-submit]");
+    els.participantCancel = container.querySelector("[data-participant-cancel]");
+    els.bulkInput = container.querySelector("[data-bulk-input]");
+    els.importParticipants = container.querySelector("[data-import-participants]");
+    els.clearBulk = container.querySelector("[data-clear-bulk]");
+    els.clearParticipants = container.querySelector("[data-clear-participants]");
+    els.resetWinners = container.querySelector("[data-reset-winners]");
+    els.resetAll = container.querySelector("[data-reset-all]");
+    els.copyWinners = container.querySelector("[data-copy-winners]");
+    els.winnerList = container.querySelector("[data-winner-list]");
+    els.confettiLayer = container.querySelector("[data-confetti-layer]");
+    els.randomStatus = container.querySelector("[data-random-status]");
+    /* reveal modal: first look inside container, then fallback to document */
+    els.reveal = container.querySelector("[data-winner-reveal]") || document.querySelector("[data-winner-reveal]");
+    els.revealPrize = document.querySelector("[data-reveal-prize]");
+    els.revealName = document.querySelector("[data-reveal-name]");
+    els.revealCopy = document.querySelector("[data-reveal-copy]");
+    els.revealClose = document.querySelector("[data-reveal-close]");
+  }
+
   function buildBulbRing() {
+    if (!els.bulbRing) return;
     els.bulbRing.innerHTML = "";
     const count = 44;
     const radius = 50;
@@ -288,6 +289,7 @@
   }
 
   function buildWheel() {
+    if (!els.wheelRotor) return;
     const active = activeParticipants();
     const count = active.length;
     const cx = 300;
@@ -326,20 +328,22 @@
     applyLabelCounterRotation(state.currentAngle, true);
   }
 
-  function applyLabelCounterRotation(angle, instant = false) {
+  function applyLabelCounterRotation(angle, instant) {
+    if (!els.wheelRotor) return;
     const labels = els.wheelRotor.querySelectorAll(".wheel-label");
     if (instant) els.wheelRotor.dataset.instant = "true";
     labels.forEach((label) => {
       label.style.transform = "rotate(" + (-angle) + "deg)";
     });
     if (instant) {
-      requestAnimationFrame(() => {
+      requestAnimationFrame(function() {
         if (!state.spinning) delete els.wheelRotor.dataset.instant;
       });
     }
   }
 
   function renderPrizes() {
+    if (!els.prizeList) return;
     const prize = currentPrize();
     els.prizeList.innerHTML = "";
     state.prizes.forEach((p) => {
@@ -363,6 +367,7 @@
   }
 
   function renderParticipants() {
+    if (!els.participantList) return;
     els.participantList.innerHTML = "";
     const won = winnerIds();
     if (state.participants.length === 0) {
@@ -390,6 +395,7 @@
   }
 
   function renderWinners() {
+    if (!els.winnerList) return;
     els.winnerList.innerHTML = "";
     if (state.winners.length === 0) {
       els.winnerList.innerHTML = '<div class="empty-state">还没有中奖记录。</div>';
@@ -416,37 +422,44 @@
     const remain = remainingForPrize(prize);
     const drawn = prize ? prizeWinners(prize.id).length : 0;
 
-    els.currentPrize.textContent = prize ? prize.name : "暂无奖项";
-    els.prizeProgress.textContent = prize ? "剩余 " + remain + " / " + prize.quota + " 名" : "请添加奖项";
-    els.activeCount.textContent = String(active.length);
-    els.winnerCount.textContent = String(state.winners.length);
-    els.prizeCount.textContent = String(state.prizes.length);
-    els.spinSubtitle.textContent = prize
-      ? (remain > 0 ? "可抽 " + active.length + " 人 · 已开 " + drawn + " 名" : "当前奖项已抽满")
-      : "请先添加奖项";
+    if (els.currentPrize) els.currentPrize.textContent = prize ? prize.name : "暂无奖项";
+    if (els.prizeProgress) els.prizeProgress.textContent = prize ? "剩余 " + remain + " / " + prize.quota + " 名" : "请添加奖项";
+    if (els.activeCount) els.activeCount.textContent = String(active.length);
+    if (els.winnerCount) els.winnerCount.textContent = String(state.winners.length);
+    if (els.prizeCount) els.prizeCount.textContent = String(state.prizes.length);
+    if (els.spinSubtitle) {
+      els.spinSubtitle.textContent = prize
+        ? (remain > 0 ? "可抽 " + active.length + " 人 · 已开 " + drawn + " 名" : "当前奖项已抽满")
+        : "请先添加奖项";
+    }
 
     const canDraw = !state.spinning && hasWebCrypto() && prize && remain > 0 && active.length > 0;
-    els.spinBtn.disabled = !canDraw;
-    els.spinBtn.querySelector("span").textContent = state.spinning
-      ? "抽取中"
-      : !hasWebCrypto()
-        ? "随机源不可用"
-        : prize && remain <= 0
-          ? "切换奖项"
-          : active.length <= 0
-            ? "无可抽人数"
-            : "开始抽奖";
+    if (els.spinBtn) {
+      els.spinBtn.disabled = !canDraw;
+      var spinSpan = els.spinBtn.querySelector("span");
+      if (spinSpan) {
+        spinSpan.textContent = state.spinning
+          ? "抽取中"
+          : !hasWebCrypto()
+            ? "随机源不可用"
+            : prize && remain <= 0
+              ? "切换奖项"
+              : active.length <= 0
+                ? "无可抽人数"
+                : "开始抽奖";
+      }
+    }
 
-    if (!hasWebCrypto()) {
+    if (!hasWebCrypto() && els.randomStatus) {
       els.randomStatus.textContent = "安全随机不可用";
     }
   }
 
   function renderForms() {
-    els.participantSubmit.textContent = state.editingParticipantId ? "保存" : "添加";
-    els.participantCancel.hidden = !state.editingParticipantId;
-    els.prizeSubmit.textContent = state.editingPrizeId ? "保存奖项" : "添加奖项";
-    els.prizeCancel.hidden = !state.editingPrizeId;
+    if (els.participantSubmit) els.participantSubmit.textContent = state.editingParticipantId ? "保存" : "添加";
+    if (els.participantCancel) els.participantCancel.hidden = !state.editingParticipantId;
+    if (els.prizeSubmit) els.prizeSubmit.textContent = state.editingPrizeId ? "保存奖项" : "添加奖项";
+    if (els.prizeCancel) els.prizeCancel.hidden = !state.editingPrizeId;
   }
 
   function renderAll() {
@@ -460,21 +473,22 @@
 
   function resetParticipantForm() {
     state.editingParticipantId = "";
-    els.participantName.value = "";
+    if (els.participantName) els.participantName.value = "";
     renderForms();
   }
 
   function resetPrizeForm() {
     state.editingPrizeId = "";
-    els.prizeName.value = "";
-    els.prizeQuota.value = "1";
+    if (els.prizeName) els.prizeName.value = "";
+    if (els.prizeQuota) els.prizeQuota.value = "1";
     renderForms();
   }
 
   function upsertParticipant(name) {
     const clean = normalizeName(name);
     if (!clean) {
-      toast("请输入参与者姓名", "err");
+      var toastFn = window.ClaudeOne && window.ClaudeOne.toast;
+      if (toastFn) toastFn("请输入参与者姓名", "err");
       return;
     }
     if (state.editingParticipantId) {
@@ -483,14 +497,17 @@
       state.winners.forEach((w) => {
         if (w.participantId === state.editingParticipantId) w.name = clean;
       });
-      toast("参与者已更新", "ok");
+      var t2 = window.ClaudeOne && window.ClaudeOne.toast;
+      if (t2) t2("参与者已更新", "ok");
     } else {
       if (state.participants.length >= PARTICIPANT_MAX) {
-        toast("参与者最多 " + PARTICIPANT_MAX + " 人", "err");
+        var t3 = window.ClaudeOne && window.ClaudeOne.toast;
+        if (t3) t3("参与者最多 " + PARTICIPANT_MAX + " 人", "err");
         return;
       }
       state.participants.push(makeParticipant(clean, state.participants.length));
-      toast("已添加参与者", "ok");
+      var t4 = window.ClaudeOne && window.ClaudeOne.toast;
+      if (t4) t4("已添加参与者", "ok");
     }
     resetParticipantForm();
     saveState();
@@ -509,15 +526,19 @@
     const p = state.participants.find((person) => person.id === id);
     if (!p) return;
     state.editingParticipantId = id;
-    els.participantName.value = p.name;
-    els.participantName.focus();
+    if (els.participantName) {
+      els.participantName.value = p.name;
+      els.participantName.focus();
+    }
     renderForms();
   }
 
   function importParticipants() {
+    if (!els.bulkInput) return;
     const lines = els.bulkInput.value.split(/\r?\n/).map((line) => normalizeName(line)).filter(Boolean);
     if (lines.length === 0) {
-      toast("请先粘贴名单", "err");
+      var t = window.ClaudeOne && window.ClaudeOne.toast;
+      if (t) t("请先粘贴名单", "err");
       return;
     }
     const existing = new Set(state.participants.map((p) => p.name.toLowerCase()));
@@ -533,13 +554,15 @@
     els.bulkInput.value = "";
     saveState();
     renderAll();
-    toast("已导入 " + added + " 人", added > 0 ? "ok" : "err");
+    var t2 = window.ClaudeOne && window.ClaudeOne.toast;
+    if (t2) t2("已导入 " + added + " 人", added > 0 ? "ok" : "err");
   }
 
   function upsertPrize(name, quota) {
     const clean = normalizeName(name, PRIZE_NAME_MAX);
     if (!clean) {
-      toast("请输入奖项名称", "err");
+      var t = window.ClaudeOne && window.ClaudeOne.toast;
+      if (t) t("请输入奖项名称", "err");
       return;
     }
     const q = clampNumber(quota, 1, PRIZE_QUOTA_MAX);
@@ -552,11 +575,13 @@
           if (w.prizeId === target.id) w.prizeName = clean;
         });
       }
-      toast("奖项已更新", "ok");
+      var t2 = window.ClaudeOne && window.ClaudeOne.toast;
+      if (t2) t2("奖项已更新", "ok");
     } else {
       state.prizes.push(makePrize(clean, q));
       state.currentPrizeId = state.prizes[state.prizes.length - 1].id;
-      toast("已添加奖项", "ok");
+      var t3 = window.ClaudeOne && window.ClaudeOne.toast;
+      if (t3) t3("已添加奖项", "ok");
     }
     resetPrizeForm();
     saveState();
@@ -565,7 +590,8 @@
 
   function deletePrize(id) {
     if (state.prizes.length <= 1) {
-      toast("至少保留一个奖项", "err");
+      var t = window.ClaudeOne && window.ClaudeOne.toast;
+      if (t) t("至少保留一个奖项", "err");
       return;
     }
     state.prizes = state.prizes.filter((p) => p.id !== id);
@@ -580,9 +606,11 @@
     const p = state.prizes.find((prize) => prize.id === id);
     if (!p) return;
     state.editingPrizeId = id;
-    els.prizeName.value = p.name;
-    els.prizeQuota.value = String(p.quota);
-    els.prizeName.focus();
+    if (els.prizeName) {
+      els.prizeName.value = p.name;
+      els.prizeName.focus();
+    }
+    if (els.prizeQuota) els.prizeQuota.value = String(p.quota);
     renderForms();
   }
 
@@ -596,7 +624,8 @@
     try {
       winnerIndex = randomInt(active.length);
     } catch (err) {
-      toast(err.message || "安全随机源不可用", "err");
+      var t = window.ClaudeOne && window.ClaudeOne.toast;
+      if (t) t(err.message || "安全随机源不可用", "err");
       renderStats();
       return;
     }
@@ -610,15 +639,18 @@
     const targetAngle = state.currentAngle + fullTurns + ((360 - previousAngle - sectorCenter + 360) % 360) + visualJitter;
 
     state.spinning = true;
-    state.pendingWinner = { winner, prize, targetAngle };
+    state.pendingWinner = { winner: winner, prize: prize, targetAngle: targetAngle };
     renderStats();
-    els.wheelFrame.dataset.spinning = "true";
-    els.wheelRotor.dataset.instant = "true";
-    els.wheelRotor.style.transform = "rotate(" + previousAngle + "deg)";
+    if (els.wheelFrame) els.wheelFrame.dataset.spinning = "true";
+    if (els.wheelRotor) {
+      els.wheelRotor.dataset.instant = "true";
+      els.wheelRotor.style.transform = "rotate(" + previousAngle + "deg)";
+    }
     applyLabelCounterRotation(previousAngle, true);
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        if (!els.wheelRotor) return;
         delete els.wheelRotor.dataset.instant;
         els.wheelRotor.style.transform = "rotate(" + targetAngle + "deg)";
         applyLabelCounterRotation(targetAngle);
@@ -634,10 +666,11 @@
     clearTimeout(spinFallbackTimer);
     spinFallbackTimer = null;
 
-    const { winner, prize } = state.pendingWinner;
+    const winner = state.pendingWinner.winner;
+    const prize = state.pendingWinner.prize;
     state.pendingWinner = null;
     state.spinning = false;
-    delete els.wheelFrame.dataset.spinning;
+    if (els.wheelFrame) delete els.wheelFrame.dataset.spinning;
 
     const rank = prizeWinners(prize.id).length + 1;
     state.winners.push({
@@ -646,7 +679,7 @@
       name: winner.name,
       prizeName: prize.name,
       color: winner.color,
-      rank,
+      rank: rank,
     });
 
     saveState();
@@ -656,6 +689,7 @@
   }
 
   function launchConfetti() {
+    if (!els.confettiLayer) return;
     const colors = ["#ffd76a", "#ff5d7c", "#8f6cff", "#5fd18d", "#5ba8ff", "#ff9a4b", "#ffffff"];
     els.confettiLayer.innerHTML = "";
     for (let i = 0; i < 90; i++) {
@@ -668,32 +702,37 @@
       piece.style.setProperty("--spin", (360 + randomInt(1080)) + "deg");
       els.confettiLayer.appendChild(piece);
     }
-    setTimeout(() => { els.confettiLayer.innerHTML = ""; }, 4300);
+    setTimeout(function() { if (els.confettiLayer) els.confettiLayer.innerHTML = ""; }, 4300);
   }
 
   function showWinner(name, prizeName, rank) {
-    els.revealPrize.textContent = prizeName + " · 第 " + rank + " 名";
-    els.revealName.textContent = name;
-    els.revealCopy.textContent = "恭喜 " + name + " 中奖";
-    els.reveal.hidden = false;
-    els.reveal.setAttribute("data-visible", "true");
-    els.reveal.setAttribute("aria-hidden", "false");
+    if (els.revealPrize) els.revealPrize.textContent = prizeName + " · 第 " + rank + " 名";
+    if (els.revealName) els.revealName.textContent = name;
+    if (els.revealCopy) els.revealCopy.textContent = "恭喜 " + name + " 中奖";
+    if (els.reveal) {
+      els.reveal.hidden = false;
+      els.reveal.setAttribute("data-visible", "true");
+      els.reveal.setAttribute("aria-hidden", "false");
+    }
   }
 
   function hideWinner() {
-    els.reveal.removeAttribute("data-visible");
-    els.reveal.setAttribute("aria-hidden", "true");
-    els.reveal.hidden = true;
+    if (els.reveal) {
+      els.reveal.removeAttribute("data-visible");
+      els.reveal.setAttribute("aria-hidden", "true");
+      els.reveal.hidden = true;
+    }
   }
 
   function copyWinnerNames() {
     if (state.winners.length === 0) {
-      toast("暂无中奖记录可复制", "err");
+      var t = window.ClaudeOne && window.ClaudeOne.toast;
+      if (t) t("暂无中奖记录可复制", "err");
       return;
     }
     const text = state.winners.map((w) => w.name).join("\n");
 
-    const fallback = () => {
+    const fallback = function() {
       const ta = document.createElement("textarea");
       ta.value = text;
       ta.setAttribute("readonly", "");
@@ -702,14 +741,18 @@
       document.body.appendChild(ta);
       ta.select();
       let ok = false;
-      try { ok = document.execCommand("copy"); } catch { ok = false; }
+      try { ok = document.execCommand("copy"); } catch(e) { ok = false; }
       document.body.removeChild(ta);
-      toast(ok ? "已复制 " + state.winners.length + " 位中奖者" : "复制失败，请手动选择", ok ? "ok" : "err");
+      var t2 = window.ClaudeOne && window.ClaudeOne.toast;
+      if (t2) t2(ok ? "已复制 " + state.winners.length + " 位中奖者" : "复制失败，请手动选择", ok ? "ok" : "err");
     };
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text)
-        .then(() => toast("已复制 " + state.winners.length + " 位中奖者", "ok"))
+        .then(function() {
+          var t = window.ClaudeOne && window.ClaudeOne.toast;
+          if (t) t("已复制 " + state.winners.length + " 位中奖者", "ok");
+        })
         .catch(fallback);
     } else {
       fallback();
@@ -721,12 +764,15 @@
     state.currentAngle = 0;
     state.spinning = false;
     state.pendingWinner = null;
-    els.wheelRotor.dataset.instant = "true";
-    els.wheelRotor.style.transform = "rotate(0deg)";
+    if (els.wheelRotor) {
+      els.wheelRotor.dataset.instant = "true";
+      els.wheelRotor.style.transform = "rotate(0deg)";
+    }
     applyLabelCounterRotation(0, true);
     saveState();
     renderAll();
-    toast("中奖状态已重置", "ok");
+    var t = window.ClaudeOne && window.ClaudeOne.toast;
+    if (t) t("中奖状态已重置", "ok");
   }
 
   function resetEverything() {
@@ -737,12 +783,13 @@
       pendingResetAll: false,
       pendingClearParticipants: false,
     });
-    els.bulkInput.value = "";
+    if (els.bulkInput) els.bulkInput.value = "";
     resetParticipantForm();
     resetPrizeForm();
     saveState();
     renderAll();
-    toast("抽奖页已恢复默认", "ok");
+    var t = window.ClaudeOne && window.ClaudeOne.toast;
+    if (t) t("抽奖页已恢复默认", "ok");
   }
 
   function requireSecondClick(button, key, confirmText, action) {
@@ -750,7 +797,7 @@
       state[key] = true;
       const original = button.textContent;
       button.textContent = confirmText;
-      setTimeout(() => {
+      setTimeout(function() {
         state[key] = false;
         button.textContent = original;
       }, 2600);
@@ -761,72 +808,112 @@
   }
 
   function wireEvents() {
-    els.spinBtn.addEventListener("click", spin);
-    els.wheelRotor.addEventListener("transitionend", (e) => {
-      if (e.propertyName === "transform") resolveSpin();
-    });
+    if (els.spinBtn) els.spinBtn.addEventListener("click", spin, { signal: ac.signal });
+    if (els.wheelRotor) {
+      els.wheelRotor.addEventListener("transitionend", function(e) {
+        if (e.propertyName === "transform") resolveSpin();
+      }, { signal: ac.signal });
+    }
 
-    els.participantForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      upsertParticipant(els.participantName.value);
-    });
-    els.participantCancel.addEventListener("click", resetParticipantForm);
-    els.importParticipants.addEventListener("click", importParticipants);
-    els.clearBulk.addEventListener("click", () => { els.bulkInput.value = ""; });
-    els.clearParticipants.addEventListener("click", () => {
-      requireSecondClick(els.clearParticipants, "pendingClearParticipants", "再次点击清空", () => {
-        state.participants = [];
-        state.winners = [];
-        saveState();
-        renderAll();
-      });
-    });
+    if (els.participantForm) {
+      els.participantForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+        upsertParticipant(els.participantName ? els.participantName.value : "");
+      }, { signal: ac.signal });
+    }
+    if (els.participantCancel) els.participantCancel.addEventListener("click", resetParticipantForm, { signal: ac.signal });
+    if (els.importParticipants) els.importParticipants.addEventListener("click", importParticipants, { signal: ac.signal });
+    if (els.clearBulk) els.clearBulk.addEventListener("click", function() { if (els.bulkInput) els.bulkInput.value = ""; }, { signal: ac.signal });
+    if (els.clearParticipants) {
+      els.clearParticipants.addEventListener("click", function() {
+        requireSecondClick(els.clearParticipants, "pendingClearParticipants", "再次点击清空", function() {
+          state.participants = [];
+          state.winners = [];
+          saveState();
+          renderAll();
+        });
+      }, { signal: ac.signal });
+    }
 
-    els.prizeForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      upsertPrize(els.prizeName.value, els.prizeQuota.value);
-    });
-    els.prizeCancel.addEventListener("click", resetPrizeForm);
+    if (els.prizeForm) {
+      els.prizeForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+        upsertPrize(els.prizeName ? els.prizeName.value : "", els.prizeQuota ? els.prizeQuota.value : 1);
+      }, { signal: ac.signal });
+    }
+    if (els.prizeCancel) els.prizeCancel.addEventListener("click", resetPrizeForm, { signal: ac.signal });
 
-    els.prizeList.addEventListener("click", (e) => {
-      const select = e.target.closest("[data-select-prize]");
-      const edit = e.target.closest("[data-edit-prize]");
-      const del = e.target.closest("[data-delete-prize]");
-      if (select) {
-        state.currentPrizeId = select.dataset.selectPrize;
-        saveState();
-        renderAll();
-      } else if (edit) {
-        editPrize(edit.dataset.editPrize);
-      } else if (del) {
-        deletePrize(del.dataset.deletePrize);
-      }
-    });
+    if (els.prizeList) {
+      els.prizeList.addEventListener("click", function(e) {
+        const select = e.target.closest("[data-select-prize]");
+        const edit = e.target.closest("[data-edit-prize]");
+        const del = e.target.closest("[data-delete-prize]");
+        if (select) {
+          state.currentPrizeId = select.dataset.selectPrize;
+          saveState();
+          renderAll();
+        } else if (edit) {
+          editPrize(edit.dataset.editPrize);
+        } else if (del) {
+          deletePrize(del.dataset.deletePrize);
+        }
+      }, { signal: ac.signal });
+    }
 
-    els.participantList.addEventListener("click", (e) => {
-      const edit = e.target.closest("[data-edit-person]");
-      const del = e.target.closest("[data-delete-person]");
-      if (edit) editParticipant(edit.dataset.editPerson);
-      if (del) deleteParticipant(del.dataset.deletePerson);
-    });
+    if (els.participantList) {
+      els.participantList.addEventListener("click", function(e) {
+        const edit = e.target.closest("[data-edit-person]");
+        const del = e.target.closest("[data-delete-person]");
+        if (edit) editParticipant(edit.dataset.editPerson);
+        if (del) deleteParticipant(del.dataset.deletePerson);
+      }, { signal: ac.signal });
+    }
 
-    els.resetWinners.addEventListener("click", resetWinnersOnly);
-    els.resetAll.addEventListener("click", () => {
-      requireSecondClick(els.resetAll, "pendingResetAll", "再次点击重置", resetEverything);
-    });
-    els.copyWinners.addEventListener("click", copyWinnerNames);
-    els.revealClose.addEventListener("click", hideWinner);
-    els.reveal.addEventListener("click", (e) => {
-      if (e.target === els.reveal) hideWinner();
-    });
-    document.addEventListener("keydown", (e) => {
+    if (els.resetWinners) els.resetWinners.addEventListener("click", resetWinnersOnly, { signal: ac.signal });
+    if (els.resetAll) {
+      els.resetAll.addEventListener("click", function() {
+        requireSecondClick(els.resetAll, "pendingResetAll", "再次点击重置", resetEverything);
+      }, { signal: ac.signal });
+    }
+    if (els.copyWinners) els.copyWinners.addEventListener("click", copyWinnerNames, { signal: ac.signal });
+    if (els.revealClose) els.revealClose.addEventListener("click", hideWinner, { signal: ac.signal });
+    if (els.reveal) {
+      els.reveal.addEventListener("click", function(e) {
+        if (e.target === els.reveal) hideWinner();
+      }, { signal: ac.signal });
+    }
+    document.addEventListener("keydown", function(e) {
       if (e.key === "Escape") hideWinner();
       if (e.key === "Enter" && document.activeElement === document.body && !state.spinning) spin();
-    });
+    }, { signal: ac.signal });
   }
 
-  loadState();
-  buildBulbRing();
-  wireEvents();
-  renderAll();
+  function mount(el) {
+    container = el;
+    ac = new AbortController();
+    spinFallbackTimer = null;
+    /* Reset per-mount ephemeral state */
+    state.spinning = false;
+    state.pendingWinner = null;
+    state.pendingResetAll = false;
+    state.pendingClearParticipants = false;
+    state.editingParticipantId = "";
+    state.editingPrizeId = "";
+
+    collectElements();
+    loadState();
+    buildBulbRing();
+    wireEvents();
+    renderAll();
+  }
+
+  function unmount() {
+    if (ac) { ac.abort(); ac = null; }
+    if (spinFallbackTimer) { clearTimeout(spinFallbackTimer); spinFallbackTimer = null; }
+    state.spinning = false;
+    state.pendingWinner = null;
+    container = null;
+  }
+
+  window.__page_lottery = { mount: mount, unmount: unmount };
 })();

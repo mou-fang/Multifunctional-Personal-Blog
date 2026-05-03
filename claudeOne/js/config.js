@@ -56,6 +56,13 @@ window.CLAUDE_ONE_CONFIG = Object.freeze({
     maxFileSize: 200 * 1024 * 1024,
     storageKey: "claudeOne:music-naming",
   }),
+  player: Object.freeze({
+    storagePrefix: "claudeOne:player",
+    defaultVolume: 80,
+    supportedExts: Object.freeze([
+      ".mp3", ".flac", ".wav", ".ogg", ".aac", ".m4a", ".wma", ".opus", ".webm", ".aiff"
+    ]),
+  }),
   limits: Object.freeze({
     playerNameMax: 16,
     chatInputMax: 4000,

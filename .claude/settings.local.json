@@ -86,7 +86,27 @@
       "Bash(node -e \"const fs = require\\('fs'\\); const content = fs.readFileSync\\('d:/eluosizhuanpan/claudeOne/js/decrypt-worker.js', 'utf8'\\); const idx = content.indexOf\\('let picture=null,file=null;'\\); console.log\\(content.substring\\(idx, idx + 1200\\)\\);\")",
       "Bash(node -e \"const fs = require\\('fs'\\); const content = fs.readFileSync\\('d:/eluosizhuanpan/claudeOne/js/decrypt-worker.js', 'utf8'\\); const idx = content.indexOf\\('let picture=null,file=null;'\\); const start = content.lastIndexOf\\('try{', idx\\); const end = content.indexOf\\('}catch', idx\\); console.log\\(content.substring\\(start, end + 10\\)\\);\")",
       "Bash(node -e \"const fs = require\\('fs'\\); const content = fs.readFileSync\\('d:/eluosizhuanpan/claudeOne/js/decrypt-worker.js', 'utf8'\\); const idx = content.indexOf\\('let picture=null,file=null;'\\); console.log\\(content.substring\\(idx, idx + 1250\\)\\);\")",
-      "PowerShell(npx http-server \"d:\\\\eluosizhuanpan\\\\claudeOne\" -p 8080 -c-1 --cors -o)"
+      "PowerShell(npx http-server \"d:\\\\eluosizhuanpan\\\\claudeOne\" -p 8080 -c-1 --cors -o)",
+      "Bash(awk '{print $6, $7, $8, $9}')",
+      "Bash(sed -i \"s/'use strict'/'use strict'\\\\n  let container = null;\\\\n  let ac = null;/\" compress.js)",
+      "Bash(sed -i 's/const \\\\$ = \\(s, p\\) => \\(p || document\\).querySelector\\(s\\)/const $ = \\(s, p\\) => \\(p || container || document\\).querySelector\\(s\\)/' compress.js)",
+      "Bash(sed -i 's/const \\\\$\\\\$ = \\(s, p\\) => \\\\[\\\\.\\\\.\\\\.\\(p || document\\)\\\\.querySelectorAll\\(s\\)\\\\]/const $$ = \\(s, p\\) => [...\\(p || container || document\\).querySelectorAll\\(s\\)]/' compress.js)",
+      "Bash(sed -i 's/\"use strict\";/\"use strict\";\\\\n  let container = null;\\\\n  let ac = null;/' qr.js)",
+      "Bash(sed -i 's/const \\\\$ = \\(sel, ctx\\) => \\(ctx || document\\).querySelector\\(sel\\)/const $ = \\(sel, ctx\\) => \\(ctx || container || document\\).querySelector\\(sel\\)/' qr.js)",
+      "Bash(curl -s http://localhost:3001)",
+      "Bash(curl -s http://localhost:3001/api/ascii)",
+      "PowerShell(Start-Process \"d:\\\\eluosizhuanpan\\\\claudeOne\\\\index.html\")",
+      "Bash(curl -s http://localhost:3001/)",
+      "PowerShell(Start-Process \"http://localhost:3001\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"./scripts/scan-music.ps1\")",
+      "Bash(npm ls *)",
+      "Bash(node scripts/scan-music.js)",
+      "Bash(node -e \"try { const m = require\\('d:/eluosizhuanpan/claudeOne/server/node_modules/music-metadata'\\); console.log\\(Object.keys\\(m\\)\\); } catch\\(e\\) { console.log\\(e.message\\); }\")",
+      "Bash(node -e \"console.log\\(require\\('d:/eluosizhuanpan/claudeOne/server/node_modules/music-metadata/package.json'\\).main\\)\")",
+      "Bash(node -e \"const p = require\\('d:/eluosizhuanpan/claudeOne/server/node_modules/music-metadata/package.json'\\); console.log\\(JSON.stringify\\({main: p.main, exports: p.exports, type: p.type}, null, 2\\)\\)\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const c=fs.readFileSync\\('d:/eluosizhuanpan/claudeOne/music/playlist.js','utf-8'\\); console.log\\('Has cover:', c.includes\\('cover'\\)\\); console.log\\('Has data:image:', c.includes\\('data:image'\\)\\); console.log\\('Has base64:', c.includes\\('base64'\\)\\); console.log\\('Length:', c.length\\);\")",
+      "Bash(netstat -ano)",
+      "Bash(Select-String \"3001\")"
     ]
   }
 }

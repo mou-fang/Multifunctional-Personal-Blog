@@ -1,10 +1,17 @@
 /* ===== claudeOne :: qr.js ===== */
 (function () {
   "use strict";
+  var container = null;
+  var ac = null;
 
-  const $ = (sel, ctx) => (ctx || document).querySelector(sel);
-  const $$ = (sel, ctx) => [...(ctx || document).querySelectorAll(sel)];
+  const $ = (sel, ctx) => (ctx || container || document).querySelector(sel);
+  const $$ = (sel, ctx) => [...(ctx || container || document).querySelectorAll(sel)];
   const toast = window.ClaudeOne?.toast || (() => {});
+
+  /* Helper: on with signal */
+  function on(el, evt, fn) {
+    if (el) el.addEventListener(evt, fn, ac ? { signal: ac.signal } : undefined);
+  }
 
   /* ---- Default config ---- */
   const DEFAULTS = {
@@ -553,37 +560,37 @@
   function init() {
     // Content type switching
     $$('input[name="contentType"]').forEach(radio => {
-      radio.addEventListener("change", () => {
+      on(radio, "change", () => {
         switchContentType(radio.value);
         scheduleUpdate();
       });
     });
 
     // Content input
-    $("[data-content-input]")?.addEventListener("input", scheduleUpdate);
+    on($("[data-content-input]"), "input", scheduleUpdate);
 
     // WiFi fields
     ["[data-wifi-ssid]", "[data-wifi-pass]"].forEach(sel => {
-      $(sel)?.addEventListener("input", scheduleUpdate);
+      on($(sel), "input", scheduleUpdate);
     });
-    $$('input[name="wifiEnc"]').forEach(r => r.addEventListener("change", scheduleUpdate));
-    $('[data-toggle="wifiHidden"] input')?.addEventListener("change", scheduleUpdate);
+    $$('input[name="wifiEnc"]').forEach(r => on(r, "change", scheduleUpdate));
+    on($('[data-toggle="wifiHidden"] input'), "change", scheduleUpdate);
 
     // Email fields
     ["[data-email-to]", "[data-email-subject]", "[data-email-body]"].forEach(sel => {
-      $(sel)?.addEventListener("input", scheduleUpdate);
+      on($(sel), "input", scheduleUpdate);
     });
 
     // Phone
-    $("[data-phone-num]")?.addEventListener("input", scheduleUpdate);
+    on($("[data-phone-num]"), "input", scheduleUpdate);
 
     // SMS
     ["[data-sms-num]", "[data-sms-body]"].forEach(sel => {
-      $(sel)?.addEventListener("input", scheduleUpdate);
+      on($(sel), "input", scheduleUpdate);
     });
 
     // URL hint
-    $("[data-content-input]")?.addEventListener("input", () => {
+    on($("[data-content-input]"), "input", () => {
       const val = $("[data-content-input]")?.value || "";
       const hint = $("[data-url-hint]");
       if (hint) {
@@ -593,42 +600,42 @@
     });
 
     // Width slider
-    $("[data-width]")?.addEventListener("input", (e) => {
+    on($("[data-width]"), "input", (e) => {
       config.width = parseInt(e.target.value, 10);
-      $("[data-width-val]").textContent = config.width;
+      var wv = $("[data-width-val]"); if (wv) wv.textContent = config.width;
       scheduleUpdate();
     });
 
     // Height slider
-    $("[data-height]")?.addEventListener("input", (e) => {
+    on($("[data-height]"), "input", (e) => {
       config.height = parseInt(e.target.value, 10);
-      $("[data-height-val]").textContent = config.height;
+      var hv = $("[data-height-val]"); if (hv) hv.textContent = config.height;
       scheduleUpdate();
     });
 
     // Size presets
     $$("[data-size-preset]").forEach(btn => {
-      btn.addEventListener("click", () => {
+      on(btn, "click", () => {
         const size = parseInt(btn.dataset.sizePreset, 10);
         config.width = size;
         config.height = size;
-        $("[data-width]").value = size;
-        $("[data-height]").value = size;
-        $("[data-width-val]").textContent = size;
-        $("[data-height-val]").textContent = size;
+        var ws2 = $("[data-width]"); if (ws2) ws2.value = size;
+        var hs2 = $("[data-height]"); if (hs2) hs2.value = size;
+        var wv = $("[data-width-val]"); if (wv) wv.textContent = size;
+        var hv = $("[data-height-val]"); if (hv) hv.textContent = size;
         scheduleUpdate();
       });
     });
 
     // Margin slider
-    $("[data-margin]")?.addEventListener("input", (e) => {
+    on($("[data-margin]"), "input", (e) => {
       config.margin = parseInt(e.target.value, 10);
-      $("[data-margin-val]").textContent = config.margin;
+      var mv = $("[data-margin-val]"); if (mv) mv.textContent = config.margin;
       scheduleUpdate();
     });
 
     // Transparent bg
-    $('[data-toggle="transparentBg"] input')?.addEventListener("change", (e) => {
+    on($('[data-toggle="transparentBg"] input'), "change", (e) => {
       if (e.target.checked) {
         config.backgroundOptions.color = "";
         $("[data-bg-color-wrap]")?.setAttribute("hidden", "");
@@ -640,29 +647,29 @@
     });
 
     // Bg color
-    $("[data-bg-color]")?.addEventListener("input", (e) => {
+    on($("[data-bg-color]"), "input", (e) => {
       config.backgroundOptions.color = e.target.value;
-      $("[data-bg-color-hex]").textContent = e.target.value;
+      var bgh = $("[data-bg-color-hex]"); if (bgh) bgh.textContent = e.target.value;
       scheduleUpdate();
     });
 
     // Dots type
     $$('input[name="dotsType"]').forEach(radio => {
-      radio.addEventListener("change", () => {
+      on(radio, "change", () => {
         config.dotsOptions.type = radio.value;
         recreateQR();
       });
     });
 
     // Dots color
-    $("[data-dots-color]")?.addEventListener("input", (e) => {
+    on($("[data-dots-color]"), "input", (e) => {
       config.dotsOptions.color = e.target.value;
-      $("[data-dots-color-hex]").textContent = e.target.value;
+      var dch = $("[data-dots-color-hex]"); if (dch) dch.textContent = e.target.value;
       scheduleUpdate();
     });
 
     // Dots gradient toggle
-    $('[data-toggle="dotsGradient"] input')?.addEventListener("change", (e) => {
+    on($('[data-toggle="dotsGradient"] input'), "change", (e) => {
       $("[data-dots-gradient]")?.toggleAttribute("hidden", !e.target.checked);
       if (e.target.checked) {
         const c1 = $("[data-dots-grad1]")?.value || "#6f9bff";
@@ -682,7 +689,7 @@
 
     // Dots gradient type
     $$('input[name="dotsGradType"]').forEach(radio => {
-      radio.addEventListener("change", () => {
+      on(radio, "change", () => {
         if (config.dotsOptions.gradient) {
           config.dotsOptions.gradient.type = radio.value;
           if (radio.value === "radial") config.dotsOptions.gradient.rotation = 0;
@@ -692,26 +699,26 @@
     });
 
     // Dots gradient colors
-    $("[data-dots-grad1]")?.addEventListener("input", (e) => {
+    on($("[data-dots-grad1]"), "input", (e) => {
       if (config.dotsOptions.gradient?.colorStops?.[0]) {
         config.dotsOptions.gradient.colorStops[0].color = e.target.value;
-        $("[data-dots-grad1-hex]").textContent = e.target.value;
+        var dg1h = $("[data-dots-grad1-hex]"); if (dg1h) dg1h.textContent = e.target.value;
         scheduleUpdate();
       }
     });
 
-    $("[data-dots-grad2]")?.addEventListener("input", (e) => {
+    on($("[data-dots-grad2]"), "input", (e) => {
       if (config.dotsOptions.gradient?.colorStops?.[1]) {
         config.dotsOptions.gradient.colorStops[1].color = e.target.value;
-        $("[data-dots-grad2-hex]").textContent = e.target.value;
+        var dg2h = $("[data-dots-grad2-hex]"); if (dg2h) dg2h.textContent = e.target.value;
         scheduleUpdate();
       }
     });
 
     // Dots gradient rotation
-    $("[data-dots-grad-rotation]")?.addEventListener("input", (e) => {
+    on($("[data-dots-grad-rotation]"), "input", (e) => {
       const deg = parseInt(e.target.value, 10);
-      $("[data-dots-grad-rotation-val]").innerHTML = deg + "&deg;";
+      var dgrv = $("[data-dots-grad-rotation-val]"); if (dgrv) dgrv.innerHTML = deg + "&deg;";
       if (config.dotsOptions.gradient) {
         config.dotsOptions.gradient.rotation = deg * Math.PI / 180;
       }
@@ -720,14 +727,14 @@
 
     // Corner square type
     $$('input[name="cornersSquareType"]').forEach(radio => {
-      radio.addEventListener("change", () => {
+      on(radio, "change", () => {
         config.cornersSquareOptions.type = radio.value;
         recreateQR();
       });
     });
 
     // Corner square follow dots
-    $('[data-toggle="cornersSquareFollowDots"] input')?.addEventListener("change", (e) => {
+    on($('[data-toggle="cornersSquareFollowDots"] input'), "change", (e) => {
       $("[data-corners-square-color-wrap]")?.toggleAttribute("hidden", e.target.checked);
       if (e.target.checked) {
         config.cornersSquareOptions.color = undefined;
@@ -738,22 +745,22 @@
     });
 
     // Corner square color
-    $("[data-corners-square-color]")?.addEventListener("input", (e) => {
+    on($("[data-corners-square-color]"), "input", (e) => {
       config.cornersSquareOptions.color = e.target.value;
-      $("[data-corners-square-color-hex]").textContent = e.target.value;
+      var csch = $("[data-corners-square-color-hex]"); if (csch) csch.textContent = e.target.value;
       scheduleUpdate();
     });
 
     // Corner dot type
     $$('input[name="cornersDotType"]').forEach(radio => {
-      radio.addEventListener("change", () => {
+      on(radio, "change", () => {
         config.cornersDotOptions.type = radio.value;
         recreateQR();
       });
     });
 
     // Corner dot follow dots
-    $('[data-toggle="cornersDotFollowDots"] input')?.addEventListener("change", (e) => {
+    on($('[data-toggle="cornersDotFollowDots"] input'), "change", (e) => {
       $("[data-corners-dot-color-wrap]")?.toggleAttribute("hidden", e.target.checked);
       if (e.target.checked) {
         config.cornersDotOptions.color = undefined;
@@ -764,9 +771,9 @@
     });
 
     // Corner dot color
-    $("[data-corners-dot-color]")?.addEventListener("input", (e) => {
+    on($("[data-corners-dot-color]"), "input", (e) => {
       config.cornersDotOptions.color = e.target.value;
-      $("[data-corners-dot-color-hex]").textContent = e.target.value;
+      var cdch = $("[data-corners-dot-color-hex]"); if (cdch) cdch.textContent = e.target.value;
       scheduleUpdate();
     });
 
@@ -774,52 +781,52 @@
     const logoUpload = $("[data-logo-upload]");
     const logoInput = $("[data-logo-input]");
 
-    logoUpload?.addEventListener("dragover", (e) => {
+    on(logoUpload, "dragover", (e) => {
       e.preventDefault();
       logoUpload.dataset.dragover = "true";
     });
-    logoUpload?.addEventListener("dragleave", () => {
+    on(logoUpload, "dragleave", () => {
       logoUpload.dataset.dragover = "false";
     });
-    logoUpload?.addEventListener("drop", (e) => {
+    on(logoUpload, "drop", (e) => {
       e.preventDefault();
       logoUpload.dataset.dragover = "false";
       const file = e.dataTransfer?.files?.[0];
       if (file) handleLogoFile(file);
     });
 
-    logoInput?.addEventListener("change", (e) => {
+    on(logoInput, "change", (e) => {
       const file = e.target.files?.[0];
       if (file) handleLogoFile(file);
       e.target.value = "";
     });
 
-    $("[data-remove-logo]")?.addEventListener("click", removeLogo);
+    on($("[data-remove-logo]"), "click", removeLogo);
 
     // Logo size
-    $("[data-logo-size]")?.addEventListener("input", (e) => {
+    on($("[data-logo-size]"), "input", (e) => {
       const val = parseFloat(e.target.value);
       config.imageOptions.imageSize = val;
-      $("[data-logo-size-val]").textContent = Math.round(val * 100) + "%";
+      var lsv = $("[data-logo-size-val]"); if (lsv) lsv.textContent = Math.round(val * 100) + "%";
       scheduleUpdate();
     });
 
     // Logo margin
-    $("[data-logo-margin]")?.addEventListener("input", (e) => {
+    on($("[data-logo-margin]"), "input", (e) => {
       config.imageOptions.margin = parseInt(e.target.value, 10);
-      $("[data-logo-margin-val]").textContent = config.imageOptions.margin;
+      var lmv = $("[data-logo-margin-val]"); if (lmv) lmv.textContent = config.imageOptions.margin;
       scheduleUpdate();
     });
 
     // Logo hide bg dots
-    $('[data-toggle="logoHideBg"] input')?.addEventListener("change", (e) => {
+    on($('[data-toggle="logoHideBg"] input'), "change", (e) => {
       config.imageOptions.hideBackgroundDots = e.target.checked;
       recreateQR();
     });
 
     // Error correction level
     $$('input[name="eccl"]').forEach(radio => {
-      radio.addEventListener("change", () => {
+      on(radio, "change", () => {
         config.qrOptions.errorCorrectionLevel = radio.value;
         recreateQR();
       });
@@ -827,7 +834,7 @@
 
     // Presets
     $$("[data-preset]").forEach(btn => {
-      btn.addEventListener("click", () => {
+      on(btn, "click", () => {
         $$("[data-preset]").forEach(b => b.removeAttribute("data-active"));
         btn.setAttribute("data-active", "true");
         applyPreset(btn.dataset.preset);
@@ -835,20 +842,20 @@
     });
 
     // Export
-    $("[data-export-png]")?.addEventListener("click", exportPNG);
-    $("[data-export-svg]")?.addEventListener("click", exportSVG);
+    on($("[data-export-png]"), "click", exportPNG);
+    on($("[data-export-svg]"), "click", exportSVG);
 
     // Config
-    $("[data-copy-config]")?.addEventListener("click", copyConfig);
-    $("[data-import-config]")?.addEventListener("click", showImportConfig);
-    $("[data-apply-config]")?.addEventListener("click", applyImportConfig);
-    $("[data-cancel-config]")?.addEventListener("click", hideImportConfig);
-    $("[data-reset-defaults]")?.addEventListener("click", resetDefaults);
-    $("[data-clear-content]")?.addEventListener("click", clearContent);
+    on($("[data-copy-config]"), "click", copyConfig);
+    on($("[data-import-config]"), "click", showImportConfig);
+    on($("[data-apply-config]"), "click", applyImportConfig);
+    on($("[data-cancel-config]"), "click", hideImportConfig);
+    on($("[data-reset-defaults]"), "click", resetDefaults);
+    on($("[data-clear-content]"), "click", clearContent);
 
     // Export scale pills
     $$("[data-export-scale]").forEach(radio => {
-      radio.addEventListener("change", () => {
+      on(radio, "change", () => {
         // Scale change is read at export time, no action needed
       });
     });
@@ -867,7 +874,7 @@
     $$(".qr-seg").forEach(group => {
       const radios = $$('input[type="radio"]', group);
       radios.forEach(r => {
-        r.addEventListener("change", () => {
+        on(r, "change", () => {
           radios.forEach(rr => {
             rr.parentElement.removeAttribute("data-active");
           });
@@ -879,6 +886,17 @@
     });
   }
 
-  /* ---- Boot ---- */
-  document.addEventListener("DOMContentLoaded", init);
+  /* ---- SPA lifecycle ---- */
+  function mount(el) {
+    container = el;
+    ac = new AbortController();
+    init();
+  }
+  function unmount() {
+    if (ac) { ac.abort(); ac = null; }
+    clearTimeout(updateTimer);
+    updateTimer = null;
+    container = null;
+  }
+  window.__page_qr = { mount: mount, unmount: unmount };
 })();

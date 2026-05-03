@@ -9,18 +9,29 @@
  * float out across the viewport as ambient background particles, slowly
  * drifting and rotating. A central axis remains where the cube was. Moving
  * the mouse back over the cube gathers all blocks back for interaction.
+ *
+ * SPA lifecycle: window.__page_home
  */
 
-(function buildCube() {
-  const stage = document.querySelector("[data-cube-stage]");
-  if (!stage) return;
+(function () {
+  "use strict";
 
-  const hero = stage.closest(".cube-hero__cube") || stage.parentElement;
-  const css = getComputedStyle(stage);
-  const CUBELET = parseFloat(css.getPropertyValue("--cubelet")) || 64;
-  const GAP = parseFloat(css.getPropertyValue("--gap")) || 4;
-  const STEP = CUBELET + GAP;
-  const TURN_MS = 260;
+  let container = null;
+  let ac = null;
+  let rafId = null;
+
+  // --- Module-level state (persists across mount/unmount) ---
+  let stage, hero, css, CUBELET, GAP, STEP, TURN_MS;
+  let cube, axisEl, axisInner, scatterStage;
+  let cubelets;
+  let queue, history;
+  let turning, resetting;
+  let rotX, rotY, lockedView, dragging, lastX, lastY, vx, vy;
+  let idleTimer, idleSpinActive;
+  let parallaxX, parallaxY;
+  let scattered, scatterMode, scatterData;
+  let scatterAnimation, scatterTimer, scatterDriftStartedAt;
+  let mouseOverHero;
 
   // ---------------------------------------------------------------- math util
   const identity = () => [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
@@ -103,62 +114,26 @@
   }
 
   // Convert a world-space viewport position to .cube-local coordinates
-  // cubeCenter(cx,cy) is the cube's center in viewport; lockedRx/Ry are the frozen view angles
   function worldToLocal(wx, wy, wz, cx, cy, lockedRx, lockedRy) {
     const dx = wx - cx;
     const dy = wy - cy;
     const dz = wz || 0;
-    // Apply R_cube^(-1) = Ry(-ry) * Rx(-rx)
     const rxa = degToRad(-lockedRx), rya = degToRad(-lockedRy);
     const cosX = Math.cos(rxa), sinX = Math.sin(rxa);
     const cosY = Math.cos(rya), sinY = Math.sin(rya);
-    // Rx(-rx) * (dx, dy, dz)
     const y1 = dy * cosX - dz * sinX;
     const z1 = dy * sinX + dz * cosX;
-    // Ry(-ry) * (dx, y1, z1)
     const lx = dx * cosY + z1 * sinY;
     const ly = y1;
     const lz = -dx * sinY + z1 * cosY;
     return { x: lx, y: ly, z: lz };
   }
 
-  // Convert a cubelet's world-space rotation to .cube-local rotation
-  // World rotation = Rx(wRx)*Ry(wRy)*Rz(wRz), applied right-to-left per CSS
-  // Cube rotation   = Rx(lockedRx)*Ry(lockedRy)
-  // Local rotation  = R_cube^(-1) * R_world = Ry(-lockedRy)*Rx(-lockedRx) * Rx(wRx)*Ry(wRy)*Rz(wRz)
   function rotationToLocal(wRx, wRy, wRz, lockedRx, lockedRy) {
     const Rw = mat3Mul(mat3Mul(mat3RotX(wRx), mat3RotY(wRy)), mat3RotZ(wRz));
     const RcInv = mat3Mul(mat3RotY(-lockedRy), mat3RotX(-lockedRx));
     const Rl = mat3Mul(RcInv, Rw);
     return extractEulerXYZ(Rl);
-  }
-
-  // -------------------------------------------------------------------- build
-  const cube = document.createElement("div");
-  cube.className = "cube";
-  stage.appendChild(cube);
-
-  // Central axis — visible only when scattered
-  const axisEl = document.createElement("div");
-  axisEl.className = "cube-axis";
-  axisEl.innerHTML =
-    '<div class="cube-axis-inner">' +
-    '<div class="cube-axis-line cube-axis-line--x"></div>' +
-    '<div class="cube-axis-line cube-axis-line--y"></div>' +
-    '<div class="cube-axis-line cube-axis-line--z"></div>' +
-    '<div class="cube-axis-dot"></div>' +
-    '</div>';
-  stage.appendChild(axisEl);
-
-  // Scatter container — fixed viewport, behind all page content (inserted before .site-shell)
-  const scatterStage = document.createElement("div");
-  scatterStage.className = "scatter-stage";
-  scatterStage.style.setProperty("--cubelet", CUBELET + "px");
-  const shell = document.querySelector(".site-shell");
-  if (shell && shell.parentNode) {
-    shell.parentNode.insertBefore(scatterStage, shell);
-  } else {
-    document.body.appendChild(scatterStage);
   }
 
   const FACES = ["up", "down", "front", "back", "right", "left"];
@@ -184,44 +159,30 @@
     return SCATTER_FACE_VIEW[faces[seed % faces.length]];
   }
 
-  const cubelets = [];
+  const TURNS = {
+    U: { axis: "y", layer: -1, sign: 1 },
+    "U'": { axis: "y", layer: -1, sign: -1 },
+    D: { axis: "y", layer: 1, sign: -1 },
+    "D'": { axis: "y", layer: 1, sign: 1 },
+    L: { axis: "x", layer: -1, sign: -1 },
+    "L'": { axis: "x", layer: -1, sign: 1 },
+    R: { axis: "x", layer: 1, sign: 1 },
+    "R'": { axis: "x", layer: 1, sign: -1 },
+    F: { axis: "z", layer: 1, sign: 1 },
+    "F'": { axis: "z", layer: 1, sign: -1 },
+    B: { axis: "z", layer: -1, sign: -1 },
+    "B'": { axis: "z", layer: -1, sign: 1 },
+  };
+  const TURN_NAMES = Object.keys(TURNS);
+  const AXIS_IDX = { x: 0, y: 1, z: 2 };
 
-  for (let x = -1; x <= 1; x++) {
-    for (let y = -1; y <= 1; y++) {
-      for (let z = -1; z <= 1; z++) {
-        if (x === 0 && y === 0 && z === 0) continue;
-        const el = document.createElement("div");
-        el.className = "cubelet";
-        const core = document.createElement("div");
-        core.className = "cubelet__core";
-        el.appendChild(core);
+  const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const easeInOut = (t) =>
+    t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 
-        FACES.forEach((f) => addFiller(core, f));
-
-        if (y === -1) addSticker(el, core, "up");
-        if (y === 1) addSticker(el, core, "down");
-        if (z === 1) addSticker(el, core, "front");
-        if (z === -1) addSticker(el, core, "back");
-        if (x === 1) addSticker(el, core, "right");
-        if (x === -1) addSticker(el, core, "left");
-
-        cube.appendChild(el);
-        const scatterView = scatterFaceView(x, y, z);
-        el.style.setProperty("--scatter-color", scatterView.color);
-        const c = {
-          el,
-          core,
-          pos: [x, y, z],
-          orient: identity(),
-          scatterView,
-        };
-        cubelets.push(c);
-        renderCubelet(c);
-      }
-    }
-  }
-  cubelets.forEach((c) => (c.startPos = c.pos.slice()));
-
+  // ---------------------------------------------------------------- build helpers
   function addSticker(root, parent, face) {
     root.classList.add("cubelet--" + face);
     const sticker = document.createElement("div");
@@ -247,33 +208,12 @@
   }
 
   // ---------------------------------------------------------------- turns
-  const TURNS = {
-    U: { axis: "y", layer: -1, sign: 1 },
-    "U'": { axis: "y", layer: -1, sign: -1 },
-    D: { axis: "y", layer: 1, sign: -1 },
-    "D'": { axis: "y", layer: 1, sign: 1 },
-    L: { axis: "x", layer: -1, sign: -1 },
-    "L'": { axis: "x", layer: -1, sign: 1 },
-    R: { axis: "x", layer: 1, sign: 1 },
-    "R'": { axis: "x", layer: 1, sign: -1 },
-    F: { axis: "z", layer: 1, sign: 1 },
-    "F'": { axis: "z", layer: 1, sign: -1 },
-    B: { axis: "z", layer: -1, sign: -1 },
-    "B'": { axis: "z", layer: -1, sign: 1 },
-  };
-  const TURN_NAMES = Object.keys(TURNS);
-  const AXIS_IDX = { x: 0, y: 1, z: 2 };
-
-  const queue = [];
-  const history = [];
-  let turning = false;
-  let resetting = false;
-
   function inverseTurn(name) {
     return name.endsWith("'") ? name.slice(0, -1) : name + "'";
   }
 
-  function enqueueTurn(name, fast, recordHistory = true) {
+  function enqueueTurn(name, fast, recordHistory) {
+    if (recordHistory === undefined) recordHistory = true;
     return new Promise((resolve) => {
       queue.push({ name, fast: !!fast, recordHistory, resolve });
       runQueue();
@@ -386,75 +326,8 @@
     stage.removeAttribute("data-resetting");
   }
 
-  // ---------------------------------------------------------------- controls
-  document.querySelectorAll("[data-cube-turn]").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (scattered) {
-        gatherCubelets();
-        return;
-      }
-      if (resetting) return;
-      enqueueTurn(btn.getAttribute("data-cube-turn"), false);
-    });
-  });
-  const scrambleBtn = document.querySelector("[data-cube-scramble]");
-  if (scrambleBtn) {
-    scrambleBtn.addEventListener("click", () => {
-      if (scattered) {
-        gatherCubelets();
-        return;
-      }
-      scramble(22);
-    });
-  }
-  const resetBtn = document.querySelector("[data-cube-reset]");
-  if (resetBtn) {
-    resetBtn.addEventListener("click", () => {
-      if (scattered) {
-        gatherCubelets();
-        return;
-      }
-      reset();
-    });
-  }
-
-  window.addEventListener("keydown", (e) => {
-    if (scattered) return;
-    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
-    if (e.key === "Escape") {
-      reset();
-      return;
-    }
-    if (resetting) return;
-    const k = e.key.toUpperCase();
-    if ("UDLRFB".indexOf(k) >= 0) {
-      e.preventDefault();
-      enqueueTurn(k + (e.shiftKey ? "'" : ""), false);
-      return;
-    }
-    if (e.code === "Space") {
-      e.preventDefault();
-      scramble(22);
-    }
-  });
-
   // ---------------------------------------------------------------- whole-cube view rotation
-  let rotX = -28;
-  let rotY = -38;
-  let lockedView = null; // frozen {rx,ry} during scatter/gather
-  let dragging = false;
-  let lastX = 0;
-  let lastY = 0;
-  let vx = 0;
-  let vy = 0;
-  let idleTimer = 0;
-  let idleSpinActive = false;
-  let parallaxX = 0;
-  let parallaxY = 0;
-
   function renderCube() {
-    // During gather, gatherCubelets() manages the cube transform directly
     if (scatterMode === "gathering") return;
     if (lockedView && scatterMode === "scattered") {
       cube.style.transform = `rotateX(${lockedView.rx}deg) rotateY(${lockedView.ry}deg)`;
@@ -468,21 +341,6 @@
   // ================================================================
   // Scatter system
   // ================================================================
-  let scattered = false;
-  let scatterMode = "cube";
-  let scatterData = [];
-  let scatterAnimation = null;
-  let scatterTimer = 0;
-  let scatterDriftStartedAt = 0;
-  let mouseOverHero = false;
-  const axisInner = axisEl.querySelector(".cube-axis-inner");
-
-  const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
-  const lerp = (a, b, t) => a + (b - a) * t;
-  const easeInOut = (t) =>
-    t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-  const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-
   function setScatterMode(mode) {
     scatterMode = mode;
     stage.dataset.cubeMode = mode;
@@ -697,7 +555,6 @@
 
     clearTimeout(scatterTimer);
     scattered = true;
-    // Freeze the current view angle so gather can reconstruct the same 3D space
     lockedView = {
       rx: rotX + parallaxY * 3,
       ry: rotY + parallaxX * 3,
@@ -714,21 +571,13 @@
     var items = cubelets.map(function (c, i) {
       var to = clonePose(scatterData[i]);
 
-      // ---- build the "from" pose so the FIRST frame is visually identical
-      //      to the normal assembled cube (same 3D position, same rotation,
-      //      same depth).  We use getBoundingClientRect for the exact
-      //      perspective-projected XY and compute the world-space Z
-      //      directly from the 3D slot position + cube rotation. ----
       var slotX = c.pos[0] * STEP;
       var slotY = c.pos[1] * STEP;
       var slotZ = c.pos[2] * STEP;
 
-      // Cube rotation:  Rx(rx) * Ry(ry) applied to the slot vector
-      // Only the Z component is needed for depth; XY comes from getBoundingClientRect
       var z1 = -slotX * sinY + slotZ * cosY;
-      var z2 = slotY * sinX + z1 * cosX;   // world-space Z (depth)
+      var z2 = slotY * sinX + z1 * cosX;
 
-      // Exact projected XY from the live DOM element
       var rect = c.el.getBoundingClientRect();
 
       var from = {
@@ -761,7 +610,6 @@
 
     clearTimeout(scatterTimer);
 
-    // Use locked view from scatter time, or capture now as fallback
     if (!lockedView) {
       lockedView = {
         rx: rotX + parallaxY * 3,
@@ -772,18 +620,14 @@
     setScatterMode("gathering");
     syncAxis();
 
-    // Get the .cube's viewport center (works even when opacity:0)
     const cubeRect = cube.getBoundingClientRect();
     const cx = cubeRect.left + cubeRect.width / 2;
     const cy = cubeRect.top + cubeRect.height / 2;
 
-    // Make .cube instantly visible and freeze at the locked view angle
     cube.style.transition = "none";
     cube.style.opacity = "1";
     cube.style.transform = "rotateX(" + view.rx + "deg) rotateY(" + view.ry + "deg)";
 
-    // Read each cubelet's current visual state, convert to .cube-local,
-    // and reparent into .cube immediately.
     const items = cubelets.map(function (c) {
       var sp = c._scatterPose;
       var rect = c.el.getBoundingClientRect();
@@ -814,19 +658,14 @@
         scale: 1, opacity: 1,
       };
 
-      // Move cubelet into the real .cube and apply the "from" pose
       c.el.style.transition = "none";
       cube.appendChild(c.el);
-      // applyScatterPose with slotX/Y/Z=0; the cubelet's local position + rotation
-      // is exactly what the function writes.
       applyScatterPose(c, from);
 
       return { c: c, from: from, to: to };
     });
 
     startScatterAnimation(items, 760, easeInOut, function () {
-      // Animation complete — cubelets are already inside .cube.
-      // Just normalize transforms to the standard renderCubelet output.
       cubelets.forEach(function (c) {
         c.el.style.transition = "none";
         c.el.style.opacity = "";
@@ -837,7 +676,6 @@
       scattered = false;
       lockedView = null;
       setScatterMode("cube");
-      // Restore CSS-controlled opacity + transition for .cube
       cube.style.transition = "";
       cube.style.opacity = "";
       resetIdleTimer();
@@ -875,20 +713,6 @@
     }
   }
 
-  hero.addEventListener("pointerenter", () => {
-    mouseOverHero = true;
-    clearTimeout(scatterTimer);
-    gatherCubelets();
-  });
-
-  hero.addEventListener("pointerleave", () => {
-    mouseOverHero = false;
-    resetIdleTimer();
-    if (!scattered && canScatter()) scheduleScatter(180);
-  });
-
-  document.addEventListener("pointermove", checkMouseInHero, { passive: true });
-
   function resetIdleTimer() {
     idleSpinActive = false;
     clearTimeout(idleTimer);
@@ -902,7 +726,7 @@
   function tick(time) {
     if (!dragging) {
       if (scatterMode === "scattered" || scatterMode === "gathering") {
-        // View is frozen during scatter/gather — no inertia or idle spin
+        // View is frozen during scatter/gather
       } else if (Math.abs(vx) > 0.01 || Math.abs(vy) > 0.01) {
         rotY += vx;
         rotX += vy;
@@ -918,11 +742,11 @@
     syncAxis();
     runScatterAnimation(time);
     updateScatterDrift(time);
-    requestAnimationFrame(tick);
+    rafId = requestAnimationFrame(tick);
   }
 
   // ---------------------------------------------------------------- drag
-  stage.addEventListener("pointerdown", (e) => {
+  function stagePointerDown(e) {
     if (scattered) {
       gatherCubelets();
       return;
@@ -939,11 +763,11 @@
     lastY = e.clientY;
     vx = 0;
     vy = 0;
-    try { stage.setPointerCapture && stage.setPointerCapture(e.pointerId); } catch {}
+    try { stage.setPointerCapture && stage.setPointerCapture(e.pointerId); } catch (ignore) {}
     resetIdleTimer();
-  });
+  }
 
-  stage.addEventListener("pointermove", (e) => {
+  function stagePointerMove(e) {
     if (dragging) {
       const dx = e.clientX - lastX;
       const dy = e.clientY - lastY;
@@ -955,30 +779,26 @@
       lastX = e.clientX;
       lastY = e.clientY;
     }
-  });
+  }
 
   function endDrag(e) {
     if (!dragging) return;
     dragging = false;
     stage.removeAttribute("data-dragging");
-    try { stage.releasePointerCapture && stage.releasePointerCapture(e.pointerId); } catch {}
+    try { stage.releasePointerCapture && stage.releasePointerCapture(e.pointerId); } catch (ignore) {}
     resetIdleTimer();
     if (!mouseOverHero && canScatter()) scheduleScatter(260);
   }
-  stage.addEventListener("pointerup", endDrag);
-  stage.addEventListener("pointercancel", endDrag);
-  stage.addEventListener("pointerleave", endDrag);
 
-  window.addEventListener("pointermove", (e) => {
+  function handleWindowPointerMove(e) {
     if (scatterMode === "gathering") return;
     const cx = window.innerWidth / 2;
     const cy = window.innerHeight / 2;
     parallaxX = (e.clientX - cx) / cx;
     parallaxY = (e.clientY - cy) / cy;
-  });
+  }
 
-  // On resize, keep the ambient pieces evenly distributed without jumping.
-  window.addEventListener("resize", function () {
+  function handleResize() {
     if (scatterMode === "scattered") {
       const fromPoses = cubelets.map((c) => clonePose(c._scatterPose));
       scatterData = makeScatterData();
@@ -995,9 +815,229 @@
         updateScatterDrift(time);
       });
     }
-  });
+  }
 
-  // Initial check: if mouse starts outside, scatter after delay
-  resetIdleTimer();
-  tick(0);
+  // ---------------------------------------------------------------- build
+  function buildCubeDOM() {
+    cube = document.createElement("div");
+    cube.className = "cube";
+    stage.appendChild(cube);
+
+    axisEl = document.createElement("div");
+    axisEl.className = "cube-axis";
+    axisEl.innerHTML =
+      '<div class="cube-axis-inner">' +
+      '<div class="cube-axis-line cube-axis-line--x"></div>' +
+      '<div class="cube-axis-line cube-axis-line--y"></div>' +
+      '<div class="cube-axis-line cube-axis-line--z"></div>' +
+      '<div class="cube-axis-dot"></div>' +
+      '</div>';
+    stage.appendChild(axisEl);
+    axisInner = axisEl.querySelector(".cube-axis-inner");
+
+    // Scatter container — fixed viewport, behind all page content
+    scatterStage = document.createElement("div");
+    scatterStage.className = "scatter-stage";
+    scatterStage.style.setProperty("--cubelet", CUBELET + "px");
+    const shell = document.querySelector(".site-shell");
+    if (shell && shell.parentNode) {
+      shell.parentNode.insertBefore(scatterStage, shell);
+    } else {
+      document.body.appendChild(scatterStage);
+    }
+
+    cubelets = [];
+
+    for (let x = -1; x <= 1; x++) {
+      for (let y = -1; y <= 1; y++) {
+        for (let z = -1; z <= 1; z++) {
+          if (x === 0 && y === 0 && z === 0) continue;
+          const el = document.createElement("div");
+          el.className = "cubelet";
+          const core = document.createElement("div");
+          core.className = "cubelet__core";
+          el.appendChild(core);
+
+          FACES.forEach((f) => addFiller(core, f));
+
+          if (y === -1) addSticker(el, core, "up");
+          if (y === 1) addSticker(el, core, "down");
+          if (z === 1) addSticker(el, core, "front");
+          if (z === -1) addSticker(el, core, "back");
+          if (x === 1) addSticker(el, core, "right");
+          if (x === -1) addSticker(el, core, "left");
+
+          cube.appendChild(el);
+          const scatterView = scatterFaceView(x, y, z);
+          el.style.setProperty("--scatter-color", scatterView.color);
+          const c = {
+            el,
+            core,
+            pos: [x, y, z],
+            orient: identity(),
+            scatterView,
+          };
+          cubelets.push(c);
+          renderCubelet(c);
+        }
+      }
+    }
+    cubelets.forEach((c) => (c.startPos = c.pos.slice()));
+  }
+
+  function wireEvents(signal) {
+    // Turn buttons
+    container.querySelectorAll("[data-cube-turn]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (scattered) {
+          gatherCubelets();
+          return;
+        }
+        if (resetting) return;
+        enqueueTurn(btn.getAttribute("data-cube-turn"), false);
+      }, { signal: signal });
+    });
+
+    // Scramble button
+    const scrambleBtn = container.querySelector("[data-cube-scramble]");
+    if (scrambleBtn) {
+      scrambleBtn.addEventListener("click", () => {
+        if (scattered) {
+          gatherCubelets();
+          return;
+        }
+        scramble(22);
+      }, { signal: signal });
+    }
+
+    // Reset button
+    const resetBtn = container.querySelector("[data-cube-reset]");
+    if (resetBtn) {
+      resetBtn.addEventListener("click", () => {
+        if (scattered) {
+          gatherCubelets();
+          return;
+        }
+        reset();
+      }, { signal: signal });
+    }
+
+    // Keyboard
+    window.addEventListener("keydown", (e) => {
+      if (scattered) return;
+      if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      if (e.key === "Escape") {
+        reset();
+        return;
+      }
+      if (resetting) return;
+      const k = e.key.toUpperCase();
+      if ("UDLRFB".indexOf(k) >= 0) {
+        e.preventDefault();
+        enqueueTurn(k + (e.shiftKey ? "'" : ""), false);
+        return;
+      }
+      if (e.code === "Space") {
+        e.preventDefault();
+        scramble(22);
+      }
+    }, { signal: signal });
+
+    // Hero enter/leave
+    hero.addEventListener("pointerenter", () => {
+      mouseOverHero = true;
+      clearTimeout(scatterTimer);
+      gatherCubelets();
+    }, { signal: signal });
+
+    hero.addEventListener("pointerleave", () => {
+      mouseOverHero = false;
+      resetIdleTimer();
+      if (!scattered && canScatter()) scheduleScatter(180);
+    }, { signal: signal });
+
+    // Document pointer move (mouse tracking)
+    document.addEventListener("pointermove", checkMouseInHero, { passive: true, signal: signal });
+
+    // Stage pointer events (drag)
+    stage.addEventListener("pointerdown", stagePointerDown, { signal: signal });
+    stage.addEventListener("pointermove", stagePointerMove, { signal: signal });
+    stage.addEventListener("pointerup", endDrag, { signal: signal });
+    stage.addEventListener("pointercancel", endDrag, { signal: signal });
+    stage.addEventListener("pointerleave", endDrag, { signal: signal });
+
+    // Parallax
+    window.addEventListener("pointermove", handleWindowPointerMove, { signal: signal });
+
+    // Resize
+    window.addEventListener("resize", handleResize, { signal: signal });
+  }
+
+  // ---------------------------------------------------------------- lifecycle
+  function mount(el) {
+    container = el;
+    ac = new AbortController();
+    const signal = ac.signal;
+
+    stage = el.querySelector("[data-cube-stage]");
+    if (!stage) return;
+
+    hero = stage.closest(".cube-hero__cube") || stage.parentElement;
+    css = getComputedStyle(stage);
+    CUBELET = parseFloat(css.getPropertyValue("--cubelet")) || 64;
+    GAP = parseFloat(css.getPropertyValue("--gap")) || 4;
+    STEP = CUBELET + GAP;
+    TURN_MS = 260;
+
+    // Initialize module-level state
+    queue = [];
+    history = [];
+    turning = false;
+    resetting = false;
+    rotX = -28;
+    rotY = -38;
+    lockedView = null;
+    dragging = false;
+    lastX = 0;
+    lastY = 0;
+    vx = 0;
+    vy = 0;
+    idleSpinActive = false;
+    parallaxX = 0;
+    parallaxY = 0;
+    scattered = false;
+    scatterMode = "cube";
+    scatterData = [];
+    scatterAnimation = null;
+    scatterTimer = 0;
+    scatterDriftStartedAt = 0;
+    mouseOverHero = false;
+
+    buildCubeDOM();
+    wireEvents(signal);
+
+    resetIdleTimer();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function unmount() {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    if (ac) { ac.abort(); ac = null; }
+    clearTimeout(scatterTimer);
+    clearTimeout(idleTimer);
+    // Remove scatterStage inserted into document body
+    if (scatterStage && scatterStage.parentNode) {
+      scatterStage.parentNode.removeChild(scatterStage);
+    }
+    scatterStage = null;
+    cube = null;
+    axisEl = null;
+    axisInner = null;
+    stage = null;
+    hero = null;
+    container = null;
+  }
+
+  window.__page_home = { mount: mount, unmount: unmount };
 })();

@@ -1,94 +1,111 @@
 /* ===== claudeOne :: ascii.js =====
  * ASCII art generator — upload, auto-convert (debounce), history, mobile collapse.
+ * SPA lifecycle: window.__page_ascii
  */
 
 (function bootstrapAscii() {
+  "use strict";
+
+  var container = null;
+  var ac = null;
+
   const CFG = window.CLAUDE_ONE_CONFIG;
   const CS = window.ClaudeOne;
-
-  if (!CFG || !CS) {
-    console.error("[ascii] Config or shell missing");
-    return;
-  }
 
   const API_BASE = "http://localhost:3001";
   const HISTORY_KEY = "claudeOne:ascii-history";
   const HISTORY_MAX = 12;
   const DEBOUNCE_MS = 600;
 
-  // ---- State ----
+  // ---- State (module-level, persists across mount/unmount) ----
   let selectedFile = null;
   let lastResult = null; // { text, pngBase64, params }
   let abortController = null;
   let debounceTimer = null;
   let isManualTrigger = true; // distinguishes button click vs auto-convert
 
-  // ---- DOM refs ----
-  const uploadZone = document.querySelector("[data-upload-zone]");
-  const fileInput = document.querySelector("[data-file-input]");
-  const previewArea = document.querySelector("[data-preview-area]");
-  const previewImg = document.querySelector("[data-preview-img]");
-  const previewName = document.querySelector("[data-preview-name]");
-  const clearPreviewBtn = document.querySelector("[data-clear-preview]");
-  const convertBtn = document.querySelector("[data-convert-btn]");
-  const convertText = document.querySelector("[data-convert-text]");
-  const convertSpinner = document.querySelector("[data-convert-spinner]");
-  const statusText = document.querySelector("[data-status-text]");
-  const outputSection = document.querySelector("[data-output-section]");
-  const outputTextWrapper = document.querySelector("[data-output-text-wrapper]");
-  const outputText = document.querySelector("[data-output-text]");
-  const outputPngWrapper = document.querySelector("[data-output-png-wrapper]");
-  const outputPng = document.querySelector("[data-output-png]");
-  const tabBtns = document.querySelectorAll("[data-tab]");
-  const historySection = document.querySelector("[data-history-section]");
-  const historyList = document.querySelector("[data-history-list]");
-  const collapseBtn = document.querySelector("[data-collapse-btn]");
-  const controlsBody = document.querySelector("[data-controls-body]");
-  const autoToggle = document.querySelector("[data-auto-toggle]");
+  // ---- DOM refs (rebuilt on mount) ----
+  var uploadZone, fileInput, previewArea, previewImg, previewName, clearPreviewBtn;
+  var convertBtn, convertText, convertSpinner, statusText;
+  var outputSection, outputTextWrapper, outputText, outputPngWrapper, outputPng;
+  var tabBtns, historySection, historyList, collapseBtn, controlsBody, autoToggle;
+  var modeRadios, widthPresetRadios, widthCustom, heightModeRadios, heightCustom;
+  var charSetRadios, customMapInput, toggleColored, toggleNegative, toggleGrayscale;
 
-  // Parameter inputs
-  const modeRadios = document.querySelectorAll("[data-mode]");
-  const widthPresetRadios = document.querySelectorAll("[data-width-preset]");
-  const widthCustom = document.querySelector("[data-width-custom]");
-  const heightModeRadios = document.querySelectorAll("[data-height-mode]");
-  const heightCustom = document.querySelector("[data-height-custom]");
-  const charSetRadios = document.querySelectorAll("[data-char-set]");
-  const customMapInput = document.querySelector("[data-custom-map]");
-  const toggleColored = document.querySelector("[data-toggle=\"colored\"] input");
-  const toggleNegative = document.querySelector("[data-toggle=\"negative\"] input");
-  const toggleGrayscale = document.querySelector("[data-toggle=\"grayscale\"] input");
+  function collectEls() {
+    uploadZone = container.querySelector("[data-upload-zone]");
+    fileInput = container.querySelector("[data-file-input]");
+    previewArea = container.querySelector("[data-preview-area]");
+    previewImg = container.querySelector("[data-preview-img]");
+    previewName = container.querySelector("[data-preview-name]");
+    clearPreviewBtn = container.querySelector("[data-clear-preview]");
+    convertBtn = container.querySelector("[data-convert-btn]");
+    convertText = container.querySelector("[data-convert-text]");
+    convertSpinner = container.querySelector("[data-convert-spinner]");
+    statusText = container.querySelector("[data-status-text]");
+    outputSection = container.querySelector("[data-output-section]");
+    outputTextWrapper = container.querySelector("[data-output-text-wrapper]");
+    outputText = container.querySelector("[data-output-text]");
+    outputPngWrapper = container.querySelector("[data-output-png-wrapper]");
+    outputPng = container.querySelector("[data-output-png]");
+    tabBtns = container.querySelectorAll("[data-tab]");
+    historySection = container.querySelector("[data-history-section]");
+    historyList = container.querySelector("[data-history-list]");
+    collapseBtn = container.querySelector("[data-collapse-btn]");
+    controlsBody = container.querySelector("[data-controls-body]");
+    autoToggle = container.querySelector("[data-auto-toggle]");
+    modeRadios = container.querySelectorAll("[data-mode]");
+    widthPresetRadios = container.querySelectorAll("[data-width-preset]");
+    widthCustom = container.querySelector("[data-width-custom]");
+    heightModeRadios = container.querySelectorAll("[data-height-mode]");
+    heightCustom = container.querySelector("[data-height-custom]");
+    charSetRadios = container.querySelectorAll("[data-char-set]");
+    customMapInput = container.querySelector("[data-custom-map]");
+    var tColored = container.querySelector('[data-toggle="colored"]');
+    toggleColored = tColored ? tColored.querySelector("input") : null;
+    var tNeg = container.querySelector('[data-toggle="negative"]');
+    toggleNegative = tNeg ? tNeg.querySelector("input") : null;
+    var tGray = container.querySelector('[data-toggle="grayscale"]');
+    toggleGrayscale = tGray ? tGray.querySelector("input") : null;
+  }
 
   // ---- Helper: get param values ----
   function getMode() {
-    for (const r of modeRadios) if (r.checked) return r.value;
+    for (var i = 0; modeRadios && i < modeRadios.length; i++) {
+      if (modeRadios[i].checked) return modeRadios[i].value;
+    }
     return "ascii";
   }
 
   function getWidth() {
-    for (const r of widthPresetRadios) {
+    for (var i = 0; widthPresetRadios && i < widthPresetRadios.length; i++) {
+      var r = widthPresetRadios[i];
       if (!r.checked) continue;
-      if (r.value === "custom") return parseInt(widthCustom.value, 10) || 80;
+      if (r.value === "custom") return parseInt(widthCustom ? widthCustom.value : "80", 10) || 80;
       return parseInt(r.value, 10);
     }
     return 80;
   }
 
   function getHeight() {
-    for (const r of heightModeRadios) {
+    for (var i = 0; heightModeRadios && i < heightModeRadios.length; i++) {
+      var r = heightModeRadios[i];
       if (!r.checked) continue;
       if (r.value === "auto") return 0;
-      return parseInt(heightCustom.value, 10) || 0;
+      return parseInt(heightCustom ? heightCustom.value : "0", 10) || 0;
     }
     return 0;
   }
 
   function getCharSet() {
-    for (const r of charSetRadios) if (r.checked) return r.value;
+    for (var i = 0; charSetRadios && i < charSetRadios.length; i++) {
+      if (charSetRadios[i].checked) return charSetRadios[i].value;
+    }
     return "default";
   }
 
   function getCustomMap() {
-    return (customMapInput.value || "").trim();
+    return (customMapInput ? customMapInput.value : "").trim();
   }
 
   function getParams() {
@@ -96,9 +113,9 @@
       mode: getMode(),
       width: getWidth(),
       height: getHeight(),
-      colored: toggleColored.checked,
-      negative: toggleNegative.checked,
-      grayscale: toggleGrayscale.checked,
+      colored: toggleColored ? toggleColored.checked : false,
+      negative: toggleNegative ? toggleNegative.checked : false,
+      grayscale: toggleGrayscale ? toggleGrayscale.checked : false,
       charSet: getCharSet(),
       customMap: getCharSet() === "custom" ? getCustomMap() : "",
     };
@@ -108,18 +125,19 @@
   function handleFile(file) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      CS.toast("请选择图片文件", "err");
+      if (CS && CS.toast) CS.toast("请选择图片文件", "err");
       return;
     }
     selectedFile = file;
     previewName.textContent = file.name;
     previewImg.src = URL.createObjectURL(file);
-    document.querySelector("[data-drop-visual]").hidden = true;
+    var dropVis = container.querySelector("[data-drop-visual]");
+    if (dropVis) dropVis.hidden = true;
     previewArea.hidden = false;
     convertBtn.disabled = false;
-    statusText.textContent = autoToggle.checked ? "自动转换中…" : "已就绪，点击转换";
+    statusText.textContent = (autoToggle && autoToggle.checked) ? "自动转换中…" : "已就绪，点击转换";
 
-    if (autoToggle.checked) {
+    if (autoToggle && autoToggle.checked) {
       scheduleAutoConvert();
     }
   }
@@ -128,42 +146,17 @@
     selectedFile = null;
     if (previewImg.src) URL.revokeObjectURL(previewImg.src);
     previewImg.src = "";
-    document.querySelector("[data-drop-visual]").hidden = false;
+    var dropVis = container.querySelector("[data-drop-visual]");
+    if (dropVis) dropVis.hidden = false;
     previewArea.hidden = true;
     convertBtn.disabled = true;
     statusText.textContent = "请先上传图片";
   }
 
-  // ---- Drag & drop ----
-  uploadZone.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    uploadZone.setAttribute("data-dragover", "true");
-  });
-
-  uploadZone.addEventListener("dragleave", () => {
-    uploadZone.setAttribute("data-dragover", "false");
-  });
-
-  uploadZone.addEventListener("drop", (e) => {
-    e.preventDefault();
-    uploadZone.setAttribute("data-dragover", "false");
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
-  });
-
-  uploadZone.addEventListener("click", () => {
-    fileInput.click();
-  });
-
-  fileInput.addEventListener("change", () => {
-    const file = fileInput.files[0];
-    if (file) handleFile(file);
-  });
-
-  clearPreviewBtn.addEventListener("click", () => {
-    clearFile();
-    cancelPending();
-  });
+  /* Helper to wire with signal */
+  function on(el, evt, fn) {
+    if (el) el.addEventListener(evt, fn, ac ? { signal: ac.signal } : undefined);
+  }
 
   // ---- Debounced auto-convert ----
   function scheduleAutoConvert() {
@@ -171,7 +164,7 @@
     cancelPending();
     isManualTrigger = false;
     statusText.textContent = "参数已变更，即将自动转换…";
-    debounceTimer = setTimeout(() => doConvert(), DEBOUNCE_MS);
+    debounceTimer = setTimeout(function() { doConvert(); }, DEBOUNCE_MS);
   }
 
   function cancelPending() {
@@ -192,17 +185,17 @@
     cancelPending();
     abortController = new AbortController();
 
-    const isManual = isManualTrigger;
+    var isManual = isManualTrigger;
     isManualTrigger = true; // reset for next
     convertBtn.disabled = true;
     convertText.style.display = "none";
     convertSpinner.style.display = "";
     if (isManual) statusText.textContent = "转换中，请稍候…";
 
-    const params = getParams();
+    var params = getParams();
 
     try {
-      const formData = new FormData();
+      var formData = new FormData();
       formData.append("file", selectedFile);
       formData.append("mode", params.mode);
       formData.append("width", String(params.width));
@@ -215,41 +208,43 @@
         formData.append("customMap", params.customMap);
       }
 
-      const resp = await fetch(`${API_BASE}/api/ascii`, {
+      var resp = await fetch(API_BASE + "/api/ascii", {
         method: "POST",
         body: formData,
         signal: abortController.signal,
       });
 
-      const data = await resp.json();
+      var data = await resp.json();
 
       if (!resp.ok || !data.success) {
         throw new Error(data.error || "服务器返回错误");
       }
 
-      lastResult = { text: data.text, pngBase64: data.pngBase64, params };
+      lastResult = { text: data.text, pngBase64: data.pngBase64, params: params };
 
       // Display text
       outputText.textContent = data.text || "(无文本输出)";
 
       // Display PNG
       if (data.pngBase64) {
-        outputPng.src = `data:image/png;base64,${data.pngBase64}`;
-        document.querySelector("[data-tab=\"png\"]").style.display = "";
+        outputPng.src = "data:image/png;base64," + data.pngBase64;
+        var pngTab = container.querySelector('[data-tab="png"]');
+        if (pngTab) pngTab.style.display = "";
       } else {
-        document.querySelector("[data-tab=\"png\"]").style.display = "none";
+        var pngTab = container.querySelector('[data-tab="png"]');
+        if (pngTab) pngTab.style.display = "none";
       }
 
       // Show output
       outputSection.hidden = false;
       switchTab("text");
-      statusText.textContent = `转换成功 · ${params.width} 字符宽 · ${params.mode}${params.colored ? " · 彩色" : ""}${params.negative ? " · 反色" : ""}`;
-      if (isManual || !autoToggle.checked) {
+      statusText.textContent = "转换成功 · " + params.width + " 字符宽 · " + params.mode + (params.colored ? " · 彩色" : "") + (params.negative ? " · 反色" : "");
+      if (isManual || !(autoToggle && autoToggle.checked)) {
         outputSection.scrollIntoView({ behavior: "smooth", block: "start" });
       }
 
       // Auto-collapse controls on mobile after first conversion
-      if (window.innerWidth <= 768) {
+      if (window.innerWidth <= 768 && controlsBody) {
         controlsBody.setAttribute("data-collapsed", "true");
         collapseBtn.innerHTML = "&#9660;";
         collapseBtn.hidden = false;
@@ -260,8 +255,8 @@
     } catch (err) {
       if (err.name === "AbortError") return;
       console.error("[ascii]", err);
-      CS.toast(err.message || "转换失败", "err");
-      statusText.textContent = `转换失败: ${err.message}`;
+      if (CS && CS.toast) CS.toast(err.message || "转换失败", "err");
+      statusText.textContent = "转换失败: " + err.message;
     } finally {
       convertBtn.disabled = !selectedFile;
       convertText.style.display = "";
@@ -270,160 +265,73 @@
     }
   }
 
-  convertBtn.addEventListener("click", () => {
-    isManualTrigger = true;
-    doConvert();
-  });
-
   // ---- Auto-convert triggers ----
   function wireAutoTrigger(el, events) {
-    events.split(" ").forEach((evt) => {
-      el.addEventListener(evt, () => {
-        if (autoToggle.checked) scheduleAutoConvert();
+    if (!el) return;
+    events.split(" ").forEach(function(evt) {
+      on(el, evt, function() {
+        if (autoToggle && autoToggle.checked) scheduleAutoConvert();
       });
     });
   }
 
-  // Wire all parameter changes to trigger auto-convert
-  modeRadios.forEach((r) => wireAutoTrigger(r, "change"));
-  widthPresetRadios.forEach((r) => wireAutoTrigger(r, "change"));
-  wireAutoTrigger(widthCustom, "input");
-  heightModeRadios.forEach((r) => wireAutoTrigger(r, "change"));
-  wireAutoTrigger(heightCustom, "input");
-  charSetRadios.forEach((r) => wireAutoTrigger(r, "change"));
-  wireAutoTrigger(customMapInput, "input");
-  wireAutoTrigger(toggleColored, "change");
-  wireAutoTrigger(toggleNegative, "change");
-  wireAutoTrigger(toggleGrayscale, "change");
-
-  autoToggle.addEventListener("change", () => {
-    if (autoToggle.checked && selectedFile) {
-      scheduleAutoConvert();
-    } else {
-      cancelPending();
-      if (selectedFile) statusText.textContent = "已就绪，点击转换";
-    }
-  });
-
-  // ---- Parameter UI wiring (non-auto) ----
-  widthPresetRadios.forEach((r) => {
-    r.addEventListener("change", () => {
-      widthCustom.style.display = (r.value === "custom") ? "" : "none";
-    });
-  });
-
-  heightModeRadios.forEach((r) => {
-    r.addEventListener("change", () => {
-      heightCustom.style.display = (r.value === "custom") ? "" : "none";
-    });
-  });
-
-  charSetRadios.forEach((r) => {
-    r.addEventListener("change", () => {
-      customMapInput.style.display = (r.value === "custom") ? "" : "none";
-    });
-  });
-
   // ---- Tab switching ----
   function switchTab(name) {
-    for (const btn of tabBtns) {
-      btn.classList.toggle("active", btn.getAttribute("data-tab") === name);
+    if (tabBtns) {
+      tabBtns.forEach(function(btn) {
+        btn.classList.toggle("active", btn.getAttribute("data-tab") === name);
+      });
     }
-    outputTextWrapper.hidden = name !== "text";
-    outputPngWrapper.hidden = name !== "png";
+    if (outputTextWrapper) outputTextWrapper.hidden = name !== "text";
+    if (outputPngWrapper) outputPngWrapper.hidden = name !== "png";
   }
 
-  tabBtns.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      switchTab(btn.getAttribute("data-tab"));
-    });
-  });
-
-  // ---- Actions ----
-  document.querySelector("[data-action-copy]").addEventListener("click", async () => {
-    if (!outputText.textContent) return;
-    try {
-      await navigator.clipboard.writeText(outputText.textContent);
-      CS.toast("已复制到剪贴板", "ok");
-    } catch {
-      CS.toast("复制失败，请手动选择", "err");
-    }
-  });
-
-  document.querySelector("[data-action-download-txt]").addEventListener("click", () => {
-    if (!outputText.textContent) return;
-    const blob = new Blob([outputText.textContent], { type: "text/plain;charset=utf-8" });
-    downloadBlob(blob, "ascii-art.txt");
-  });
-
-  document.querySelector("[data-action-download-png]").addEventListener("click", () => {
-    if (!lastResult?.pngBase64) return;
-    const byteString = atob(lastResult.pngBase64);
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
-    const blob = new Blob([ab], { type: "image/png" });
-    downloadBlob(blob, "ascii-art.png");
-  });
-
-  document.querySelector("[data-action-clear]").addEventListener("click", () => {
-    outputText.textContent = "";
-    outputPng.src = "";
-    lastResult = null;
-    outputSection.hidden = true;
-    clearFile();
-    statusText.textContent = "请先上传图片";
-  });
-
   function downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
   }
 
   // ---- History (localStorage) ----
   function loadHistory() {
     try {
-      const raw = CS.storage.get(HISTORY_KEY);
+      var raw = CS.storage.get(HISTORY_KEY);
       return raw ? JSON.parse(raw) : [];
-    } catch { return []; }
+    } catch(e) { return []; }
   }
 
   function saveHistory(params) {
-    if (!lastResult?.text) return;
-    const text = lastResult.text;
-    const preview = text.length > 400 ? text.slice(0, 400) : text;
-    const history = loadHistory();
+    if (!lastResult || !lastResult.text) return;
+    var text = lastResult.text;
+    var preview = text.length > 400 ? text.slice(0, 400) : text;
+    var history = loadHistory();
 
-    // Remove duplicate (same file + same params)
-    const dupIdx = history.findIndex((h) =>
-      h.fileName === (selectedFile?.name || "") &&
-      h.params.mode === params.mode &&
-      h.params.width === params.width &&
-      h.params.height === params.height &&
-      h.params.colored === params.colored
-    );
+    var dupIdx = history.findIndex(function(h) {
+      return h.fileName === ((selectedFile && selectedFile.name) || "") &&
+        h.params.mode === params.mode &&
+        h.params.width === params.width &&
+        h.params.height === params.height &&
+        h.params.colored === params.colored;
+    });
     if (dupIdx >= 0) history.splice(dupIdx, 1);
 
     history.unshift({
       id: Date.now(),
       textPreview: preview,
-      fileName: selectedFile?.name || "未知",
-      params,
+      fileName: (selectedFile && selectedFile.name) || "未知",
+      params: params,
       timestamp: Date.now(),
     });
 
-    // Trim to max
     if (history.length > HISTORY_MAX) history.length = HISTORY_MAX;
 
-    // Trim text previews to stay under ~2MB total
-    let totalText = 0;
-    for (let i = 0; i < history.length; i++) {
+    var totalText = 0;
+    for (var i = 0; i < history.length; i++) {
       totalText += history[i].textPreview.length;
       if (totalText > 500000) {
         history.length = i;
@@ -433,103 +341,100 @@
 
     try {
       CS.storage.set(HISTORY_KEY, JSON.stringify(history));
-    } catch {
-      // Storage full — trim oldest
+    } catch(e) {
       history.pop();
-      try { CS.storage.set(HISTORY_KEY, JSON.stringify(history)); } catch { /* give up */ }
+      try { CS.storage.set(HISTORY_KEY, JSON.stringify(history)); } catch(e2) { /* give up */ }
     }
 
     renderHistory();
   }
 
   function renderHistory() {
-    const history = loadHistory();
+    if (!historySection || !historyList) return;
+    var history = loadHistory();
     historySection.hidden = history.length === 0;
     historyList.innerHTML = "";
 
     if (history.length === 0) return;
 
-    for (const item of history) {
-      const div = document.createElement("div");
+    history.forEach(function(item) {
+      var div = document.createElement("div");
       div.className = "ascii-history-item";
       div.setAttribute("data-history-id", item.id);
 
-      const thumb = document.createElement("div");
+      var thumb = document.createElement("div");
       thumb.className = "ascii-history-item__thumb";
       thumb.textContent = item.textPreview;
 
-      const meta = document.createElement("div");
+      var meta = document.createElement("div");
       meta.className = "ascii-history-item__meta";
 
-      const name = document.createElement("div");
+      var name = document.createElement("div");
       name.className = "ascii-history-item__name";
       name.textContent = item.fileName;
 
-      const params = document.createElement("div");
-      params.className = "ascii-history-item__params";
-      const p = item.params;
-      params.textContent = `${p.mode} · ${p.width}w · ${p.colored ? "彩色 " : ""}${p.negative ? "反色 " : ""}${p.grayscale ? "灰度 " : ""}${p.charSet !== "default" ? p.charSet : ""}`;
+      var paramsEl = document.createElement("div");
+      paramsEl.className = "ascii-history-item__params";
+      var p = item.params;
+      paramsEl.textContent = p.mode + " · " + p.width + "w · " + (p.colored ? "彩色 " : "") + (p.negative ? "反色 " : "") + (p.grayscale ? "灰度 " : "") + (p.charSet !== "default" ? p.charSet : "");
 
-      const time = document.createElement("span");
-      time.className = "ascii-history-item__time";
-      time.textContent = formatTime(item.timestamp);
+      var timeEl = document.createElement("span");
+      timeEl.className = "ascii-history-item__time";
+      timeEl.textContent = formatTime(item.timestamp);
 
-      const removeBtn = document.createElement("button");
+      var removeBtn = document.createElement("button");
       removeBtn.className = "ascii-history-item__remove";
       removeBtn.type = "button";
       removeBtn.textContent = "✕";
-      removeBtn.addEventListener("click", (e) => {
+      removeBtn.addEventListener("click", function(e) {
         e.stopPropagation();
         removeHistoryItem(item.id);
       });
 
       meta.appendChild(name);
-      meta.appendChild(params);
+      meta.appendChild(paramsEl);
       div.appendChild(thumb);
       div.appendChild(meta);
-      div.appendChild(time);
+      div.appendChild(timeEl);
       div.appendChild(removeBtn);
 
-      div.addEventListener("click", () => {
-        outputText.textContent = item.textPreview.length >= 400
-          ? item.textPreview + "\n\n… (截取自历史记录)"
-          : item.textPreview;
-        outputSection.hidden = false;
+      div.addEventListener("click", function() {
+        if (outputText) {
+          outputText.textContent = item.textPreview.length >= 400
+            ? item.textPreview + "\n\n… (截取自历史记录)"
+            : item.textPreview;
+        }
+        if (outputSection) outputSection.hidden = false;
         switchTab("text");
-        statusText.textContent = `已加载历史记录 · ${item.fileName}`;
-        outputSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (statusText) statusText.textContent = "已加载历史记录 · " + item.fileName;
+        if (outputSection) outputSection.scrollIntoView({ behavior: "smooth", block: "start" });
       });
 
       historyList.appendChild(div);
-    }
+    });
   }
 
   function removeHistoryItem(id) {
-    const history = loadHistory().filter((h) => h.id !== id);
+    var history = loadHistory().filter(function(h) { return h.id !== id; });
     CS.storage.set(HISTORY_KEY, JSON.stringify(history));
     renderHistory();
   }
 
-  document.querySelector("[data-history-clear-all]").addEventListener("click", () => {
-    CS.storage.remove(HISTORY_KEY);
-    renderHistory();
-    CS.toast("历史记录已清空", "ok");
-  });
-
   function formatTime(ts) {
-    const d = new Date(ts);
-    const now = new Date();
-    const diffMin = Math.floor((now - d) / 60000);
+    var d = new Date(ts);
+    var now = new Date();
+    var diffMin = Math.floor((now - d) / 60000);
     if (diffMin < 1) return "刚刚";
-    if (diffMin < 60) return `${diffMin} 分钟前`;
-    const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return `${diffHr} 小时前`;
-    return `${d.getMonth() + 1}/${d.getDate()}`;
+    if (diffMin < 60) return diffMin + " 分钟前";
+    var diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return diffHr + " 小时前";
+    return (d.getMonth() + 1) + "/" + d.getDate();
   }
 
   // ---- Mobile collapse ----
   function checkMobileCollapse() {
-    const isMobile = window.innerWidth <= 768;
+    if (!collapseBtn || !controlsBody) return;
+    var isMobile = window.innerWidth <= 768;
     collapseBtn.hidden = !isMobile;
     if (isMobile && lastResult) {
       controlsBody.setAttribute("data-collapsed", "true");
@@ -537,23 +442,172 @@
     }
   }
 
-  collapseBtn.addEventListener("click", () => {
-    const collapsed = controlsBody.getAttribute("data-collapsed") === "true";
-    controlsBody.setAttribute("data-collapsed", String(!collapsed));
-    collapseBtn.innerHTML = collapsed ? "&#9650;" : "&#9660;";
-  });
-
-  window.addEventListener("resize", checkMobileCollapse);
-
-  // ---- Keyboard shortcut: Ctrl+Enter to convert ----
-  document.addEventListener("keydown", (e) => {
-    if (e.ctrlKey && e.key === "Enter" && selectedFile && !convertBtn.disabled) {
+  // ---- Init / wire ----
+  function wire() {
+    // Drag & drop
+    on(uploadZone, "dragover", function(e) { e.preventDefault(); uploadZone.setAttribute("data-dragover", "true"); });
+    on(uploadZone, "dragleave", function() { uploadZone.setAttribute("data-dragover", "false"); });
+    on(uploadZone, "drop", function(e) {
       e.preventDefault();
-      convertBtn.click();
-    }
-  });
+      uploadZone.setAttribute("data-dragover", "false");
+      var file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
+    on(uploadZone, "click", function() { if (fileInput) fileInput.click(); });
+    on(fileInput, "change", function() {
+      var file = fileInput.files[0];
+      if (file) handleFile(file);
+    });
+    on(clearPreviewBtn, "click", function() { clearFile(); cancelPending(); });
 
-  // ---- Init ----
-  renderHistory();
-  checkMobileCollapse();
+    // Convert
+    on(convertBtn, "click", function() { isManualTrigger = true; doConvert(); });
+
+    // Wire all parameter changes to trigger auto-convert
+    if (modeRadios) modeRadios.forEach(function(r) { wireAutoTrigger(r, "change"); });
+    if (widthPresetRadios) widthPresetRadios.forEach(function(r) { wireAutoTrigger(r, "change"); });
+    wireAutoTrigger(widthCustom, "input");
+    if (heightModeRadios) heightModeRadios.forEach(function(r) { wireAutoTrigger(r, "change"); });
+    wireAutoTrigger(heightCustom, "input");
+    if (charSetRadios) charSetRadios.forEach(function(r) { wireAutoTrigger(r, "change"); });
+    wireAutoTrigger(customMapInput, "input");
+    wireAutoTrigger(toggleColored, "change");
+    wireAutoTrigger(toggleNegative, "change");
+    wireAutoTrigger(toggleGrayscale, "change");
+
+    on(autoToggle, "change", function() {
+      if (autoToggle.checked && selectedFile) {
+        scheduleAutoConvert();
+      } else {
+        cancelPending();
+        if (selectedFile) statusText.textContent = "已就绪，点击转换";
+      }
+    });
+
+    // Parameter UI wiring (non-auto)
+    if (widthPresetRadios) {
+      widthPresetRadios.forEach(function(r) {
+        on(r, "change", function() {
+          if (widthCustom) widthCustom.style.display = (r.value === "custom") ? "" : "none";
+        });
+      });
+    }
+    if (heightModeRadios) {
+      heightModeRadios.forEach(function(r) {
+        on(r, "change", function() {
+          if (heightCustom) heightCustom.style.display = (r.value === "custom") ? "" : "none";
+        });
+      });
+    }
+    if (charSetRadios) {
+      charSetRadios.forEach(function(r) {
+        on(r, "change", function() {
+          if (customMapInput) customMapInput.style.display = (r.value === "custom") ? "" : "none";
+        });
+      });
+    }
+
+    // Tab switching
+    if (tabBtns) {
+      tabBtns.forEach(function(btn) {
+        on(btn, "click", function() { switchTab(btn.getAttribute("data-tab")); });
+      });
+    }
+
+    // Actions
+    var actionCopy = container.querySelector("[data-action-copy]");
+    if (actionCopy) {
+      on(actionCopy, "click", async function() {
+        if (!outputText || !outputText.textContent) return;
+        try {
+          await navigator.clipboard.writeText(outputText.textContent);
+          if (CS && CS.toast) CS.toast("已复制到剪贴板", "ok");
+        } catch(e) {
+          if (CS && CS.toast) CS.toast("复制失败，请手动选择", "err");
+        }
+      });
+    }
+
+    var actionDownloadTxt = container.querySelector("[data-action-download-txt]");
+    if (actionDownloadTxt) {
+      on(actionDownloadTxt, "click", function() {
+        if (!outputText || !outputText.textContent) return;
+        var blob = new Blob([outputText.textContent], { type: "text/plain;charset=utf-8" });
+        downloadBlob(blob, "ascii-art.txt");
+      });
+    }
+
+    var actionDownloadPng = container.querySelector("[data-action-download-png]");
+    if (actionDownloadPng) {
+      on(actionDownloadPng, "click", function() {
+        if (!lastResult || !lastResult.pngBase64) return;
+        var byteString = atob(lastResult.pngBase64);
+        var ab = new ArrayBuffer(byteString.length);
+        var ia = new Uint8Array(ab);
+        for (var i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+        var blob = new Blob([ab], { type: "image/png" });
+        downloadBlob(blob, "ascii-art.png");
+      });
+    }
+
+    var actionClear = container.querySelector("[data-action-clear]");
+    if (actionClear) {
+      on(actionClear, "click", function() {
+        if (outputText) outputText.textContent = "";
+        if (outputPng) outputPng.src = "";
+        lastResult = null;
+        if (outputSection) outputSection.hidden = true;
+        clearFile();
+        statusText.textContent = "请先上传图片";
+      });
+    }
+
+    var historyClearAll = container.querySelector("[data-history-clear-all]");
+    if (historyClearAll) {
+      on(historyClearAll, "click", function() {
+        CS.storage.remove(HISTORY_KEY);
+        renderHistory();
+        if (CS && CS.toast) CS.toast("历史记录已清空", "ok");
+      });
+    }
+
+    // Collapse
+    on(collapseBtn, "click", function() {
+      if (!controlsBody) return;
+      var collapsed = controlsBody.getAttribute("data-collapsed") === "true";
+      controlsBody.setAttribute("data-collapsed", String(!collapsed));
+      collapseBtn.innerHTML = collapsed ? "&#9650;" : "&#9660;";
+    });
+
+    // Resize & keyboard
+    if (ac) {
+      window.addEventListener("resize", checkMobileCollapse, { signal: ac.signal });
+      document.addEventListener("keydown", function(e) {
+        if (e.ctrlKey && e.key === "Enter" && selectedFile && !convertBtn.disabled) {
+          e.preventDefault();
+          if (convertBtn) convertBtn.click();
+        }
+      }, { signal: ac.signal });
+    }
+
+    // Init
+    renderHistory();
+    checkMobileCollapse();
+  }
+
+  function mount(el) {
+    container = el;
+    ac = new AbortController();
+    collectEls();
+    wire();
+  }
+
+  function unmount() {
+    if (ac) { ac.abort(); ac = null; }
+    if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
+    if (abortController) { abortController.abort(); abortController = null; }
+    container = null;
+  }
+
+  window.__page_ascii = { mount: mount, unmount: unmount };
 })();

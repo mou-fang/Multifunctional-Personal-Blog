@@ -1,6 +1,7 @@
 /* ===== claudeOne :: music.js =====
- * Music unlock page — file upload, worker communication, download/preview.
- * Decryption runs in a Web Worker (decrypt-worker.js) to keep the UI responsive.
+ * Music unlock page — file upload, worker communication, download.
+ * Decryption runs in a Web Worker (decrypt-worker.js).
+ * Audio playback delegated to global ClaudeOnePlayer.
  */
 
 (function bootstrapMusic() {
@@ -8,518 +9,391 @@
   const CS = window.ClaudeOne;
 
   if (!CFG || !CS) {
-    console.error("[music] Config or shell missing");
-    return;
+    console.error("[music] Config or shell missing — deferring init");
+    // Register lifecycle anyway, shell will be available at mount time
   }
 
-  // --- State ---------------------------------------------------------------
-  const fileResults = new Map(); // id -> { name, status, title, artist, album, ext, mime, blob }
-  const SUPPORTED = CFG.music.supportedExts;
+  // --- Persistent module state (survives mount/unmount) ----------------------
+  const fileResults = new Map();
+  const SUPPORTED = CFG ? CFG.music.supportedExts : [];
   let worker = null;
   let idCounter = 0;
-  let audioUrl = null;
+  let workerReady = false;
 
-  // --- DOM refs ------------------------------------------------------------
-  const uploadZone = document.querySelector("[data-upload-zone]");
-  const fileInput = document.querySelector("[data-file-input]");
-  const fileList = document.querySelector("[data-file-list]");
-  const batchActions = document.querySelector("[data-batch-actions]");
-  const downloadAllBtn = document.querySelector("[data-download-all]");
-  const clearAllBtn = document.querySelector("[data-clear-all]");
-  const namingRadios = document.querySelectorAll("[data-naming-format]");
-  const audioPlayer = document.querySelector("[data-audio-player]");
-  const audioEl = document.querySelector("[data-audio-el]");
-  const audioPlay = document.querySelector("[data-audio-play]");
-  const audioClose = document.querySelector("[data-audio-close]");
-  const audioProgressWrap = document.querySelector("[data-audio-progress-wrap]");
-  const audioProgressFill = document.querySelector("[data-audio-progress]");
-  const audioTime = document.querySelector("[data-audio-time]");
-  const audioVolumeFill = document.querySelector("[data-audio-volume]");
-  const audioVolumeSlider = document.querySelector("[data-audio-volume-slider]");
-  const nowPlaying = document.querySelector("[data-now-playing]");
-  const emptyState = document.querySelector("[data-empty-state]");
+  // --- Per-mount state -------------------------------------------------------
+  let container = null;
+  let ac = null;
+  let uploadZone, fileInput, fileList, batchActions;
+  let downloadAllBtn, clearAllBtn;
+  let namingRadios, emptyState;
 
-  // --- Init worker ---------------------------------------------------------
-  function initWorker() {
+  // --- Worker management (persistent) ----------------------------------------
+  function ensureWorker() {
+    if (worker) return;
     try {
-      const workerUrl = "./js/decrypt-worker.js";
-      worker = new Worker(workerUrl);
-      worker.onmessage = handleWorkerMessage;
+      worker = new Worker("./js/decrypt-worker.js");
+      worker.onmessage = function (e) {
+        var data = e.data;
+        var entry = fileResults.get(data.id);
+        if (!entry) return;
+
+        if (data.status === "error") {
+          entry.status = "error";
+          entry.error = data.error;
+        } else {
+          entry.status = "done";
+          entry.title = data.data.title || entry.name;
+          entry.artist = data.data.artist || "未知艺术家";
+          entry.album = data.data.album || "";
+          entry.ext = data.data.ext || "mp3";
+          entry.mime = data.data.mime || "audio/mpeg";
+          if (data.data.audio) {
+            entry.blob = new Blob([data.data.audio], { type: entry.mime });
+          }
+          if (data.data.picture && data.data.picture.byteLength > 0) {
+            var head = new Uint8Array(data.data.picture.slice(0, 4));
+            var mime = "image/jpeg";
+            if (head[0]===0x89 && head[1]===0x50) mime = "image/png";
+            else if (head[0]===0x47 && head[1]===0x49) mime = "image/gif";
+            else if (head[0]===0x52 && head[1]===0x49) mime = "image/webp";
+            else if (head[0]===0x42 && head[1]===0x4D) mime = "image/bmp";
+            entry.coverUrl = URL.createObjectURL(new Blob([data.data.picture], { type: mime }));
+          }
+        }
+        // Update UI only if page is mounted
+        if (container) {
+          updateFileCardDOM(data.id);
+          updateEmptyDOM();
+        }
+      };
       worker.onerror = function (e) {
         console.error("[music] Worker error:", e);
-        CS.toast("解密引擎启动失败，请刷新页面重试", "err");
+        if (CS && CS.toast) CS.toast("解密引擎启动失败，请刷新页面重试", "err");
       };
+      workerReady = true;
     } catch (err) {
       console.error("[music] Cannot create worker:", err);
-      CS.toast("当前环境不支持后台解密，请使用现代浏览器", "err");
+      if (CS && CS.toast) CS.toast("当前环境不支持后台解密", "err");
     }
   }
 
-  // --- Worker message handler ----------------------------------------------
-  function handleWorkerMessage(e) {
-    const { id, status, data, error } = e.data;
-    const entry = fileResults.get(id);
-    if (!entry) return;
-
-    if (status === "error") {
-      entry.status = "error";
-      entry.error = error;
-      updateFileCard(id);
-      return;
-    }
-
-    entry.status = "done";
-    entry.title = data.title || entry.name;
-    entry.artist = data.artist || "未知艺术家";
-    entry.album = data.album || "";
-    entry.ext = data.ext || "mp3";
-    entry.mime = data.mime || "audio/mpeg";
-    entry.title = entry.title || entry.name;
-
-    // Create blob for audio
-    if (data.audio) {
-      entry.blob = new Blob([data.audio], { type: entry.mime });
-    }
-
-    // Create blob URL for cover picture
-    if (data.picture && data.picture.byteLength > 0) {
-      var head = new Uint8Array(data.picture.slice(0, 4));
-      var mime = "image/jpeg";
-      if (head[0]===0x89 && head[1]===0x50 && head[2]===0x4E && head[3]===0x47) mime = "image/png";
-      else if (head[0]===0x47 && head[1]===0x49 && head[2]===0x46) mime = "image/gif";
-      else if (head[0]===0x52 && head[1]===0x49 && head[2]===0x46 && head[3]===0x46) mime = "image/webp";
-      else if (head[0]===0x42 && head[1]===0x4D) mime = "image/bmp";
-      entry.coverUrl = URL.createObjectURL(
-        new Blob([data.picture], { type: mime })
-      );
-    }
-
-    updateFileCard(id);
-    updateEmptyState();
-  }
-
-  // --- File processing -----------------------------------------------------
+  // --- File processing -------------------------------------------------------
   function handleFiles(files) {
     if (!worker) {
-      CS.toast("解密引擎未就绪，请刷新页面", "err");
+      if (CS && CS.toast) CS.toast("解密引擎未就绪，请刷新页面", "err");
       return;
     }
 
-    let added = 0;
-    for (const file of files) {
-      const ext = "." + file.name.split(".").pop().toLowerCase();
+    var added = 0;
+    for (var i = 0; i < files.length; i++) {
+      var file = files[i];
+      var ext = "." + file.name.split(".").pop().toLowerCase();
       if (!SUPPORTED.includes(ext)) {
-        CS.toast("不支持格式: " + file.name, "err", 2500);
+        if (CS && CS.toast) CS.toast("不支持格式: " + file.name, "err", 2500);
         continue;
       }
       if (file.size > CFG.music.maxFileSize) {
-        CS.toast("文件过大: " + file.name, "err", 2500);
+        if (CS && CS.toast) CS.toast("文件过大: " + file.name, "err", 2500);
         continue;
       }
       if (file.size === 0) {
-        CS.toast("文件为空: " + file.name, "err", 2500);
+        if (CS && CS.toast) CS.toast("文件为空: " + file.name, "err", 2500);
         continue;
       }
 
-      const id = String(++idCounter);
+      var id = String(++idCounter);
       fileResults.set(id, {
         name: file.name.replace(/\.[^.]+$/, ""),
         rawName: file.name,
         status: "decrypting",
-        title: null,
-        artist: null,
-        album: null,
-        ext: null,
-        mime: null,
-        blob: null,
-        coverUrl: null,
-        error: null,
+        title: null, artist: null, album: null, ext: null, mime: null,
+        blob: null, coverUrl: null, error: null
       });
 
-      renderFileCard(id);
+      renderFileCardDOM(id);
       readAndDecrypt(id, file);
       added++;
     }
-
-    if (added > 0) {
-      updateEmptyState();
-    }
+    if (added > 0) updateEmptyDOM();
   }
 
   function readAndDecrypt(id, file) {
-    const reader = new FileReader();
+    var reader = new FileReader();
     reader.onload = function () {
       if (!worker) return;
-      worker.postMessage(
-        {
-          id: id,
-          name: file.name,
-          buffer: reader.result,
-        },
-        [reader.result]
-      );
+      worker.postMessage({ id: id, name: file.name, buffer: reader.result }, [reader.result]);
     };
     reader.onerror = function () {
-      const entry = fileResults.get(id);
-      if (entry) {
-        entry.status = "error";
-        entry.error = "无法读取文件";
-        updateFileCard(id);
-      }
+      var entry = fileResults.get(id);
+      if (entry) { entry.status = "error"; entry.error = "无法读取文件"; updateFileCardDOM(id); }
     };
     reader.readAsArrayBuffer(file);
   }
 
-  // --- Render --------------------------------------------------------------
-  function renderFileCard(id) {
-    const entry = fileResults.get(id);
-    if (!entry) return;
+  // --- DOM rendering (only when mounted) -------------------------------------
+  function buildCardHTML(entry) {
+    var coverHTML = entry.coverUrl
+      ? '<img src="' + CS.escapeHtml(entry.coverUrl) + '" alt="cover" />'
+      : '<span>&#9835;</span>';
 
-    const card = document.createElement("div");
+    var title = entry.title || entry.name || "...";
+    var artist = entry.status === "decrypting" ? "解密中..." : (entry.artist || "");
+    var album = entry.album || "";
+    var statusText = entry.status === "decrypting" ? "解密中" : entry.status === "done" ? "已解锁" : "失败";
+    var statusClass = entry.status === "decrypting" ? "decrypting" : entry.status === "done" ? "done" : "error";
+
+    var actionsHTML = "";
+    if (entry.status === "done") {
+      actionsHTML = '<button class="file-card__action file-card__action--play" data-action="play" title="试听">&#9654;</button>' +
+        '<button class="file-card__action file-card__action--download" data-action="download" title="下载">&#8595;</button>' +
+        '<button class="file-card__action file-card__action--delete" data-action="delete" title="删除">&#10005;</button>';
+    } else if (entry.status === "decrypting") {
+      actionsHTML = '<button class="file-card__action file-card__action--delete" data-action="delete" title="取消">&#10005;</button>';
+    } else {
+      actionsHTML = '<button class="file-card__action file-card__action--delete" data-action="delete" title="移除">&#10005;</button>';
+    }
+
+    return '<div class="file-card__cover">' + coverHTML + '</div>' +
+      '<div class="file-card__meta">' +
+        '<div class="file-card__title">' + CS.escapeHtml(title) + '</div>' +
+        '<div class="file-card__artist">' + CS.escapeHtml(artist) + '</div>' +
+        '<div class="file-card__album">' + CS.escapeHtml(album) + '</div>' +
+      '</div>' +
+      '<span class="file-card__status" data-status="' + statusClass + '">' + statusText + '</span>' +
+      '<div class="file-card__actions">' + actionsHTML + '</div>';
+  }
+
+  function renderFileCardDOM(id) {
+    var entry = fileResults.get(id);
+    if (!entry || !fileList) return;
+    var card = document.createElement("div");
     card.className = "file-card page-chunk";
     card.setAttribute("data-file-id", id);
     card.setAttribute("data-revealed", "true");
     card.innerHTML = buildCardHTML(entry);
     fileList.appendChild(card);
-    bindCardActions(card, id);
+    bindCardActionsDOM(card, id);
   }
 
-  function buildCardHTML(entry) {
-    const coverHTML = entry.coverUrl
-      ? `<img src="${CS.escapeHtml(entry.coverUrl)}" alt="cover" />`
-      : `<span>&#9835;</span>`;
-
-    const title = entry.title || entry.name || "...";
-    const artist = entry.status === "decrypting" ? "解密中..." : (entry.artist || "");
-    const album = entry.album || "";
-    const statusText =
-      entry.status === "decrypting"
-        ? "解密中"
-        : entry.status === "done"
-        ? "已解锁"
-        : "失败";
-    const statusClass =
-      entry.status === "decrypting"
-        ? "decrypting"
-        : entry.status === "done"
-        ? "done"
-        : "error";
-
-    let actionsHTML = "";
-    if (entry.status === "done") {
-      actionsHTML = `
-        <button class="file-card__action file-card__action--play" data-action="play" title="试听">&#9654;</button>
-        <button class="file-card__action file-card__action--download" data-action="download" title="下载">&#8595;</button>
-        <button class="file-card__action file-card__action--delete" data-action="delete" title="删除">&#10005;</button>
-      `;
-    } else if (entry.status === "decrypting") {
-      actionsHTML = `
-        <button class="file-card__action file-card__action--delete" data-action="delete" title="取消">&#10005;</button>
-      `;
-    } else {
-      actionsHTML = `
-        <button class="file-card__action file-card__action--delete" data-action="delete" title="移除">&#10005;</button>
-      `;
-    }
-
-    return `
-      <div class="file-card__cover">${coverHTML}</div>
-      <div class="file-card__meta">
-        <div class="file-card__title">${CS.escapeHtml(title)}</div>
-        <div class="file-card__artist">${CS.escapeHtml(artist)}</div>
-        <div class="file-card__album">${CS.escapeHtml(album)}</div>
-      </div>
-      <span class="file-card__status" data-status="${statusClass}">${statusText}</span>
-      <div class="file-card__actions">${actionsHTML}</div>
-    `;
-  }
-
-  function updateFileCard(id) {
-    const entry = fileResults.get(id);
+  function updateFileCardDOM(id) {
+    var entry = fileResults.get(id);
     if (!entry) return;
-    const card = document.querySelector(`[data-file-id="${id}"]`);
+    var card = fileList.querySelector('[data-file-id="' + id + '"]');
     if (!card) return;
     card.innerHTML = buildCardHTML(entry);
-    bindCardActions(card, id);
+    bindCardActionsDOM(card, id);
   }
 
-  function bindCardActions(card, id) {
-    card.querySelectorAll("[data-action]").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
+  function bindCardActionsDOM(card, id) {
+    var buttons = card.querySelectorAll("[data-action]");
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener("click", function (e) {
         e.stopPropagation();
-        const action = btn.getAttribute("data-action");
-        if (action === "play") previewAudio(id);
+        var action = this.getAttribute("data-action");
+        if (action === "play") previewWithGlobalPlayer(id);
         else if (action === "download") downloadFile(id);
         else if (action === "delete") removeFile(id);
-      });
-    });
+      }, { signal: ac.signal });
+    }
   }
 
-  function updateEmptyState() {
-    const hasFiles = fileResults.size > 0;
+  function updateEmptyDOM() {
+    if (!emptyState || !batchActions) return;
+    var hasFiles = fileResults.size > 0;
     emptyState.hidden = hasFiles;
     batchActions.hidden = !hasFiles;
   }
 
-  // --- Preview (custom player) --------------------------------------------
-  function formatTime(sec) {
-    if (!isFinite(sec) || sec < 0) return "00:00";
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60);
-    return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
-  }
-
-  function updateProgress() {
-    if (!audioEl || !audioEl.duration) return;
-    const pct = (audioEl.currentTime / audioEl.duration) * 100;
-    audioProgressFill.style.width = pct + "%";
-    audioTime.textContent = formatTime(audioEl.currentTime);
-  }
-
-  function previewAudio(id) {
-    const entry = fileResults.get(id);
+  // --- Global player integration ---------------------------------------------
+  function previewWithGlobalPlayer(id) {
+    var entry = fileResults.get(id);
     if (!entry || !entry.blob) return;
 
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
-    audioUrl = URL.createObjectURL(entry.blob);
-    audioEl.src = audioUrl;
-    nowPlaying.textContent = entry.title || entry.name;
-    audioPlayer.hidden = false;
-    audioPlay.innerHTML = "&#9646;&#9646;";
-    audioTime.textContent = "00:00";
-    audioProgressFill.style.width = "0%";
-
-    // Wire events
-    audioEl.ontimeupdate = updateProgress;
-    audioEl.onloadedmetadata = function () {
-      audioTime.textContent = formatTime(audioEl.duration);
-    };
-    audioEl.onended = function () {
-      audioPlay.innerHTML = "&#9654;";
-    };
-    audioEl.onplay = function () {
-      audioPlay.innerHTML = "&#9646;&#9646;";
-    };
-    audioEl.onpause = function () {
-      audioPlay.innerHTML = "&#9654;";
-    };
-
-    audioEl.volume = audioVolumeSlider ? audioVolumeSlider.value / 100 : 1;
-    audioEl.play().catch(function () {});
-  }
-
-  function togglePlay() {
-    if (!audioEl.src) return;
-    if (audioEl.paused) {
-      audioEl.play().catch(function () {});
-    } else {
-      audioEl.pause();
+    var player = window.ClaudeOnePlayer;
+    if (!player) {
+      if (CS && CS.toast) CS.toast("播放器未就绪", "err");
+      return;
     }
+
+    player.load({
+      src: URL.createObjectURL(entry.blob),
+      title: entry.title || entry.name,
+      artist: entry.artist || "",
+      album: entry.album || "",
+      cover: entry.coverUrl || ""
+    });
+    player.play();
   }
 
-  function stopPreview() {
-    audioEl.pause();
-    audioEl.removeAttribute("src");
-    audioEl.ontimeupdate = null;
-    audioEl.onloadedmetadata = null;
-    audioEl.onended = null;
-    audioEl.onplay = null;
-    audioEl.onpause = null;
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-      audioUrl = null;
-    }
-    audioPlayer.hidden = true;
-    audioPlay.innerHTML = "&#9654;";
-    audioProgressFill.style.width = "0%";
-    audioTime.textContent = "00:00";
-  }
-
-  // --- Download ------------------------------------------------------------
-  function getDownloadFilename(entry) {
-    const fmt = getNamingFormat();
-    const ext = entry.ext || "mp3";
-    const title = entry.title || entry.name || "unknown";
-    const artist = entry.artist || "";
-
-    switch (fmt) {
-      case "1":
-        return `${title}.${ext}`;
-      case "3":
-        return artist ? `${title} - ${artist}.${ext}` : `${title}.${ext}`;
-      case "2":
-      default:
-        return artist ? `${artist} - ${title}.${ext}` : `${title}.${ext}`;
-    }
-  }
-
+  // --- Download --------------------------------------------------------------
   function getNamingFormat() {
-    for (const radio of namingRadios) {
-      if (radio.checked) return radio.value;
+    if (!namingRadios) return "2";
+    for (var i = 0; i < namingRadios.length; i++) {
+      if (namingRadios[i].checked) return namingRadios[i].value;
     }
     return "2";
   }
 
-  function downloadFile(id) {
-    const entry = fileResults.get(id);
-    if (!entry || !entry.blob) return;
+  function getDownloadFilename(entry) {
+    var fmt = getNamingFormat();
+    var ext = entry.ext || "mp3";
+    var title = entry.title || entry.name || "unknown";
+    var artist = entry.artist || "";
+    switch (fmt) {
+      case "1": return title + "." + ext;
+      case "3": return artist ? (title + " - " + artist + "." + ext) : (title + "." + ext);
+      default: return artist ? (artist + " - " + title + "." + ext) : (title + "." + ext);
+    }
+  }
 
-    const url = URL.createObjectURL(entry.blob);
-    const a = document.createElement("a");
+  function downloadFile(id) {
+    var entry = fileResults.get(id);
+    if (!entry || !entry.blob) return;
+    var url = URL.createObjectURL(entry.blob);
+    var a = document.createElement("a");
     a.href = url;
     a.download = getDownloadFilename(entry);
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   }
 
   function downloadAll() {
-    const doneEntries = [...fileResults.values()].filter(
-      (e) => e.status === "done" && e.blob
-    );
+    var doneEntries = [];
+    fileResults.forEach(function (e) {
+      if (e.status === "done" && e.blob) doneEntries.push(e);
+    });
     if (doneEntries.length === 0) {
-      CS.toast("没有可下载的文件", "err");
+      if (CS && CS.toast) CS.toast("没有可下载的文件", "err");
       return;
     }
-
-    doneEntries.forEach((entry, i) => {
-      setTimeout(() => {
-        const url = URL.createObjectURL(entry.blob);
-        const a = document.createElement("a");
+    doneEntries.forEach(function (entry, i) {
+      setTimeout(function () {
+        var url = URL.createObjectURL(entry.blob);
+        var a = document.createElement("a");
         a.href = url;
         a.download = getDownloadFilename(entry);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
       }, i * 300);
     });
-
-    CS.toast(`正在下载 ${doneEntries.length} 个文件`, "ok");
+    if (CS && CS.toast) CS.toast("正在下载 " + doneEntries.length + " 个文件", "ok");
   }
 
-  // --- Remove --------------------------------------------------------------
+  // --- Remove ----------------------------------------------------------------
   function removeFile(id) {
-    const entry = fileResults.get(id);
+    var entry = fileResults.get(id);
     if (!entry) return;
-
     if (entry.coverUrl) URL.revokeObjectURL(entry.coverUrl);
     fileResults.delete(id);
-
-    const card = document.querySelector(`[data-file-id="${id}"]`);
+    var card = fileList.querySelector('[data-file-id="' + id + '"]');
     if (card) card.remove();
-
-    updateEmptyState();
+    updateEmptyDOM();
   }
 
   function clearAll() {
-    for (const [id, entry] of fileResults) {
+    fileResults.forEach(function (entry) {
       if (entry.coverUrl) URL.revokeObjectURL(entry.coverUrl);
-    }
+    });
     fileResults.clear();
-    fileList.querySelectorAll(".file-card").forEach((c) => c.remove());
-    updateEmptyState();
-    CS.toast("已清空所有文件");
+    var cards = fileList.querySelectorAll(".file-card");
+    for (var i = 0; i < cards.length; i++) cards[i].remove();
+    updateEmptyDOM();
+    if (CS && CS.toast) CS.toast("已清空所有文件");
   }
 
-  // --- Upload zone events --------------------------------------------------
-  function setupUploadZone() {
-    if (!uploadZone || !fileInput) return;
+  // --- Lifecycle -------------------------------------------------------------
+  function mount(el) {
+    container = el;
+    ac = new AbortController();
+    var signal = ac.signal;
 
-    // Click to open file picker
-    uploadZone.addEventListener("click", () => {
-      fileInput.value = "";
-      fileInput.click();
-    });
+    // Query DOM within container
+    uploadZone = el.querySelector("[data-upload-zone]");
+    fileInput = el.querySelector("[data-file-input]");
+    fileList = el.querySelector("[data-file-list]");
+    batchActions = el.querySelector("[data-batch-actions]");
+    downloadAllBtn = el.querySelector("[data-download-all]");
+    clearAllBtn = el.querySelector("[data-clear-all]");
+    namingRadios = el.querySelectorAll("[data-naming-format]");
+    emptyState = el.querySelector("[data-empty-state]");
 
-    fileInput.addEventListener("change", () => {
-      if (fileInput.files.length > 0) {
-        handleFiles(fileInput.files);
+    // Worker
+    ensureWorker();
+
+    // Upload zone
+    if (uploadZone && fileInput) {
+      uploadZone.addEventListener("click", function () {
         fileInput.value = "";
-      }
-    });
+        fileInput.click();
+      }, { signal: signal });
 
-    // Drag and drop
-    uploadZone.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      uploadZone.setAttribute("data-dragover", "true");
-    });
+      fileInput.addEventListener("change", function () {
+        if (fileInput.files.length > 0) {
+          handleFiles(fileInput.files);
+          fileInput.value = "";
+        }
+      }, { signal: signal });
 
-    uploadZone.addEventListener("dragleave", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      uploadZone.setAttribute("data-dragover", "false");
-    });
-
-    uploadZone.addEventListener("drop", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      uploadZone.setAttribute("data-dragover", "false");
-      if (e.dataTransfer.files.length > 0) {
-        handleFiles(e.dataTransfer.files);
-      }
-    });
-
-    // Also handle drag on the inner zone
-    const innerZone = uploadZone.querySelector(".music-upload__inner");
-    if (innerZone) {
-      innerZone.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+      uploadZone.addEventListener("dragover", function (e) {
+        e.preventDefault(); e.stopPropagation();
         uploadZone.setAttribute("data-dragover", "true");
+      }, { signal: signal });
+
+      uploadZone.addEventListener("dragleave", function (e) {
+        e.preventDefault(); e.stopPropagation();
+        uploadZone.setAttribute("data-dragover", "false");
+      }, { signal: signal });
+
+      uploadZone.addEventListener("drop", function (e) {
+        e.preventDefault(); e.stopPropagation();
+        uploadZone.setAttribute("data-dragover", "false");
+        if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
+      }, { signal: signal });
+    }
+
+    // Batch actions
+    if (downloadAllBtn) downloadAllBtn.addEventListener("click", downloadAll, { signal: signal });
+    if (clearAllBtn) clearAllBtn.addEventListener("click", clearAll, { signal: signal });
+
+    // Naming format
+    if (namingRadios && CS && CS.storage) {
+      var saved = CS.storage.get(CFG.music.storageKey) || "2";
+      for (var i = 0; i < namingRadios.length; i++) {
+        if (namingRadios[i].value === saved) namingRadios[i].checked = true;
+        namingRadios[i].addEventListener("change", function () {
+          if (this.checked && CS && CS.storage) CS.storage.set(CFG.music.storageKey, this.value);
+        }, { signal: signal });
+      }
+    }
+
+    // Re-render existing file cards (from previous mount)
+    if (fileList && fileResults.size > 0) {
+      var existingCards = fileList.querySelectorAll(".file-card");
+      for (var j = 0; j < existingCards.length; j++) existingCards[j].remove();
+      fileResults.forEach(function (entry, id) {
+        renderFileCardDOM(id);
       });
     }
+
+    updateEmptyDOM();
+
+    // Refresh reveal for new elements
+    if (CS && CS.refreshReveal) CS.refreshReveal();
   }
 
-  // --- Naming format persistence --------------------------------------------
-  function setupNamingFormat() {
-    const saved = CS.storage.get(CFG.music.storageKey) || "2";
-    namingRadios.forEach((r) => {
-      if (r.value === saved) r.checked = true;
-      r.addEventListener("change", () => {
-        if (r.checked) CS.storage.set(CFG.music.storageKey, r.value);
-      });
-    });
+  function unmount() {
+    if (ac) { ac.abort(); ac = null; }
+    // Keep worker alive (expensive to recreate)
+    // Keep fileResults (user may come back)
+    container = null;
+    uploadZone = null; fileInput = null; fileList = null;
+    batchActions = null; downloadAllBtn = null; clearAllBtn = null;
+    namingRadios = null; emptyState = null;
   }
 
-  // --- Events --------------------------------------------------------------
-  if (downloadAllBtn) downloadAllBtn.addEventListener("click", downloadAll);
-  if (clearAllBtn) clearAllBtn.addEventListener("click", clearAll);
-  if (audioClose) audioClose.addEventListener("click", stopPreview);
-  if (audioPlay) audioPlay.addEventListener("click", togglePlay);
-
-  // Progress bar click to seek
-  if (audioProgressWrap) {
-    audioProgressWrap.addEventListener("click", function (e) {
-      if (!audioEl.duration) return;
-      var rect = audioProgressWrap.getBoundingClientRect();
-      var pct = (e.clientX - rect.left) / rect.width;
-      audioEl.currentTime = pct * audioEl.duration;
-    });
-  }
-
-  // Volume slider
-  if (audioVolumeSlider) {
-    audioVolumeSlider.addEventListener("input", function () {
-      var v = this.value / 100;
-      audioEl.volume = v;
-      if (audioVolumeFill) audioVolumeFill.style.width = this.value + "%";
-    });
-  }
-
-  // --- Boot ----------------------------------------------------------------
-  function init() {
-    initWorker();
-    setupUploadZone();
-    setupNamingFormat();
-    updateEmptyState();
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-  } else {
-    init();
-  }
+  window.__page_music = { mount: mount, unmount: unmount };
 })();

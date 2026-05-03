@@ -2,40 +2,47 @@
  * DeepSeek V4 chat integration. Uses the /chat/completions SSE streaming
  * API with the new "thinking" parameter object. Renders plain-text messages
  * via textContent to avoid any XSS surface (no markdown in v1).
+ * SPA lifecycle: window.__page_ai
  */
 
 (function deepseekChat() {
-  const root = document.querySelector("[data-ai-root]");
-  if (!root) return;
+  "use strict";
+
+  var container = null;
+  var ac = null;
+  var streamAbort = null;  // AbortController for active stream fetch
+  var promptModalEl = null;
 
   const CFG = window.CLAUDE_ONE_CONFIG.deepseek;
   const L = window.CLAUDE_ONE_CONFIG.limits;
   const { storage, toast, createApiKeyModal } = window.ClaudeOne;
 
-  const els = {
-    messages: root.querySelector("[data-messages]"),
-    form: root.querySelector("[data-composer]"),
-    input: root.querySelector("[data-input]"),
-    sendBtn: root.querySelector("[data-send]"),
-    stopBtn: root.querySelector("[data-stop]"),
-    clearBtn: root.querySelector("[data-clear]"),
-    modelSelect: root.querySelector("[data-model]"),
-    thinkingToggle: root.querySelector("[data-thinking]"),
-    effortGroup: root.querySelector("[data-effort]"),
-    apiKeyBtn: root.querySelector("[data-apikey-open]"),
-    promptBtn: root.querySelector("[data-prompt-open]"),
-    promptHint: root.querySelector("[data-prompt-hint]"),
-    promptHintText: root.querySelector("[data-prompt-hint-text]"),
-    status: root.querySelector("[data-status]"),
-    count: root.querySelector("[data-count]"),
-    newTopicBtn: root.querySelector("[data-newtopic]"),
-    topicPicker: root.querySelector("[data-topic-picker]"),
-    topicToggle: root.querySelector("[data-topic-toggle]"),
-    topicPanel: root.querySelector("[data-topic-panel]"),
-    topicList: root.querySelector("[data-topic-list]"),
-    topicNewBtn: root.querySelector("[data-topic-newbtn]"),
-    topicName: root.querySelector("[data-topic-name]"),
-  };
+  var els = {};
+
+  function collectElements(root) {
+    els.messages = root.querySelector("[data-messages]");
+    els.form = root.querySelector("[data-composer]");
+    els.input = root.querySelector("[data-input]");
+    els.sendBtn = root.querySelector("[data-send]");
+    els.stopBtn = root.querySelector("[data-stop]");
+    els.clearBtn = root.querySelector("[data-clear]");
+    els.modelSelect = root.querySelector("[data-model]");
+    els.thinkingToggle = root.querySelector("[data-thinking]");
+    els.effortGroup = root.querySelector("[data-effort]");
+    els.apiKeyBtn = root.querySelector("[data-apikey-open]");
+    els.promptBtn = root.querySelector("[data-prompt-open]");
+    els.promptHint = root.querySelector("[data-prompt-hint]");
+    els.promptHintText = root.querySelector("[data-prompt-hint-text]");
+    els.status = root.querySelector("[data-status]");
+    els.count = root.querySelector("[data-count]");
+    els.newTopicBtn = root.querySelector("[data-newtopic]");
+    els.topicPicker = root.querySelector("[data-topic-picker]");
+    els.topicToggle = root.querySelector("[data-topic-toggle]");
+    els.topicPanel = root.querySelector("[data-topic-panel]");
+    els.topicList = root.querySelector("[data-topic-list]");
+    els.topicNewBtn = root.querySelector("[data-topic-newbtn]");
+    els.topicName = root.querySelector("[data-topic-name]");
+  }
 
   const prefs = loadPrefs();
 
@@ -43,7 +50,6 @@
     history: [], // {role: "user"|"assistant", content, reasoning?}
     apiMessages: [], // trimmed payload we send (system + user/assistant pairs)
     streaming: false,
-    abortCtrl: null,
     model: prefs.model && CFG.models.includes(prefs.model) ? prefs.model : CFG.defaultModel,
     thinking: !!prefs.thinking,
     effort: prefs.effort === "max" ? "max" : "high",
@@ -89,9 +95,10 @@
     return "t_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
-  function makeTopic({ title = "新对话", messages = [] } = {}) {
+  function makeTopic(opts) {
+    opts = opts || {};
     const now = Date.now();
-    return { id: newId(), title, titleManual: false, messages, createdAt: now, updatedAt: now };
+    return { id: newId(), title: opts.title || "新对话", titleManual: false, messages: opts.messages || [], createdAt: now, updatedAt: now };
   }
 
   function loadTopics() {
@@ -159,8 +166,8 @@
       closeTopicPanel();
       return;
     }
-    if (state.streaming && state.abortCtrl) {
-      state.abortCtrl.abort();
+    if (streamAbort) {
+      streamAbort.abort();
     }
     commitActiveTopic();
     const t = state.topics.find((x) => x.id === id);
@@ -175,8 +182,8 @@
   }
 
   function startNewTopic() {
-    if (state.streaming && state.abortCtrl) {
-      state.abortCtrl.abort();
+    if (streamAbort) {
+      streamAbort.abort();
     }
     commitActiveTopic();
     const fresh = makeTopic();
@@ -215,8 +222,11 @@
 
   // --- Wire UI --------------------------------------------------------------
   function wire() {
+    var sig = ac ? { signal: ac.signal } : undefined;
+
     // Model selector
     if (els.modelSelect) {
+      els.modelSelect.innerHTML = "";
       CFG.models.forEach((m) => {
         const opt = document.createElement("option");
         opt.value = m;
@@ -227,7 +237,7 @@
       els.modelSelect.addEventListener("change", (e) => {
         state.model = e.target.value;
         savePrefs();
-      });
+      }, sig);
     }
     // Thinking toggle
     if (els.thinkingToggle) {
@@ -236,7 +246,7 @@
         state.thinking = e.target.checked;
         updateEffortVisibility();
         savePrefs();
-      });
+      }, sig);
     }
     // Effort radio group
     if (els.effortGroup) {
@@ -247,40 +257,44 @@
             state.effort = e.target.value;
             savePrefs();
           }
-        });
+        }, sig);
       });
       updateEffortVisibility();
     }
     // Form
-    els.form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      send();
-    });
-    els.input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+    if (els.form) {
+      els.form.addEventListener("submit", (e) => {
         e.preventDefault();
         send();
-      }
-    });
-    els.input.addEventListener("input", () => {
-      // Auto-grow
-      els.input.style.height = "auto";
-      els.input.style.height = Math.min(els.input.scrollHeight, 260) + "px";
-      updateCount();
-    });
+      }, sig);
+    }
+    if (els.input) {
+      els.input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+          e.preventDefault();
+          send();
+        }
+      }, sig);
+      els.input.addEventListener("input", () => {
+        // Auto-grow
+        els.input.style.height = "auto";
+        els.input.style.height = Math.min(els.input.scrollHeight, 260) + "px";
+        updateCount();
+      }, sig);
+    }
     if (els.stopBtn) {
       els.stopBtn.addEventListener("click", () => {
-        if (state.abortCtrl) {
-          state.abortCtrl.abort();
+        if (streamAbort) {
+          streamAbort.abort();
         }
-      });
+      }, sig);
     }
     if (els.clearBtn) {
       els.clearBtn.addEventListener("click", () => {
-        if (state.streaming && state.abortCtrl) state.abortCtrl.abort();
+        if (streamAbort) streamAbort.abort();
         state.history = [];
         state.apiMessages = [];
-        els.messages.innerHTML = "";
+        if (els.messages) els.messages.innerHTML = "";
         const t = getActiveTopic();
         if (t) {
           t.messages = [];
@@ -291,23 +305,19 @@
           refreshTopicUi();
         }
         setStatus("已清空对话");
-      });
+      }, sig);
     }
     if (els.newTopicBtn) {
-      els.newTopicBtn.addEventListener("click", () => {
-        startNewTopic();
-      });
+      els.newTopicBtn.addEventListener("click", () => { startNewTopic(); }, sig);
     }
     if (els.topicToggle) {
       els.topicToggle.addEventListener("click", (e) => {
         e.stopPropagation();
         toggleTopicPanel();
-      });
+      }, sig);
     }
     if (els.topicNewBtn) {
-      els.topicNewBtn.addEventListener("click", () => {
-        startNewTopic();
-      });
+      els.topicNewBtn.addEventListener("click", () => { startNewTopic(); }, sig);
     }
     if (els.topicList) {
       els.topicList.addEventListener("click", (e) => {
@@ -322,15 +332,17 @@
         if (item) {
           switchToTopic(item.dataset.topicId);
         }
-      });
+      }, sig);
     }
-    document.addEventListener("click", (e) => {
-      if (!els.topicPicker) return;
-      if (!els.topicPicker.contains(e.target)) closeTopicPanel();
-    });
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeTopicPanel();
-    });
+    if (ac) {
+      document.addEventListener("click", (e) => {
+        if (!els.topicPicker) return;
+        if (!els.topicPicker.contains(e.target)) closeTopicPanel();
+      }, { signal: ac.signal });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeTopicPanel();
+      }, { signal: ac.signal });
+    }
     if (els.apiKeyBtn) {
       els.apiKeyBtn.addEventListener("click", () => {
         createApiKeyModal({
@@ -339,11 +351,11 @@
             updateKeyHint();
           },
         });
-      });
+      }, sig);
     }
     if (els.promptBtn) {
       els.promptBtn.addEventListener("click", () => {
-        createPromptModal({
+        promptModalEl = createPromptModal({
           onSave: (next) => {
             state.systemPrompt = next;
             updatePromptHint();
@@ -355,14 +367,14 @@
             toast("已恢复默认提示词", "ok");
           },
         });
-      });
+      }, sig);
     }
   }
 
   function updateCount() {
     if (!els.count) return;
     const n = (els.input.value || "").length;
-    els.count.textContent = `${n} / ${L.chatInputMax}`;
+    els.count.textContent = n + " / " + L.chatInputMax;
     els.count.toggleAttribute("data-warning", n > L.chatInputMax * 0.92);
   }
 
@@ -406,15 +418,15 @@
     const ts = t.updatedAt || t.createdAt || Date.now();
     const diff = Date.now() - ts;
     let timeText;
-    if (diff < 60_000) timeText = "刚刚";
-    else if (diff < 3600_000) timeText = Math.floor(diff / 60_000) + " 分钟前";
-    else if (diff < 86_400_000) timeText = Math.floor(diff / 3600_000) + " 小时前";
-    else if (diff < 7 * 86_400_000) timeText = Math.floor(diff / 86_400_000) + " 天前";
+    if (diff < 60000) timeText = "刚刚";
+    else if (diff < 3600000) timeText = Math.floor(diff / 60000) + " 分钟前";
+    else if (diff < 86400000) timeText = Math.floor(diff / 3600000) + " 小时前";
+    else if (diff < 7 * 86400000) timeText = Math.floor(diff / 86400000) + " 天前";
     else {
       const d = new Date(ts);
-      timeText = `${d.getMonth() + 1}/${d.getDate()}`;
+      timeText = (d.getMonth() + 1) + "/" + d.getDate();
     }
-    return `${count} 条 · ${timeText}`;
+    return count + " 条 · " + timeText;
   }
 
   function renderTopicList() {
@@ -450,7 +462,7 @@
       del.setAttribute("role", "button");
       del.setAttribute("aria-label", "删除话题");
       del.dataset.topicDel = t.id;
-      del.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6"/><path d="M6 6l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/></svg>`;
+      del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6"/><path d="M6 6l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/></svg>';
 
       item.appendChild(text);
       item.appendChild(del);
@@ -460,6 +472,7 @@
 
   // Re-render the chat-messages list from state.history (used on topic switch)
   function renderHistoryFromState() {
+    if (!els.messages) return;
     els.messages.innerHTML = "";
     state.history.forEach((msg) => {
       if (msg.role === "user") {
@@ -485,16 +498,19 @@
     els.apiKeyBtn.toggleAttribute("data-missing", !hasKey);
   }
 
-  function setStatus(text, tone = "muted") {
+  function setStatus(text, tone) {
     if (!els.status) return;
     els.status.textContent = text;
-    els.status.dataset.tone = tone;
+    els.status.dataset.tone = tone || "muted";
   }
 
   // --- Message rendering ---------------------------------------------------
-  function addMessage(role, text = "", opts = {}) {
+  function addMessage(role, text, opts) {
+    if (!els.messages) return { setContent:function(){}, appendContent:function(){}, setReasoning:function(){}, appendReasoning:function(){}, markError:function(){}, showTyping:function(){} };
+    opts = opts || {};
+    text = text || "";
     const row = document.createElement("article");
-    row.className = `msg msg--${role}`;
+    row.className = "msg msg--" + role;
     const bubble = document.createElement("div");
     bubble.className = "msg__bubble";
     const content = document.createElement("div");
@@ -523,22 +539,22 @@
 
     return {
       row,
-      setContent(s) { content.textContent = s; els.messages.scrollTop = els.messages.scrollHeight; },
-      appendContent(s) { content.textContent += s; els.messages.scrollTop = els.messages.scrollHeight; },
-      setReasoning(s) {
+      setContent: function(s) { content.textContent = s; els.messages.scrollTop = els.messages.scrollHeight; },
+      appendContent: function(s) { content.textContent += s; els.messages.scrollTop = els.messages.scrollHeight; },
+      setReasoning: function(s) {
         if (!reasoningEl) return;
         const body = reasoningEl.querySelector(".msg__reasoning-body");
         if (body) body.textContent = s;
       },
-      appendReasoning(s) {
+      appendReasoning: function(s) {
         if (!reasoningEl) return;
         const body = reasoningEl.querySelector(".msg__reasoning-body");
         if (body) body.textContent += s;
       },
-      markError() {
+      markError: function() {
         row.setAttribute("data-error", "true");
       },
-      showTyping() {
+      showTyping: function() {
         content.innerHTML = "";
         const typing = document.createElement("span");
         typing.className = "typing";
@@ -554,10 +570,11 @@
       toast("正在回答，请稍候", "err");
       return;
     }
+    if (!els.input) return;
     const text = (els.input.value || "").trim();
     if (!text) return;
     if (text.length > L.chatInputMax) {
-      toast(`单次最多 ${L.chatInputMax} 字`, "err");
+      toast("单次最多 " + L.chatInputMax + " 字", "err");
       return;
     }
     const apiKey = (storage.get(CFG.storageKey) || "").trim();
@@ -601,7 +618,7 @@
       }
     }).finally(() => {
       state.streaming = false;
-      state.abortCtrl = null;
+      streamAbort = null;
       toggleStreamingUi(false);
       commitActiveTopic();
     });
@@ -633,7 +650,7 @@
 
   // --- Streaming -----------------------------------------------------------
   async function streamCompletion(apiKey, assistantView) {
-    state.abortCtrl = new AbortController();
+    streamAbort = new AbortController();
     toggleStreamingUi(true);
 
     const url = CFG.baseUrl + CFG.chatPath;
@@ -656,13 +673,12 @@
         Authorization: "Bearer " + apiKey,
       },
       body: JSON.stringify(body),
-      signal: state.abortCtrl.signal,
+      signal: streamAbort.signal,
     });
 
     if (!resp.ok) {
       const errText = await resp.text().catch(() => "");
-      // Strip any accidental key echoing
-      throw new Error(`DeepSeek 返回 ${resp.status}: ${errText.slice(0, 240)}`);
+      throw new Error("DeepSeek 返回 " + resp.status + ": " + errText.slice(0, 240));
     }
     if (!resp.body) throw new Error("响应没有 body");
 
@@ -673,12 +689,10 @@
     let fullReasoning = "";
     let started = false;
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-      // SSE chunks are split by blank lines
       let idx;
       while ((idx = buffer.indexOf("\n\n")) >= 0) {
         const chunk = buffer.slice(0, idx);
@@ -693,7 +707,7 @@
           }
           try {
             const json = JSON.parse(data);
-            const delta = json?.choices?.[0]?.delta || {};
+            const delta = json && json.choices && json.choices[0] && json.choices[0].delta || {};
             if (delta.reasoning_content) {
               if (!started) {
                 assistantView.setContent("");
@@ -710,8 +724,8 @@
               fullText += delta.content;
               assistantView.appendContent(delta.content);
             }
-          } catch (err) {
-            console.warn("[claudeOne] bad SSE chunk", err, data.slice(0, 120));
+          } catch (parseErr) {
+            console.warn("[claudeOne] bad SSE chunk", parseErr, data.slice(0, 120));
           }
         }
       }
@@ -730,14 +744,15 @@
   }
 
   // --- Prompt modal --------------------------------------------------------
-  function createPromptModal({ onSave, onReset } = {}) {
+  function createPromptModal(opts) {
+    opts = opts || {};
     let existing = document.querySelector("[data-prompt-modal]");
     if (!existing) {
       existing = document.createElement("div");
       existing.className = "modal-root";
       existing.setAttribute("data-prompt-modal", "");
       const presets = (CFG.promptPresets || []).map((p) =>
-        `<button class="prompt-preset" data-preset="${p.id}" type="button">${p.label}</button>`
+        '<button class="prompt-preset" data-preset="' + p.id + '" type="button">' + p.label + '</button>'
       ).join("");
       existing.innerHTML = `
         <div class="modal-card modal-card--wide" role="dialog" aria-modal="true" aria-labelledby="promptTitle">
@@ -780,7 +795,7 @@
 
       function refreshCounter() {
         const n = (input.value || "").length;
-        counter.textContent = `${n} / ${CFG.systemPromptMax}`;
+        counter.textContent = n + " / " + CFG.systemPromptMax;
         counter.toggleAttribute("data-warning", n > CFG.systemPromptMax * 0.92);
       }
 
@@ -828,7 +843,7 @@
           storage.set(CFG.systemPromptKey, v);
         }
         close();
-        if (typeof onSave === "function") onSave(v);
+        if (typeof opts.onSave === "function") opts.onSave(v);
       });
 
       cancelBtn.addEventListener("click", close);
@@ -838,7 +853,7 @@
         storage.remove(CFG.systemPromptKey);
         refreshCounter();
         refreshActivePreset();
-        if (typeof onReset === "function") onReset();
+        if (typeof opts.onReset === "function") opts.onReset();
       });
 
       existing.addEventListener("click", (e) => {
@@ -848,7 +863,7 @@
         if (e.key === "Escape") close();
       });
 
-      existing._refresh = () => {
+      existing._refresh = function() {
         refreshCounter();
         refreshActivePreset();
       };
@@ -868,26 +883,56 @@
   }
 
   // --- Boot ----------------------------------------------------------------
-  ensureActiveTopic();
-  wire();
-  updateKeyHint();
-  updatePromptHint();
-  updateCount();
-  refreshTopicUi();
-  renderHistoryFromState();
-  setStatus("就绪");
+  function boot() {
+    ensureActiveTopic();
+    wire();
+    updateKeyHint();
+    updatePromptHint();
+    updateCount();
+    refreshTopicUi();
+    renderHistoryFromState();
+    setStatus("就绪");
 
-  // If no key set yet, prompt on first visit
-  if (!storage.get(CFG.storageKey)) {
-    // Delay slightly so the page transition settles first
-    setTimeout(() => {
-      createApiKeyModal({
-        forceOpen: true,
-        onSave: () => {
-          updateKeyHint();
-          toast("Key 已保存到本地", "ok");
-        },
-      });
-    }, 420);
+    // If no key set yet, prompt on first visit
+    if (!storage.get(CFG.storageKey)) {
+      setTimeout(() => {
+        createApiKeyModal({
+          forceOpen: true,
+          onSave: () => {
+            updateKeyHint();
+            toast("Key 已保存到本地", "ok");
+          },
+        });
+      }, 420);
+    }
   }
+
+  function mount(el) {
+    container = el;
+    ac = new AbortController();
+    var root = el.querySelector("[data-ai-root]");
+    if (!root) return;
+    collectElements(root);
+    boot();
+  }
+
+  function unmount() {
+    if (streamAbort) {
+      streamAbort.abort();
+      streamAbort = null;
+    }
+    state.streaming = false;
+    if (ac) { ac.abort(); ac = null; }
+    // Close prompt modal if open
+    if (promptModalEl) {
+      promptModalEl.setAttribute("data-open", "false");
+      setTimeout(function () {
+        if (promptModalEl) promptModalEl.removeAttribute("data-open");
+      }, 300);
+      promptModalEl = null;
+    }
+    container = null;
+  }
+
+  window.__page_ai = { mount: mount, unmount: unmount };
 })();

@@ -6,6 +6,9 @@
 (function (host) {
   "use strict";
 
+  var container = null;
+  var ac = null;
+
   const STORAGE_KEY = "claudeOne:sokoban-state-v1";
   const DIRS = Object.freeze({
     U: Object.freeze({ id: "U", dx: 0, dy: -1, arrow: "↑", key: "up" }),
@@ -854,7 +857,7 @@
     }
   }
 
-  function renderFixedLevels() {
+  function renderFixedLevels(signal) {
     if (!els.fixedLevels || els.fixedLevels.dataset.ready === "true") {
       if (els.fixedLevels) updateFixedActive();
       return;
@@ -873,7 +876,7 @@
       btn.querySelector("strong").textContent = level.name;
       btn.querySelector("small").textContent = "固定关卡";
       btn.querySelector(".sokoban-level-card__difficulty").textContent = difficultyText(level.difficulty);
-      btn.addEventListener("click", () => loadLevel({ ...level, mode: "fixed" }));
+      btn.addEventListener("click", function () { loadLevel(Object.assign({}, level, { mode: "fixed" })); }, { signal: signal });
       els.fixedLevels.appendChild(btn);
     });
     els.fixedLevels.dataset.ready = "true";
@@ -907,7 +910,7 @@
   }
 
   function burstConfetti() {
-    const wrap = document.querySelector(".sokoban-board-wrap");
+    const wrap = container && container.querySelector(".sokoban-board-wrap");
     if (!wrap) return;
     for (let i = 0; i < 18; i += 1) {
       const bit = document.createElement("span");
@@ -2449,7 +2452,7 @@
 
   function exitAfterWin() {
     stopAuto(false);
-    host.location.href = "./index.html";
+    host.location.href = "#/";
   }
 
   function handleKeydown(event) {
@@ -2476,32 +2479,37 @@
     executeMove(dir);
   }
 
-  function bindUi() {
-    els.hintBtn.addEventListener("click", requestHint);
-    els.autoBtn.addEventListener("click", toggleAuto);
-    els.resetBtn.addEventListener("click", resetLevel);
-    els.winExit.addEventListener("click", exitAfterWin);
-    els.winNext.addEventListener("click", nextAfterWin);
-    els.generateRandom.addEventListener("click", startRandom);
-    els.randomMode.addEventListener("change", () => {
-      state.randomMode = els.randomMode.value;
-      renderRandomControls();
-    });
-    els.randomDifficulty.addEventListener("change", () => {
-      state.progressiveDifficulty = clamp(Number(els.randomDifficulty.value) || 1, 1, 10);
-      renderRandomControls();
-    });
+  function bindUi(signal) {
+    var sig = { signal: signal };
+    if (els.hintBtn) els.hintBtn.addEventListener("click", requestHint, sig);
+    if (els.autoBtn) els.autoBtn.addEventListener("click", toggleAuto, sig);
+    if (els.resetBtn) els.resetBtn.addEventListener("click", resetLevel, sig);
+    if (els.winExit) els.winExit.addEventListener("click", exitAfterWin, sig);
+    if (els.winNext) els.winNext.addEventListener("click", nextAfterWin, sig);
+    if (els.generateRandom) els.generateRandom.addEventListener("click", startRandom, sig);
+    if (els.randomMode) {
+      els.randomMode.addEventListener("change", function () {
+        state.randomMode = els.randomMode.value;
+        renderRandomControls();
+      }, sig);
+    }
+    if (els.randomDifficulty) {
+      els.randomDifficulty.addEventListener("change", function () {
+        state.progressiveDifficulty = clamp(Number(els.randomDifficulty.value) || 1, 1, 10);
+        renderRandomControls();
+      }, sig);
+    }
     if (els.brutalChallenge) {
-      els.brutalChallenge.addEventListener("click", () => {
+      els.brutalChallenge.addEventListener("click", function () {
         state.randomMode = "brutal";
         els.randomMode.value = "brutal";
         renderRandomControls();
         startRandom();
-      });
+      }, sig);
     }
-    document.addEventListener("keydown", handleKeydown);
-    document.querySelectorAll("[data-move]").forEach((btn) => {
-      btn.addEventListener("click", () => executeMove(btn.dataset.move));
+    document.addEventListener("keydown", handleKeydown, sig);
+    container.querySelectorAll("[data-move]").forEach(function (btn) {
+      btn.addEventListener("click", function () { executeMove(btn.dataset.move); }, sig);
     });
   }
 
@@ -2531,12 +2539,11 @@
     els.winNext = root.querySelector("[data-win-next]");
   }
 
-  function init() {
-    const root = document.querySelector("[data-sokoban-root]");
-    if (!root) return;
-    collectElements(root);
-    bindUi();
-    renderFixedLevels();
+  function init(el, signal) {
+    container = el;
+    collectElements(container);
+    bindUi(signal);
+    renderFixedLevels(signal);
     if (!restoreSavedState()) {
       loadLevel({ ...SOKOBAN_FIXED_LEVELS[0], mode: "fixed" }, { focus: false });
     }
@@ -2629,7 +2636,21 @@
     generateOpenFallback,
   };
 
-  if (typeof document !== "undefined") {
-    document.addEventListener("DOMContentLoaded", init);
+  function mount(el) {
+    stopAuto(false);
+    ac = new AbortController();
+    init(el, ac.signal);
   }
+
+  function unmount() {
+    stopAuto(false);
+    if (ac) { ac.abort(); ac = null; }
+    clearHint();
+    state.autoplay = false;
+    container = null;
+    // Clear DOM references but keep game state
+    Object.keys(els).forEach(function (k) { els[k] = null; });
+  }
+
+  window.__page_sokoban = { mount: mount, unmount: unmount };
 })(typeof window !== "undefined" ? window : globalThis);

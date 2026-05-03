@@ -1,6 +1,8 @@
-/* ===== claudeOne :: ASCII Art Converter Backend =====
- * Express + multer server that calls ascii-image-converter CLI.
- * Requires: go install github.com/TheZoraiz/ascii-image-converter@latest
+/* ===== claudeOne :: Server =====
+ * Express server that:
+ *   1. Serves the frontend SPA from ../ (the claudeOne root)
+ *   2. Provides /api/ascii endpoint for ASCII art conversion
+ *   3. Provides /api/health for status checks
  */
 
 const express = require("express");
@@ -17,6 +19,7 @@ const PORT = process.env.PORT || 3001;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_CONCURRENT = 3;
 const UPLOADS_DIR = path.join(__dirname, "uploads");
+const STATIC_DIR = path.join(__dirname, "..");  // claudeOne/ root
 
 // Resolve ascii-image-converter binary — try full path first (Go bin)
 const HOME = os.homedir();
@@ -45,8 +48,29 @@ let activeJobs = 0;
 // ---- Express app ----
 const app = express();
 
-app.use(cors({ origin: ["http://localhost:8080", "http://127.0.0.1:8080"] }));
+app.use(cors());
 app.use(express.json());
+
+// ---- Serve frontend static files (claudeOne/ root) ----
+app.use(express.static(STATIC_DIR, {
+  setHeaders(res, filePath) {
+    // JavaScript modules and workers
+    if (filePath.endsWith(".js")) {
+      res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+    }
+    // Audio files
+    if (filePath.endsWith(".mp3")) res.setHeader("Content-Type", "audio/mpeg");
+    if (filePath.endsWith(".flac")) res.setHeader("Content-Type", "audio/flac");
+    if (filePath.endsWith(".ogg")) res.setHeader("Content-Type", "audio/ogg");
+    if (filePath.endsWith(".wav")) res.setHeader("Content-Type", "audio/wav");
+    if (filePath.endsWith(".m4a")) res.setHeader("Content-Type", "audio/mp4");
+  }
+}));
+
+// SPA fallback — serve index.html for any unmatched GET (hash routes)
+app.get(/^\/(home|games|tools|game|sokoban|lottery|music|ai|ascii|pixel|compress|qr)/, (_req, res) => {
+  res.sendFile(path.join(STATIC_DIR, "index.html"));
+});
 
 // ---- Multer ----
 const storage = multer.diskStorage({
@@ -292,6 +316,8 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 app.listen(PORT, () => {
-  console.log(`[ascii] Server running on http://localhost:${PORT}`);
-  console.log(`[ascii] API: POST http://localhost:${PORT}/api/ascii`);
+  console.log(`[claudeOne] Server running on http://localhost:${PORT}`);
+  console.log(`[claudeOne] Frontend →  http://localhost:${PORT}`);
+  console.log(`[claudeOne] API     →  http://localhost:${PORT}/api/ascii`);
+  console.log(`[claudeOne] Health  →  http://localhost:${PORT}/api/health`);
 });

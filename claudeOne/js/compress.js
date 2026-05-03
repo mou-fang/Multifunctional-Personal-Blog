@@ -1,69 +1,78 @@
-/* ===== claudeOne :: compress.js ===== */
+/* ===== claudeOne :: compress.js =====
+ * SPA lifecycle: window.__page_compress
+ */
+
 ;(function () {
   'use strict'
-  const C = window.ClaudeOne || {}
-  const $ = (s, p) => (p || document).querySelector(s)
-  const $$ = (s, p) => [...(p || document).querySelectorAll(s)]
-  const esc = C.escapeHtml || (s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]))
-  const clamp = C.clamp || ((v, lo, hi) => Math.min(hi, Math.max(lo, v)))
-  const fmt = n => n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(2) + ' MB'
-  const toast = C.toast || (() => {})
 
-  /* ---- State ---- */
+  var container = null;
+  var ac = null;
+
+  const C = window.ClaudeOne || {}
+  const qs = function(s) { return container ? container.querySelector(s) : null; }
+  const qsa = function(s) { return container ? [...container.querySelectorAll(s)] : []; }
+  const esc = C.escapeHtml || function(s) { return s.replace(/[&<>"']/g, function(c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  const clamp = C.clamp || function(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+  const fmt = function(n) { return n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(2) + ' MB'; }
+  const toast = C.toast || function() {}
+
+  /* ---- State (module-level) ---- */
   const state = {
-    files: [],        // { id, file, name, size, type, width, height, thumb }
-    results: [],      // { id, origFile, resultBlob, resultUrl, origUrl, origW, origH, outW, outH, origSize, outSize, ratio, status, error, abortCtrl }
+    files: [],
+    results: [],
     processing: false,
     aborted: false
   }
   let idSeq = 0
 
-  /* ---- DOM refs ---- */
-  const dom = {
-    zone: $('[data-upload-zone]'),
-    fileInput: $('[data-file-input]'),
-    fileList: $('[data-file-list]'),
-    startBtn: $('[data-start-compress]'),
-    cancelBtn: $('[data-cancel-compress]'),
-    clearBtn: $('[data-clear-all]'),
-    progressWrap: $('[data-progress-wrap]'),
-    progressText: $('[data-progress-text]'),
-    progressCount: $('[data-progress-count]'),
-    progressFill: $('[data-progress-fill]'),
-    resultsSection: $('[data-results-section]'),
-    resultsBody: $('[data-results-body]'),
-    resultsEmpty: $('[data-results-empty]'),
-    resultsSummary: $('[data-results-summary]'),
-    downloadAllBtn: $('[data-download-all]'),
-    downloadZipBtn: $('[data-download-zip]'),
-    recompressBtn: $('[data-recompress]'),
-    clearResultsBtn: $('[data-clear-results]'),
-    qualitySlider: $('[data-quality]'),
-    qualityVal: $('[data-quality-val]'),
-    previewModal: $('[data-preview-modal]'),
-    previewTitle: $('[data-preview-title]'),
-    previewOrigImg: $('[data-preview-original]'),
-    previewOrigInfo: $('[data-preview-original-info]'),
-    previewCompImg: $('[data-preview-compressed]'),
-    previewCompInfo: $('[data-preview-compressed-info]'),
-    previewClose: $('[data-preview-close]'),
-    namingPreview: $('[data-naming-preview]')
+  /* ---- DOM refs (rebuilt on mount) ---- */
+  var dom = {}
+
+  function collectDom() {
+    dom.zone = qs('[data-upload-zone]')
+    dom.fileInput = qs('[data-file-input]')
+    dom.fileList = qs('[data-file-list]')
+    dom.startBtn = qs('[data-start-compress]')
+    dom.cancelBtn = qs('[data-cancel-compress]')
+    dom.clearBtn = qs('[data-clear-all]')
+    dom.progressWrap = qs('[data-progress-wrap]')
+    dom.progressText = qs('[data-progress-text]')
+    dom.progressCount = qs('[data-progress-count]')
+    dom.progressFill = qs('[data-progress-fill]')
+    dom.resultsSection = qs('[data-results-section]')
+    dom.resultsBody = qs('[data-results-body]')
+    dom.resultsEmpty = qs('[data-results-empty]')
+    dom.resultsSummary = qs('[data-results-summary]')
+    dom.downloadAllBtn = qs('[data-download-all]')
+    dom.downloadZipBtn = qs('[data-download-zip]')
+    dom.recompressBtn = qs('[data-recompress]')
+    dom.clearResultsBtn = qs('[data-clear-results]')
+    dom.qualitySlider = qs('[data-quality]')
+    dom.qualityVal = qs('[data-quality-val]')
+    dom.previewModal = qs('[data-preview-modal]')
+    dom.previewTitle = qs('[data-preview-title]')
+    dom.previewOrigImg = qs('[data-preview-original]')
+    dom.previewOrigInfo = qs('[data-preview-original-info]')
+    dom.previewCompImg = qs('[data-preview-compressed]')
+    dom.previewCompInfo = qs('[data-preview-compressed-info]')
+    dom.previewClose = qs('[data-preview-close]')
+    dom.namingPreview = qs('[data-naming-preview]')
   }
 
   /* ---- Params ---- */
   function getParams () {
-    const quality = parseFloat(dom.qualitySlider.value)
-    const maxDimEl = $('[data-maxdim][data-active="true"]')
+    const quality = dom.qualitySlider ? parseFloat(dom.qualitySlider.value) : 0.8
+    const maxDimEl = qs('[data-maxdim][data-active="true"]')
     let maxDim = 0
     if (maxDimEl) {
       const v = maxDimEl.dataset.maxdim
-      maxDim = v === 'custom' ? parseInt($('[data-custom-maxdim]').value) || 0 : parseInt(v) || 0
+      maxDim = v === 'custom' ? parseInt((qs('[data-custom-maxdim]') || {}).value) || 0 : parseInt(v) || 0
     }
-    const manualW = parseInt($('[data-manual-width]').value) || 0
-    const manualH = parseInt($('[data-manual-height]').value) || 0
-    const fmtEl = $('[data-format][data-active="true"]')
+    const manualW = parseInt((qs('[data-manual-width]') || {}).value) || 0
+    const manualH = parseInt((qs('[data-manual-height]') || {}).value) || 0
+    const fmtEl = qs('[data-format][data-active="true"]')
     const outputFormat = fmtEl ? fmtEl.dataset.format : 'keep'
-    const maxSizeEl = $('[data-maxsize][data-active="true"]')
+    const maxSizeEl = qs('[data-maxsize][data-active="true"]')
     let maxSizeMB = 0
     if (maxSizeEl) maxSizeMB = parseFloat(maxSizeEl.dataset.maxsize) || 0
 
@@ -72,19 +81,19 @@
       maxDim,
       manualW,
       manualH,
-      keepRatio: !$('[data-switch="keepRatio"] input') || $('[data-switch="keepRatio"] input').checked,
+      keepRatio: !(qs('[data-switch="keepRatio"]') && qs('[data-switch="keepRatio"]').querySelector('input')) || (qs('[data-switch="keepRatio"]').querySelector('input') || {}).checked,
       outputFormat,
       maxSizeMB,
-      useWebWorker: !$('[data-switch="useWebWorker"] input') || $('[data-switch="useWebWorker"] input').checked,
-      preserveExif: $('[data-switch="preserveExif"] input') ? $('[data-switch="preserveExif"] input').checked : false,
-      fixOrientation: $('[data-switch="fixOrientation"] input') ? $('[data-switch="fixOrientation"] input').checked : false,
-      initialQuality: parseFloat($('[data-initial-quality]')?.value) || 0.8,
-      maxIteration: parseInt($('[data-max-iteration]')?.value) || 10,
-      bgColor: $('[data-bg-color]')?.value || '#ffffff',
-      concurrency: parseInt($('[data-concurrency][data-active="true"]')?.dataset.concurrency) || 3,
-      naming: $('[data-naming][data-active="true"]')?.dataset.naming || 'suffix_compressed',
-      namingPrefix: $('[data-naming-prefix]')?.value || '',
-      namingSuffix: $('[data-naming-suffix]')?.value || ''
+      useWebWorker: !(qs('[data-switch="useWebWorker"]') && qs('[data-switch="useWebWorker"]').querySelector('input')) || (qs('[data-switch="useWebWorker"]').querySelector('input') || {}).checked,
+      preserveExif: qs('[data-switch="preserveExif"]') && qs('[data-switch="preserveExif"]').querySelector('input') ? qs('[data-switch="preserveExif"]').querySelector('input').checked : false,
+      fixOrientation: qs('[data-switch="fixOrientation"]') && qs('[data-switch="fixOrientation"]').querySelector('input') ? qs('[data-switch="fixOrientation"]').querySelector('input').checked : false,
+      initialQuality: parseFloat((qs('[data-initial-quality]') || {}).value) || 0.8,
+      maxIteration: parseInt((qs('[data-max-iteration]') || {}).value) || 10,
+      bgColor: (qs('[data-bg-color]') || {}).value || '#ffffff',
+      concurrency: parseInt((qs('[data-concurrency][data-active="true"]') || {}).dataset.concurrency) || 3,
+      naming: (qs('[data-naming][data-active="true"]') || {}).dataset.naming || 'suffix_compressed',
+      namingPrefix: (qs('[data-naming-prefix]') || {}).value || '',
+      namingSuffix: (qs('[data-naming-suffix]') || {}).value || ''
     }
   }
 
@@ -160,12 +169,12 @@
 
   /* ---- Progress ---- */
   function showProgress (text, done, total) {
-    dom.progressWrap.hidden = false
-    dom.progressText.textContent = text
-    dom.progressCount.textContent = done + ' / ' + total
-    dom.progressFill.style.width = total ? ((done / total) * 100).toFixed(1) + '%' : '0%'
+    if (dom.progressWrap) dom.progressWrap.hidden = false
+    if (dom.progressText) dom.progressText.textContent = text
+    if (dom.progressCount) dom.progressCount.textContent = done + ' / ' + total
+    if (dom.progressFill) dom.progressFill.style.width = total ? ((done / total) * 100).toFixed(1) + '%' : '0%'
   }
-  function hideProgress () { dom.progressWrap.hidden = true }
+  function hideProgress () { if (dom.progressWrap) dom.progressWrap.hidden = true }
 
   /* ---- Image load ---- */
   function loadImage (file) {
@@ -225,7 +234,6 @@
     cvs.width = tw; cvs.height = th
     const ctx = cvs.getContext('2d')
 
-    // Fill background for JPEG (no alpha) or PNG/WebP when user set a bg color
     const outMime = getOutputMime(params, file.type)
     if (outMime === 'image/jpeg' || ((outMime === 'image/png' || outMime === 'image/webp') && params.bgColor)) {
       ctx.fillStyle = params.bgColor
@@ -234,10 +242,9 @@
 
     ctx.drawImage(img, 0, 0, tw, th)
 
-    // Color adjustments
-    const sat = parseFloat($('[data-saturation]')?.value) || 0
-    const bri = parseFloat($('[data-brightness]')?.value) || 0
-    const con = parseFloat($('[data-contrast]')?.value) || 0
+    const sat = parseFloat((qs('[data-saturation]') || {}).value) || 0
+    const bri = parseFloat((qs('[data-brightness]') || {}).value) || 0
+    const con = parseFloat((qs('[data-contrast]') || {}).value) || 0
     if (sat !== 0 || bri !== 0 || con !== 0) {
       const imgData = ctx.getImageData(0, 0, tw, th)
       const d = imgData.data
@@ -256,10 +263,8 @@
     })
   }
 
-  /* ---- Compression with quality iteration ---- */
   function compressBlob (blob, params, abortSignal) {
     const maxIter = params.maxIteration
-    const origSize = blob.size
     const targetBytes = params.maxSizeMB > 0 ? params.maxSizeMB * 1024 * 1024 : Infinity
     let bestBlob = blob
     let lo = 0.1, hi = 1.0
@@ -267,7 +272,7 @@
     if (blob.size <= targetBytes) return Promise.resolve(blob)
 
     const iter = async (n) => {
-      if (abortSignal?.aborted) throw new DOMException('Aborted', 'AbortError')
+      if (abortSignal && abortSignal.aborted) throw new DOMException('Aborted', 'AbortError')
       if (n >= maxIter || hi - lo < 0.02) return
       const q = (lo + hi) / 2
       const out = await imageCompression(blobToFile(blob, 'tmp'), {
@@ -295,7 +300,6 @@
     return new File([blob], name || 'tmp', { type: blob.type })
   }
 
-  /* ---- Process single image ---- */
   async function processImage (fileItem, params, abortSignal) {
     const { img, url } = await loadImage(fileItem.file)
     try {
@@ -332,7 +336,6 @@
     }
   }
 
-  /* ---- Concurrent batch ---- */
   async function processAll () {
     if (!state.files.length) { toast('请先上传图片', 'err'); return }
     const params = getParams()
@@ -344,13 +347,13 @@
     state.results = []
     const mainAbort = new AbortController()
 
-    dom.startBtn.hidden = true
-    dom.cancelBtn.hidden = false
-    dom.clearBtn.hidden = true
-    dom.resultsSection.hidden = false
-    dom.resultsBody.innerHTML = ''
-    dom.resultsEmpty.style.display = 'none'
-    dom.resultsSummary.textContent = '处理中...'
+    if (dom.startBtn) dom.startBtn.hidden = true
+    if (dom.cancelBtn) dom.cancelBtn.hidden = false
+    if (dom.clearBtn) dom.clearBtn.hidden = true
+    if (dom.resultsSection) dom.resultsSection.hidden = false
+    if (dom.resultsBody) dom.resultsBody.innerHTML = ''
+    if (dom.resultsEmpty) dom.resultsEmpty.style.display = 'none'
+    if (dom.resultsSummary) dom.resultsSummary.textContent = '处理中...'
     showProgress('准备中...', 0, total)
 
     const queue = files.slice()
@@ -378,23 +381,24 @@
     await Promise.all(workers)
 
     state.processing = false
-    dom.startBtn.hidden = false
-    dom.cancelBtn.hidden = true
-    dom.clearBtn.hidden = false
-    dom.downloadAllBtn.hidden = !state.results.some(r => r.status === 'done')
-    dom.downloadZipBtn.hidden = !state.results.some(r => r.status === 'done')
-    dom.recompressBtn.hidden = false
-    dom.clearResultsBtn.hidden = false
+    if (dom.startBtn) dom.startBtn.hidden = false
+    if (dom.cancelBtn) dom.cancelBtn.hidden = true
+    if (dom.clearBtn) dom.clearBtn.hidden = false
+    if (dom.downloadAllBtn) dom.downloadAllBtn.hidden = !state.results.some(r => r.status === 'done')
+    if (dom.downloadZipBtn) dom.downloadZipBtn.hidden = !state.results.some(r => r.status === 'done')
+    if (dom.recompressBtn) dom.recompressBtn.hidden = false
+    if (dom.clearResultsBtn) dom.clearResultsBtn.hidden = false
 
     const successCount = state.results.filter(r => r.status === 'done').length
     const totalSaved = state.results.filter(r => r.status === 'done').reduce((s, r) => s + (r.origSize - r.outSize), 0)
-    dom.resultsSummary.textContent = state.aborted
-      ? '已取消，完成 ' + successCount + ' / ' + total
-      : '完成 ' + successCount + ' / ' + total + '，共节省 ' + fmt(Math.max(0, totalSaved))
+    if (dom.resultsSummary) {
+      dom.resultsSummary.textContent = state.aborted
+        ? '已取消，完成 ' + successCount + ' / ' + total
+        : '完成 ' + successCount + ' / ' + total + '，共节省 ' + fmt(Math.max(0, totalSaved))
+    }
     hideProgress()
   }
 
-  /* ---- Render results table ---- */
   function renderResults () {
     const tbody = dom.resultsBody
     if (!tbody) return
@@ -423,7 +427,6 @@
     }).join('')
   }
 
-  /* ---- Download helpers ---- */
   function downloadBlob (blob, name) {
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
@@ -456,139 +459,131 @@
     downloadBlob(blob, 'compressed_images.zip')
   }
 
-  /* ---- Preview modal ---- */
   function openPreview (id) {
     const r = state.results.find(x => x.id === id)
     if (!r || r.status !== 'done') return
-    dom.previewOrigImg.src = r.origUrl
-    dom.previewOrigInfo.textContent = r.origW + ' x ' + r.origH + ' | ' + fmt(r.origSize)
-    dom.previewCompImg.src = r.resultUrl
-    dom.previewCompInfo.textContent = r.outW + ' x ' + r.outH + ' | ' + fmt(r.outSize) + ' | -' + r.ratio + '%'
-    dom.previewModal.dataset.open = 'true'
+    if (dom.previewOrigImg) dom.previewOrigImg.src = r.origUrl
+    if (dom.previewOrigInfo) dom.previewOrigInfo.textContent = r.origW + ' x ' + r.origH + ' | ' + fmt(r.origSize)
+    if (dom.previewCompImg) dom.previewCompImg.src = r.resultUrl
+    if (dom.previewCompInfo) dom.previewCompInfo.textContent = r.outW + ' x ' + r.outH + ' | ' + fmt(r.outSize) + ' | -' + r.ratio + '%'
+    if (dom.previewModal) dom.previewModal.dataset.open = 'true'
   }
 
   function closePreview () {
-    dom.previewModal.dataset.open = 'false'
+    if (dom.previewModal) dom.previewModal.dataset.open = 'false'
   }
 
-  /* ---- Naming preview ---- */
   function updateNamingPreview () {
     const p = getParams()
     const outMime = p.outputFormat === 'keep' ? 'image/jpeg' : p.outputFormat
     const name = buildOutputName('photo.jpg', p, outMime)
-    dom.namingPreview.textContent = '输出示例: ' + name
+    if (dom.namingPreview) dom.namingPreview.textContent = '输出示例: ' + name
   }
 
-  /* ---- Init ---- */
+  function on(el, evt, fn) {
+    if (el) el.addEventListener(evt, fn, ac ? { signal: ac.signal } : undefined)
+  }
+
   function init () {
-    // Upload zone click
-    dom.zone?.addEventListener('click', e => {
+    on(dom.zone, 'click', function(e) {
       if (e.target.closest('button')) return
-      dom.fileInput?.click()
+      if (dom.fileInput) dom.fileInput.click()
     })
-    dom.fileInput?.addEventListener('change', () => {
-      if (dom.fileInput.files.length) addFiles(dom.fileInput.files)
-      dom.fileInput.value = ''
+    on(dom.fileInput, 'change', function() {
+      if (dom.fileInput && dom.fileInput.files.length) addFiles(dom.fileInput.files)
+      if (dom.fileInput) dom.fileInput.value = ''
     })
 
-    // Drag & drop
-    dom.zone?.addEventListener('dragover', e => { e.preventDefault(); dom.zone.dataset.dragover = 'true' })
-    dom.zone?.addEventListener('dragleave', () => { dom.zone.dataset.dragover = 'false' })
-    dom.zone?.addEventListener('drop', e => {
-      e.preventDefault(); dom.zone.dataset.dragover = 'false'
+    on(dom.zone, 'dragover', function(e) { e.preventDefault(); if (dom.zone) dom.zone.dataset.dragover = 'true' })
+    on(dom.zone, 'dragleave', function() { if (dom.zone) dom.zone.dataset.dragover = 'false' })
+    on(dom.zone, 'drop', function(e) {
+      e.preventDefault(); if (dom.zone) dom.zone.dataset.dragover = 'false'
       if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files)
     })
 
-    // Remove file
-    dom.fileList?.addEventListener('click', e => {
+    on(dom.fileList, 'click', function(e) {
       const btn = e.target.closest('[data-remove-file]')
       if (btn) removeFile(parseInt(btn.dataset.removeFile))
     })
 
-    // Action buttons
-    dom.startBtn?.addEventListener('click', () => processAll())
-    dom.cancelBtn?.addEventListener('click', () => { state.aborted = true })
-    dom.clearBtn?.addEventListener('click', () => {
+    on(dom.startBtn, 'click', function() { processAll() })
+    on(dom.cancelBtn, 'click', function() { state.aborted = true })
+    on(dom.clearBtn, 'click', function() {
       state.files.forEach(f => URL.revokeObjectURL(f.thumb))
       state.files = []
       renderFileList()
     })
-    dom.downloadAllBtn?.addEventListener('click', () => downloadAll())
-    dom.downloadZipBtn?.addEventListener('click', () => downloadZip())
-    dom.recompressBtn?.addEventListener('click', () => processAll())
-    dom.clearResultsBtn?.addEventListener('click', () => {
+    on(dom.downloadAllBtn, 'click', function() { downloadAll() })
+    on(dom.downloadZipBtn, 'click', function() { downloadZip() })
+    on(dom.recompressBtn, 'click', function() { processAll() })
+    on(dom.clearResultsBtn, 'click', function() {
       state.results.forEach(r => { URL.revokeObjectURL(r.origUrl); URL.revokeObjectURL(r.resultUrl) })
       state.results = []
-      dom.resultsSection.hidden = true
-      dom.resultsBody.innerHTML = ''
-      dom.downloadAllBtn.hidden = true
-      dom.downloadZipBtn.hidden = true
-      dom.recompressBtn.hidden = true
-      dom.clearResultsBtn.hidden = true
+      if (dom.resultsSection) dom.resultsSection.hidden = true
+      if (dom.resultsBody) dom.resultsBody.innerHTML = ''
+      if (dom.downloadAllBtn) dom.downloadAllBtn.hidden = true
+      if (dom.downloadZipBtn) dom.downloadZipBtn.hidden = true
+      if (dom.recompressBtn) dom.recompressBtn.hidden = true
+      if (dom.clearResultsBtn) dom.clearResultsBtn.hidden = true
     })
 
-    // Results table: download & preview
-    dom.resultsBody?.addEventListener('click', e => {
+    on(dom.resultsBody, 'click', function(e) {
       const dlBtn = e.target.closest('[data-download]')
       if (dlBtn) { downloadSingle(parseInt(dlBtn.dataset.download)); return }
       const pvBtn = e.target.closest('[data-preview]')
       if (pvBtn) openPreview(parseInt(pvBtn.dataset.preview))
     })
 
-    // Preview modal
-    dom.previewClose?.addEventListener('click', closePreview)
-    dom.previewModal?.addEventListener('click', e => { if (e.target === dom.previewModal) closePreview() })
+    on(dom.previewClose, 'click', closePreview)
+    on(dom.previewModal, 'click', function(e) { if (e.target === dom.previewModal) closePreview() })
 
-    // Keyboard
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closePreview() })
+    if (ac) {
+      document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closePreview() }, { signal: ac.signal })
+    }
 
-    /* ---- Quality slider ---- */
-    dom.qualitySlider?.addEventListener('input', () => {
-      dom.qualityVal.textContent = parseFloat(dom.qualitySlider.value).toFixed(2)
+    on(dom.qualitySlider, 'input', function() {
+      if (dom.qualityVal) dom.qualityVal.textContent = parseFloat(dom.qualitySlider.value).toFixed(2)
     })
 
-    /* ---- Quality presets ---- */
-    $$('[data-quality-presets] .pill').forEach(el => {
-      if (parseFloat(el.dataset.qualityPreset) === parseFloat(dom.qualitySlider.value)) el.dataset.active = 'true'
-      el.addEventListener('click', () => {
+    qsa('[data-quality-presets] .pill').forEach(function(el) {
+      if (dom.qualitySlider && parseFloat(el.dataset.qualityPreset) === parseFloat(dom.qualitySlider.value)) el.dataset.active = 'true'
+      on(el, 'click', function() {
         const v = el.dataset.qualityPreset
-        dom.qualitySlider.value = v
-        dom.qualityVal.textContent = parseFloat(v).toFixed(2)
-        $$('[data-quality-presets] .pill').forEach(p => { p.dataset.active = 'false' })
+        if (dom.qualitySlider) dom.qualitySlider.value = v
+        if (dom.qualityVal) dom.qualityVal.textContent = parseFloat(v).toFixed(2)
+        qsa('[data-quality-presets] .pill').forEach(function(p) { p.dataset.active = 'false' })
         el.dataset.active = 'true'
       })
     })
 
-    /* ---- Max file size pills ---- */
-    $$('[data-maxsize-group] .pill').forEach(el => {
-      el.addEventListener('click', () => {
-        $$('[data-maxsize-group] .pill').forEach(p => { p.dataset.active = 'false' })
+    qsa('[data-maxsize-group] .pill').forEach(function(el) {
+      on(el, 'click', function() {
+        qsa('[data-maxsize-group] .pill').forEach(function(p) { p.dataset.active = 'false' })
         el.dataset.active = 'true'
-        $('[data-custom-maxsize-wrap]').hidden = el.dataset.maxsize !== '0'
+        var wrap = qs('[data-custom-maxsize-wrap]')
+        if (wrap) wrap.hidden = el.dataset.maxsize !== '0'
       })
     })
 
-    /* ---- Max dimension pills ---- */
-    $$('[data-maxdim-group] .pill').forEach(el => {
-      el.addEventListener('click', () => {
-        $$('[data-maxdim-group] .pill').forEach(p => { p.dataset.active = 'false' })
+    qsa('[data-maxdim-group] .pill').forEach(function(el) {
+      on(el, 'click', function() {
+        qsa('[data-maxdim-group] .pill').forEach(function(p) { p.dataset.active = 'false' })
         el.dataset.active = 'true'
-        const customInput = $('[data-custom-maxdim]')
-        customInput.style.display = el.dataset.maxdim === 'custom' ? '' : 'none'
+        var customInput = qs('[data-custom-maxdim]')
+        if (customInput) customInput.style.display = el.dataset.maxdim === 'custom' ? '' : 'none'
       })
     })
 
-    /* ---- Format pills ---- */
-    $$('[data-format-group] .pill').forEach(el => {
-      el.addEventListener('click', () => {
-        $$('[data-format-group] .pill').forEach(p => { p.dataset.active = 'false' })
+    qsa('[data-format-group] .pill').forEach(function(el) {
+      on(el, 'click', function() {
+        qsa('[data-format-group] .pill').forEach(function(p) { p.dataset.active = 'false' })
         el.dataset.active = 'true'
-        const hint = $('[data-format-hint]')
+        var hint = qs('[data-format-hint]')
         if (hint) {
-          const f = el.dataset.format
+          var f = el.dataset.format
           if (f === 'image/webp') {
-            const c = document.createElement('canvas')
-            const supported = c.toDataURL('image/webp').indexOf('data:image/webp') === 0
+            var c = document.createElement('canvas')
+            var supported = c.toDataURL('image/webp').indexOf('data:image/webp') === 0
             hint.textContent = supported ? 'WebP 格式通常比 JPG 小 25-35%' : '当前浏览器不支持 WebP 输出'
             hint.style.display = ''
           } else if (f === 'image/png') {
@@ -601,41 +596,48 @@
       })
     })
 
-    /* ---- Naming pills ---- */
-    $$('[data-naming-group] .pill').forEach(el => {
-      el.addEventListener('click', () => {
-        $$('[data-naming-group] .pill').forEach(p => { p.dataset.active = 'false' })
+    qsa('[data-naming-group] .pill').forEach(function(el) {
+      on(el, 'click', function() {
+        qsa('[data-naming-group] .pill').forEach(function(p) { p.dataset.active = 'false' })
         el.dataset.active = 'true'
-        const wrap = $('[data-custom-naming-wrap]')
+        var wrap = qs('[data-custom-naming-wrap]')
         if (wrap) wrap.hidden = el.dataset.naming !== 'custom'
         updateNamingPreview()
       })
     })
 
-    /* ---- Concurrency pills ---- */
-    $$('[data-concurrency-group] .pill').forEach(el => {
-      el.addEventListener('click', () => {
-        $$('[data-concurrency-group] .pill').forEach(p => { p.dataset.active = 'false' })
+    qsa('[data-concurrency-group] .pill').forEach(function(el) {
+      on(el, 'click', function() {
+        qsa('[data-concurrency-group] .pill').forEach(function(p) { p.dataset.active = 'false' })
         el.dataset.active = 'true'
       })
     })
 
-    /* ---- Advanced sliders ---- */
-    const iqSlider = $('[data-initial-quality]')
-    const iqVal = $('[data-initial-quality-val]')
-    if (iqSlider && iqVal) iqSlider.addEventListener('input', () => { iqVal.textContent = parseFloat(iqSlider.value).toFixed(2) })
+    var iqSlider = qs('[data-initial-quality]')
+    var iqVal = qs('[data-initial-quality-val]')
+    on(iqSlider, 'input', function() { if (iqVal) iqVal.textContent = parseFloat(iqSlider.value).toFixed(2) })
 
-    const miSlider = $('[data-max-iteration]')
-    const miVal = $('[data-max-iteration-val]')
-    if (miSlider && miVal) miSlider.addEventListener('input', () => { miVal.textContent = miSlider.value })
+    var miSlider = qs('[data-max-iteration]')
+    var miVal = qs('[data-max-iteration-val]')
+    on(miSlider, 'input', function() { if (miVal) miVal.textContent = miSlider.value })
 
-    /* ---- Naming inputs ---- */
-    $$('[data-naming-prefix], [data-naming-suffix]').forEach(el => {
-      el.addEventListener('input', updateNamingPreview)
+    qsa('[data-naming-prefix], [data-naming-suffix]').forEach(function(el) {
+      on(el, 'input', updateNamingPreview)
     })
     updateNamingPreview()
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init)
-  else init()
+  function mount(el) {
+    container = el;
+    ac = new AbortController();
+    collectDom();
+    init();
+  }
+
+  function unmount() {
+    if (ac) { ac.abort(); ac = null; }
+    container = null;
+  }
+
+  window.__page_compress = { mount: mount, unmount: unmount };
 })()
