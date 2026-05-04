@@ -419,7 +419,8 @@
 }
 
 .global-player[data-minimized] [data-gp-prev],
-.global-player[data-minimized] [data-gp-mode] {
+.global-player[data-minimized] [data-gp-mode],
+.global-player[data-minimized] [data-gp-playlist] {
   display: none;
   width: 0 !important;
   height: 0;

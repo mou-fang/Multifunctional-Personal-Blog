@@ -89,6 +89,7 @@
         <button class="global-player__btn global-player__btn--play" data-gp-play title="播放/暂停">▶</button>
         <button class="global-player__btn" data-gp-next title="下一首">⏭</button>
         <button class="global-player__btn" data-gp-mode title="Play mode">→</button>
+        <button class="global-player__btn global-player__btn--playlist" data-gp-playlist title="查看歌单" aria-label="查看歌单">&#9776;</button>
         <div class="global-player__volume-group">
           <span class="global-player__volume-icon" data-gp-volume-icon>🔊</span>
           <input type="range" class="global-player__volume-slider" data-gp-volume min="0" max="100" value="80" />
@@ -582,6 +583,20 @@
           </div>
         </div>
       </section>
+  </template>
+
+  <template id="page-playlist">
+      <section class="playlist-page page-chunk" data-reveal-order="2">
+        <div class="playlist-page__head">
+          <div>
+            <span class="pill pill--accent">Playlist</span>
+            <h1>播放歌单</h1>
+          </div>
+          <div class="playlist-page__summary" data-playlist-summary></div>
+        </div>
+      </section>
+
+      <section class="playlist-list page-chunk" data-reveal-order="3" data-playlist-list></section>
   </template>
 
   <template id="page-compress">

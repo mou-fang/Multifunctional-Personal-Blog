@@ -59,6 +59,14 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     js: ["js/music.js"],
     lifecycle: "__page_music"
   },
+  playlist: {
+    title: "claudeOne - 播放歌单",
+    description: "claudeOne 播放歌单",
+    templateId: "page-playlist",
+    css: ["css/playlist.css"],
+    js: ["js/playlist-page.js"],
+    lifecycle: "__page_playlist"
+  },
   ai: {
     title: "claudeOne · DeepSeek 聊天",
     description: "claudeOne DeepSeek — AI 智能对话助手",

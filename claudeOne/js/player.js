@@ -29,6 +29,7 @@
   const modeBtn     = document.querySelector("[data-gp-mode]");
   const volumeSlider = document.querySelector("[data-gp-volume]");
   const volumeIcon   = document.querySelector("[data-gp-volume-icon]");
+  const playlistBtn  = document.querySelector("[data-gp-playlist]");
   const expandBtn    = document.querySelector("[data-gp-expand]");
   const audioEl      = document.querySelector("[data-gp-audio]");
 
@@ -81,8 +82,14 @@
     } catch (_) {}
     try {
       const r = localStorage.getItem(STORAGE_REPEAT);
-      if (r === "off" || r === "one" || r === "all") repeatMode = r;
+      if (r === "off" || r === "one") repeatMode = r;
+      else if (r === "all") repeatMode = "off";
     } catch (_) {}
+    if (repeatMode === "one") {
+      shuffle = false;
+      shuffleOrder = [];
+      shufflePos = -1;
+    }
     try {
       const m = localStorage.getItem(STORAGE_MIN);
       minimized = m === "1";
@@ -118,41 +125,86 @@
   }
 
   /* ---- Shuffle helpers ---------------------------------------------------- */
-  function buildShuffleOrder() {
-    const len = playlist.length;
-    if (len === 0) { shuffleOrder = []; shufflePos = -1; return; }
-    const arr = [];
-    for (let i = 0; i < len; i++) arr.push(i);
+  function shuffleArray(arr) {
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
     }
-    if (len > 1 && currentIdx >= 0 && arr[0] === currentIdx) {
-      const t = arr[0]; arr[0] = arr[1]; arr[1] = t;
+    return arr;
+  }
+
+  function buildShuffleOrder(anchorIdx) {
+    const len = playlist.length;
+    if (len === 0) { shuffleOrder = []; shufflePos = -1; return; }
+    const arr = [];
+    for (let i = 0; i < len; i++) arr.push(i);
+
+    if (anchorIdx >= 0 && anchorIdx < len) {
+      const rest = shuffleArray(arr.filter(function (idx) { return idx !== anchorIdx; }));
+      shuffleOrder = [anchorIdx].concat(rest);
+      shufflePos = 0;
+      return;
     }
-    shuffleOrder = arr;
-    shufflePos = 0;
+
+    shuffleOrder = shuffleArray(arr);
+    shufflePos = currentIdx >= 0 ? shuffleOrder.indexOf(currentIdx) : 0;
+    if (shufflePos < 0) shufflePos = 0;
+  }
+
+  function ensureShuffleOrder() {
+    if (!shuffle) return;
+    if (!shuffleOrder.length || shuffleOrder.length !== playlist.length) {
+      buildShuffleOrder(currentIdx);
+      return;
+    }
+    for (let i = 0; i < shuffleOrder.length; i++) {
+      if (shuffleOrder[i] < 0 || shuffleOrder[i] >= playlist.length) {
+        buildShuffleOrder(currentIdx);
+        return;
+      }
+    }
+  }
+
+  function syncShufflePosToCurrent() {
+    if (!shuffle) return;
+    ensureShuffleOrder();
+    shufflePos = shuffleOrder.indexOf(currentIdx);
+    if (shufflePos < 0) buildShuffleOrder(currentIdx);
   }
 
   function getNextIndex() {
     if (!playlist.length) return -1;
     if (shuffle) {
-      if (!shuffleOrder.length || shufflePos >= shuffleOrder.length - 1) {
-        buildShuffleOrder();
-        shufflePos = 0;
-      } else {
-        shufflePos++;
+      ensureShuffleOrder();
+      if (currentIdx < 0) {
+        if (shufflePos < 0) shufflePos = 0;
+        return shuffleOrder[shufflePos] || 0;
       }
+      if (shufflePos < 0 || shuffleOrder[shufflePos] !== currentIdx) syncShufflePosToCurrent();
+      if (shuffleOrder.length <= 1) return currentIdx >= 0 ? currentIdx : 0;
+      if (shufflePos >= shuffleOrder.length - 1) {
+        buildShuffleOrder(currentIdx);
+        shufflePos = 1;
+        return shuffleOrder[shufflePos];
+      }
+      shufflePos++;
       return shuffleOrder[shufflePos];
     }
     const next = currentIdx + 1;
-    if (next >= playlist.length) return repeatMode === "all" ? 0 : -1;
+    if (next >= playlist.length) return -1;
     return next;
   }
 
   function getPrevIndex() {
     if (!playlist.length) return -1;
     if (shuffle) {
+      ensureShuffleOrder();
+      if (currentIdx < 0) {
+        if (shufflePos < 0) shufflePos = 0;
+        return shuffleOrder[shufflePos] || 0;
+      }
+      if (shufflePos < 0 || shuffleOrder[shufflePos] !== currentIdx) syncShufflePosToCurrent();
+      if (shuffleOrder.length <= 1) return currentIdx >= 0 ? currentIdx : 0;
       if (shufflePos <= 0) shufflePos = shuffleOrder.length - 1;
       else shufflePos--;
       return shuffleOrder[shufflePos];
@@ -168,8 +220,54 @@
     playBtn.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
   }
 
+  function getPlaybackMode() {
+    if (repeatMode === "one") return "one";
+    return shuffle ? "shuffle" : "sequence";
+  }
+
+  function applyPlaybackModeEffects() {
+    var single = getPlaybackMode() === "one";
+    audioEl.loop = single;
+    if (single) audioEl.setAttribute("loop", "");
+    else audioEl.removeAttribute("loop");
+  }
+
   function updateModeBtn() {
+    applyPlaybackModeEffects();
     if (!modeBtn) return;
+    var stableMode = getPlaybackMode();
+    var stableLabel = stableMode === "shuffle" ? "随机" : stableMode === "one" ? "单曲" : "顺序";
+    var stableTitle = stableMode === "shuffle" ? "随机播放" : stableMode === "one" ? "单曲循环" : "顺序播放";
+    modeBtn.textContent = stableLabel;
+    modeBtn.setAttribute("title", stableTitle);
+    modeBtn.setAttribute("aria-label", stableTitle);
+    modeBtn.setAttribute("data-mode", stableMode);
+    modeBtn.style.fontSize = "0.7rem";
+    modeBtn.style.fontWeight = "700";
+    modeBtn.style.width = "auto";
+    modeBtn.style.padding = "4px 10px";
+    if (stableMode !== "sequence") {
+      modeBtn.classList.add("global-player__btn--active");
+    } else {
+      modeBtn.classList.remove("global-player__btn--active");
+    }
+    return;
+    var modeLabel = shuffle ? "随机" : repeatMode === "one" ? "单曲" : "顺序";
+    var modeTitle = shuffle ? "随机播放" : repeatMode === "one" ? "单曲循环" : "顺序播放";
+    modeBtn.textContent = modeLabel;
+    modeBtn.setAttribute("title", modeTitle);
+    modeBtn.setAttribute("aria-label", modeTitle);
+    modeBtn.setAttribute("data-mode", shuffle ? "shuffle" : repeatMode === "one" ? "one" : "sequence");
+    modeBtn.style.fontSize = "0.7rem";
+    modeBtn.style.fontWeight = "700";
+    modeBtn.style.width = "auto";
+    modeBtn.style.padding = "4px 10px";
+    if (shuffle || repeatMode !== "off") {
+      modeBtn.classList.add("global-player__btn--active");
+    } else {
+      modeBtn.classList.remove("global-player__btn--active");
+    }
+    return;
     var label, title;
     if (shuffle) {
       label = "随机"; title = "Random - click to switch";
@@ -191,6 +289,26 @@
     } else {
       modeBtn.classList.remove("global-player__btn--active");
     }
+  }
+
+  function setPlaybackMode(mode) {
+    if (mode === "shuffle") {
+      shuffle = true;
+      repeatMode = "off";
+      buildShuffleOrder(currentIdx);
+    } else if (mode === "one") {
+      shuffle = false;
+      shuffleOrder = [];
+      shufflePos = -1;
+      repeatMode = "one";
+    } else {
+      shuffle = false;
+      shuffleOrder = [];
+      shufflePos = -1;
+      repeatMode = "off";
+    }
+    updateModeBtn();
+    saveState();
   }
 
   function updateCover(track) {
@@ -254,6 +372,53 @@
       expandBtn.setAttribute("aria-label", min ? "Expand player" : "Minimize player");
     }
     saveState();
+    emitPlayerChange("viewchange");
+  }
+
+  function cloneTrack(track, index) {
+    if (!track) return null;
+    return {
+      index: index,
+      src: track.src || "",
+      title: track.title || "Unknown",
+      artist: track.artist || "",
+      album: track.album || "",
+      duration: track.duration || "",
+      cover: track.cover || "",
+      source: track.source || ""
+    };
+  }
+
+  function getPublicState() {
+    return {
+      playing: isPlaying,
+      currentTime: audioEl.currentTime || 0,
+      duration: audioEl.duration || 0,
+      volume: muted ? 0 : volume,
+      mute: muted,
+      currentIndex: currentIdx,
+      track: currentIdx >= 0 && currentIdx < playlist.length ? cloneTrack(playlist[currentIdx], currentIdx) : null,
+      mode: getPlaybackMode(),
+      shuffle: shuffle,
+      repeat: repeatMode,
+      minimized: minimized,
+      playlistLength: playlist.length
+    };
+  }
+
+  function emitPlayerChange(reason) {
+    if (typeof window.CustomEvent !== "function") return;
+    window.dispatchEvent(new CustomEvent("claudeone:playerchange", {
+      detail: Object.assign({ reason: reason || "state" }, getPublicState())
+    }));
+  }
+
+  function openPlaylistPage() {
+    if (window.__ClaudeOneRouter && typeof window.__ClaudeOneRouter.go === "function") {
+      window.__ClaudeOneRouter.go("playlist");
+    } else {
+      window.location.hash = "#/playlist";
+    }
   }
 
   /* ---- Audio events ------------------------------------------------------- */
@@ -280,7 +445,8 @@
   }
 
   function onAudioEnded() {
-    if (repeatMode === "one") {
+    if (getPlaybackMode() === "one") {
+      trackLoadError = false;
       audioEl.currentTime = 0;
       audioEl.play().catch(function() {});
       return;
@@ -290,9 +456,9 @@
       var src = playlist[currentIdx].source;
       if (src === "external" || src === "drag") {
         playlist.splice(currentIdx, 1);
-        if (shuffle) buildShuffleOrder();
         // Adjust index: if we removed the last track, go to start
         if (currentIdx >= playlist.length) currentIdx = playlist.length - 1;
+        if (shuffle) buildShuffleOrder(currentIdx);
         if (playlist.length === 0) {
           currentIdx = -1;
           isPlaying = false;
@@ -318,6 +484,12 @@
 
   function onAudioError() {
     trackLoadError = true;
+    if (getPlaybackMode() === "one") {
+      isPlaying = false;
+      updatePlayBtn();
+      root.removeAttribute("data-playing");
+      return;
+    }
     setTimeout(function () {
       if (trackLoadError) {
         const nextIdx = getNextIndex();
@@ -336,12 +508,15 @@
   function loadAndPlay(idx) {
     if (idx < 0 || idx >= playlist.length) return;
     currentIdx = idx;
+    if (shuffle) syncShufflePosToCurrent();
     trackLoadError = false;
     const track = playlist[idx];
     updateTrackInfo(track);
+    emitPlayerChange("trackchange");
 
     audioEl.src = track.src;
     audioEl.load();
+    applyPlaybackModeEffects();
     audioEl.play().then(function () {
       isPlaying = true;
       root.removeAttribute("hidden");
@@ -363,6 +538,7 @@
       loadAndPlay(0);
       return;
     }
+    applyPlaybackModeEffects();
     audioEl.play().then(function () {
       isPlaying = true;
       root.setAttribute("data-playing", "");
@@ -408,7 +584,7 @@
         cover: track.cover || "",
         source: "external"
       });
-      if (shuffle) buildShuffleOrder();
+      if (shuffle) buildShuffleOrder(idx);
       loadAndPlay(idx);
     },
 
@@ -460,31 +636,31 @@
     },
 
     cycleMode: function () {
-      if (!shuffle && repeatMode === "off") {
-        shuffle = true; repeatMode = "off"; buildShuffleOrder();
-        if (window.ClaudeOne && window.ClaudeOne.toast) window.ClaudeOne.toast("Random", "ok", 1800);
-      } else if (shuffle) {
-        shuffle = false; repeatMode = "all";
-        if (window.ClaudeOne && window.ClaudeOne.toast) window.ClaudeOne.toast("Repeat all", "ok", 1800);
-      } else if (repeatMode === "all") {
-        repeatMode = "one";
-        if (window.ClaudeOne && window.ClaudeOne.toast) window.ClaudeOne.toast("Repeat one", "ok", 1800);
+      var nextMode = "sequence";
+      var currentMode = getPlaybackMode();
+      if (currentMode === "sequence") {
+        nextMode = "shuffle";
+        if (window.ClaudeOne && window.ClaudeOne.toast) window.ClaudeOne.toast("随机播放", "ok", 1800);
+      } else if (currentMode === "shuffle") {
+        nextMode = "one";
+        if (window.ClaudeOne && window.ClaudeOne.toast) window.ClaudeOne.toast("单曲循环", "ok", 1800);
       } else {
-        repeatMode = "off";
-        if (window.ClaudeOne && window.ClaudeOne.toast) window.ClaudeOne.toast("Sequential", "ok", 1800);
+        nextMode = "sequence";
+        if (window.ClaudeOne && window.ClaudeOne.toast) window.ClaudeOne.toast("顺序播放", "ok", 1800);
       }
-      updateModeBtn();
-      saveState();
+      setPlaybackMode(nextMode);
+      emitPlayerChange("modechange");
     },
 
     addTracks: function (tracks) {
       if (!Array.isArray(tracks) || !tracks.length) return;
       playlist = playlist.concat(tracks);
-      if (shuffle) buildShuffleOrder();
+      if (shuffle) buildShuffleOrder(currentIdx);
       if (currentIdx < 0 && playlist.length > 0) {
         loadAndPlay(0);
       }
       if (minimized && tracks.length > 0) setMinimized(false);
+      emitPlayerChange("playlistchange");
     },
 
     removeTrack: function (idx) {
@@ -506,31 +682,25 @@
       } else if (idx < currentIdx) {
         currentIdx--;
       }
-      if (shuffle && playlist.length > 0) buildShuffleOrder();
+      if (shuffle && playlist.length > 0) buildShuffleOrder(currentIdx);
+      emitPlayerChange("playlistchange");
     },
 
     getState: function () {
-      return {
-        playing: isPlaying,
-        currentTime: audioEl.currentTime || 0,
-        duration: audioEl.duration || 0,
-        volume: muted ? 0 : volume,
-        mute: muted,
-        currentIndex: currentIdx,
-        track: currentIdx >= 0 && currentIdx < playlist.length ? Object.assign({}, playlist[currentIdx]) : null,
-        shuffle: shuffle,
-        repeat: repeatMode,
-        minimized: minimized,
-        playlistLength: playlist.length
-      };
+      return getPublicState();
     },
 
     getPlaylist: function () {
-      return playlist.slice();
+      return playlist.map(function (track, index) { return cloneTrack(track, index); });
+    },
+
+    getSequentialPlaylist: function () {
+      return playlist.map(function (track, index) { return cloneTrack(track, index); });
     },
 
     expand: function () { setMinimized(false); },
     minimize: function () { setMinimized(true); },
+    openPlaylist: function () { openPlaylistPage(); },
     isMinimized: function () { return minimized; },
 
     on: function (event, fn) {
@@ -618,10 +788,11 @@
     }
 
     playlist = playlist.concat(tracks);
-    if (shuffle) buildShuffleOrder();
+    if (shuffle) buildShuffleOrder(currentIdx);
     if (currentIdx < 0 && playlist.length > 0) {
       loadAndPlay(0);
     }
+    emitPlayerChange("playlistchange");
     if (window.ClaudeOne && window.ClaudeOne.toast) {
       window.ClaudeOne.toast("Added " + tracks.length + " track(s)", "ok", 2000);
     }
@@ -654,6 +825,10 @@
 
   modeBtn && modeBtn.addEventListener("click", function () {
     API.cycleMode();
+  });
+
+  playlistBtn && playlistBtn.addEventListener("click", function () {
+    openPlaylistPage();
   });
 
   volumeSlider && volumeSlider.addEventListener("input", function () {
@@ -723,11 +898,13 @@
     root.setAttribute("data-playing", "");
     updatePlayBtn();
     saveState();
+    emitPlayerChange("play");
   });
   audioEl.addEventListener("pause", function () {
     isPlaying = false;
     root.removeAttribute("data-playing");
     updatePlayBtn();
+    emitPlayerChange("pause");
   });
 
   /* ---- Keyboard ----------------------------------------------------------- */
@@ -768,6 +945,7 @@
     if (savedIdx >= 0 && savedIdx < playlist.length) {
       currentIdx = savedIdx;
     }
+    if (shuffle && playlist.length > 0) buildShuffleOrder(currentIdx);
 
     updateModeBtn();
 
@@ -782,6 +960,7 @@
         var track = playlist[playIdx];
         updateTrackInfo(track);
         audioEl.src = track.src;
+        applyPlaybackModeEffects();
         try {
           var savedTime = parseFloat(localStorage.getItem(STORAGE_TIME));
           if (savedTime > 0) {
@@ -830,6 +1009,7 @@
     }
 
     window.ClaudeOnePlayer = API;
+    emitPlayerChange("ready");
   }
 
   if (document.readyState === "loading") {
