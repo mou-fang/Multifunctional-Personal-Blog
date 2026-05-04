@@ -14,20 +14,8 @@ set "URL=http://localhost:%PORT%"
 :menu
 cls
 call :check_status
-echo.
-echo   ============================================
-echo     claudeOne - 控制面板
-echo     服务状态：!STATUS!
-echo   ============================================
-echo.
-echo     [1] 启动服务 + 扫描音乐 + 打开浏览器
-echo     [2] 仅启动服务
-echo     [3] 仅扫描音乐 更新播放列表
-echo     [4] 重启服务
-echo     [5] 停止服务
-echo     [0] 退出
-echo.
-set /p "choice=   请选择: "
+call :show_menu
+set /p "choice="
 
 if "!choice!"=="1" goto start_all
 if "!choice!"=="2" goto start_server_only
@@ -38,6 +26,32 @@ if "!choice!"=="0" exit /b 0
 echo 无效选择，请重新输入。
 timeout /t 1 /nobreak >nul
 goto menu
+
+:show_menu
+if exist "%~dp0scripts\control-menu.ps1" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\control-menu.ps1" -StatusCode "!STATUS_CODE!" -ServerPid "!SERVER_PID!"
+    if not errorlevel 1 exit /b 0
+)
+
+echo.
+echo   ============================================
+echo     claudeOne - Control Panel
+if defined SERVER_PID (
+    echo     Status: running PID=!SERVER_PID!
+) else (
+    echo     Status: stopped
+)
+echo   ============================================
+echo.
+echo     [1] Start server + scan music + open browser
+echo     [2] Start server only
+echo     [3] Scan music only + update playlist
+echo     [4] Restart server
+echo     [5] Stop server
+echo     [0] Exit
+echo.
+<nul set /p "=   Choice: "
+exit /b 0
 
 :start_all
 echo.
@@ -107,8 +121,10 @@ goto menu
 :check_status
 call :find_server
 if defined SERVER_PID (
+    set "STATUS_CODE=running"
     set "STATUS=运行中 PID=!SERVER_PID!"
 ) else (
+    set "STATUS_CODE=stopped"
     set "STATUS=已停止"
 )
 exit /b 0
