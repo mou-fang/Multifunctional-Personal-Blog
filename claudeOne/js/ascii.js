@@ -12,7 +12,7 @@
   const CFG = window.CLAUDE_ONE_CONFIG;
   const CS = window.ClaudeOne;
 
-  const API_BASE = "http://localhost:3001";
+  const API_BASE = (CFG && CFG.api && CFG.api.baseUrl) || window.location.origin;
   const HISTORY_KEY = "claudeOne:ascii-history";
   const HISTORY_MAX = 12;
   const DEBOUNCE_MS = 600;
@@ -23,6 +23,7 @@
   let abortController = null;
   let debounceTimer = null;
   let isManualTrigger = true; // distinguishes button click vs auto-convert
+  let previewObjectUrl = null;
 
   // ---- DOM refs (rebuilt on mount) ----
   var uploadZone, fileInput, previewArea, previewImg, previewName, clearPreviewBtn;
@@ -130,7 +131,9 @@
     }
     selectedFile = file;
     previewName.textContent = file.name;
-    previewImg.src = URL.createObjectURL(file);
+    if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+    previewObjectUrl = URL.createObjectURL(file);
+    previewImg.src = previewObjectUrl;
     var dropVis = container.querySelector("[data-drop-visual]");
     if (dropVis) dropVis.hidden = true;
     previewArea.hidden = false;
@@ -144,7 +147,8 @@
 
   function clearFile() {
     selectedFile = null;
-    if (previewImg.src) URL.revokeObjectURL(previewImg.src);
+    if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+    previewObjectUrl = null;
     previewImg.src = "";
     var dropVis = container.querySelector("[data-drop-visual]");
     if (dropVis) dropVis.hidden = false;
@@ -606,6 +610,8 @@
     if (ac) { ac.abort(); ac = null; }
     if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
     if (abortController) { abortController.abort(); abortController = null; }
+    if (previewObjectUrl) { URL.revokeObjectURL(previewObjectUrl); previewObjectUrl = null; }
+    selectedFile = null;
     container = null;
   }
 

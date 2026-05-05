@@ -12,6 +12,7 @@
   var ac = null;
   var streamAbort = null;  // AbortController for active stream fetch
   var promptModalEl = null;
+  var initialKeyTimer = null;
 
   const CFG = window.CLAUDE_ONE_CONFIG.deepseek;
   const L = window.CLAUDE_ONE_CONFIG.limits;
@@ -895,7 +896,8 @@
 
     // If no key set yet, prompt on first visit
     if (!storage.get(CFG.storageKey)) {
-      setTimeout(() => {
+      initialKeyTimer = setTimeout(() => {
+        if (!container) return;
         createApiKeyModal({
           forceOpen: true,
           onSave: () => {
@@ -923,14 +925,12 @@
     }
     state.streaming = false;
     if (ac) { ac.abort(); ac = null; }
-    // Close prompt modal if open
-    if (promptModalEl) {
-      promptModalEl.setAttribute("data-open", "false");
-      setTimeout(function () {
-        if (promptModalEl) promptModalEl.removeAttribute("data-open");
-      }, 300);
-      promptModalEl = null;
-    }
+    if (initialKeyTimer) { clearTimeout(initialKeyTimer); initialKeyTimer = null; }
+    var apiModal = document.querySelector("[data-apikey-modal]");
+    if (apiModal) apiModal.remove();
+    var promptModal = promptModalEl || document.querySelector("[data-prompt-modal]");
+    if (promptModal) promptModal.remove();
+    promptModalEl = null;
     container = null;
   }
 

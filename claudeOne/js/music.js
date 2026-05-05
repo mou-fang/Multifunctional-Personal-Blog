@@ -387,7 +387,17 @@
 
   function unmount() {
     if (ac) { ac.abort(); ac = null; }
-    // Keep worker alive (expensive to recreate)
+    if (worker) {
+      worker.terminate();
+      worker = null;
+      workerReady = false;
+    }
+    fileResults.forEach(function (entry) {
+      if (entry && (entry.status === "processing" || entry.status === "decrypting")) {
+        entry.status = "error";
+        entry.error = "页面已切换，解密任务已取消";
+      }
+    });
     // Keep fileResults (user may come back)
     container = null;
     uploadZone = null; fileInput = null; fileList = null;

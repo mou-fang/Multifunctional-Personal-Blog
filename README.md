@@ -21,6 +21,18 @@ SPA 单页应用（Hash 路由）
 - **双主题**：Soft UI（柔和拟物风）和 Liquid Glass（玻璃拟态风），CSS 变量驱动，播放器深度适配两种风格。
 - **单端口服务**：Express 同时托管前端静态文件和 ASCII 转换 API，统一在 `localhost:3001`。
 
+## 维护规则
+
+- 页面脚本只管理自己的页面逻辑，并通过 `window.__page_xxx = { mount, unmount }` 暴露生命周期。
+- `mount(root)` 只查询当前页面根节点内的 DOM；需要全局能力时通过 `window.ClaudeOne`、`window.ClaudeOnePlayer` 或 router API 调用。
+- `unmount()` 必须清理本页创建的事件监听、定时器、animationFrame、Worker、Object URL、异步请求和临时 DOM。
+- 页面切换中的异步任务必须有 abort 或过期保护，不能在页面卸载后继续写旧 DOM。
+- 全局能力只放在 `js/shell.js`、`js/player.js`、`js/router.js`、`js/config.js` 等公共模块。
+- 页面 CSS 尽量使用页面命名空间，例如 `.page-ascii ...`、`.pixel-...`、`.compress-...`；全局 CSS 只放变量、基础布局、按钮、弹窗、Toast 等通用规则。
+- localStorage key 统一使用 `claudeOne:*` 前缀；DeepSeek API Key 只能保存在浏览器 localStorage，不写死进代码，也不打印到日志。
+- 不硬编码本机绝对路径。API 地址、限制和播放器参数优先放在 `js/config.js`。
+- `music/` 里的用户音频和 `server/uploads/` 里的临时上传不应继续进入 Git；仓库只保留 `.gitkeep` 和生成的 `music/playlist.js`。
+
 ## 快速开始
 
 ### 前提条件
@@ -30,13 +42,13 @@ SPA 单页应用（Hash 路由）
 
 ### 一键启动
 
-双击项目根目录下的 `addmusic.bat`：
+双击 `claudeOne/addmusic.bat`：
 
 1. 启动 Express 服务器（前端 + 后端，端口 3001）
 2. 扫描 `music/` 文件夹，提取音乐元数据生成播放列表
 3. 打开浏览器访问 `http://localhost:3001`
 
-之后往 `music/` 文件夹添加新歌曲，再次双击 `addmusic.bat` 即可更新播放列表。
+之后往 `claudeOne/music/` 文件夹添加新歌曲，再次双击 `claudeOne/addmusic.bat` 即可更新播放列表。
 
 ### 控制面板
 
@@ -84,7 +96,7 @@ SPA 单页应用（Hash 路由）
 - **音乐来源**：`music/` 文件夹（自动扫描，支持 mp3/flac/wav/ogg/aac/m4a 等格式）
 - **元数据提取**：自动从音频文件 ID3 标签读取歌名、歌手、专辑、封面图
 - **封面回退**：内嵌封面 → 同目录同名图片 → cover.jpg → 默认渐变色
-- **播放模式**：顺序 / 随机 / 列表循环 / 单曲循环，一键切换，右上角 Toast 提示
+- **播放模式**：顺序 / 随机 / 单曲循环，一键切换，右上角 Toast 提示
 - **拖拽添加**：拖拽音频文件到播放器即可临时播放
 - **来源标记**：显示当前曲目来自「项目文件夹」还是「音乐解锁」或「拖拽添加」
 
@@ -122,7 +134,7 @@ npm install
 go install github.com/TheZoraiz/ascii-image-converter@latest
 ```
 
-确保 `ascii-image-converter` 在系统 PATH 中，否则 ASCII 转换功能不可用（其他功能不受影响）。
+确保 `ascii-image-converter` 在系统 PATH 中，否则 ASCII 转换功能不可用（其他功能不受影响）。服务端会返回清晰的 JSON 错误，前端应显示友好提示。
 
 ### 4. 启动
 
@@ -135,6 +147,13 @@ node server.js
 
 然后访问 `http://localhost:3001`。
 
+如果端口被占用，先停止已有服务，或临时使用其他端口：
+
+```bash
+cd claudeOne/server
+PORT=3017 node server.js
+```
+
 ### 5. 放置音乐
 
 将音频文件（mp3/flac/wav 等）放入 `claudeOne/music/` 文件夹，重新运行 `addmusic.bat` 或在控制面板选择 "Scan Music Only" 更新播放列表。
@@ -144,6 +163,7 @@ node server.js
 ```
 eluosizhuanpan/
 ├── README.md
+├── .gitignore
 ├── claudeOne/
 │   ├── index.html              SPA 壳子 + 所有页面模板
 │   ├── addmusic.bat            一键启动器

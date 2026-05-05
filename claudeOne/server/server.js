@@ -298,6 +298,13 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", activeJobs });
 });
 
+app.use("/api", (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: `API endpoint not found: ${req.method} ${req.originalUrl}`,
+  });
+});
+
 // ---- Global error handler ----
 app.use((err, _req, res, _next) => {
   if (err.code === "LIMIT_FILE_SIZE") {
@@ -315,9 +322,18 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`[claudeOne] Server running on http://localhost:${PORT}`);
   console.log(`[claudeOne] Frontend →  http://localhost:${PORT}`);
   console.log(`[claudeOne] API     →  http://localhost:${PORT}/api/ascii`);
   console.log(`[claudeOne] Health  →  http://localhost:${PORT}/api/health`);
+});
+
+server.on("error", (err) => {
+  if (err && err.code === "EADDRINUSE") {
+    console.error(`[claudeOne] Port ${PORT} is already in use. Stop the existing server or run with PORT=<another-port>.`);
+    process.exit(1);
+  }
+  console.error("[claudeOne] Failed to start server:", err);
+  process.exit(1);
 });

@@ -62,6 +62,12 @@
     return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
   }
 
+  function revokeTrackObjectUrl(track) {
+    if (!track || !track.objectUrlOwned || !track.src || !track.src.startsWith("blob:")) return;
+    try { URL.revokeObjectURL(track.src); } catch (_) {}
+    track.objectUrlOwned = false;
+  }
+
   function saveState() {
     try { localStorage.setItem(STORAGE_VOL, volume); } catch (_) {}
     try { localStorage.setItem(STORAGE_IDX, currentIdx); } catch (_) {}
@@ -226,8 +232,10 @@
   }
 
   function applyPlaybackModeEffects() {
-    audioEl.loop = false;
-    audioEl.removeAttribute("loop");
+    var shouldLoop = getPlaybackMode() === "one";
+    audioEl.loop = shouldLoop;
+    if (shouldLoop) audioEl.setAttribute("loop", "");
+    else audioEl.removeAttribute("loop");
   }
 
   function updateModeBtn() {
@@ -434,7 +442,8 @@
     if (currentIdx >= 0 && currentIdx < playlist.length) {
       var src = playlist[currentIdx].source;
       if (src === "external" || src === "drag") {
-        playlist.splice(currentIdx, 1);
+        var removed = playlist.splice(currentIdx, 1)[0];
+        revokeTrackObjectUrl(removed);
         // Adjust index: if we removed the last track, go to start
         if (currentIdx >= playlist.length) currentIdx = playlist.length - 1;
         if (shuffle) buildShuffleOrder(currentIdx);
@@ -561,7 +570,8 @@
         album: track.album || "",
         duration: track.duration || "",
         cover: track.cover || "",
-        source: "external"
+        source: "external",
+        objectUrlOwned: track.src.indexOf("blob:") === 0
       });
       if (shuffle) buildShuffleOrder(idx);
       loadAndPlay(idx);
@@ -644,10 +654,11 @@
 
     removeTrack: function (idx) {
       if (idx < 0 || idx >= playlist.length) return;
-      playlist.splice(idx, 1);
+      var removedTrack = playlist.splice(idx, 1)[0];
       if (idx === currentIdx) {
         audioEl.pause();
         audioEl.src = "";
+        revokeTrackObjectUrl(removedTrack);
         isPlaying = false;
         updatePlayBtn();
         root.removeAttribute("data-playing");
@@ -659,7 +670,10 @@
           root.setAttribute("hidden", "");
         }
       } else if (idx < currentIdx) {
+        revokeTrackObjectUrl(removedTrack);
         currentIdx--;
+      } else {
+        revokeTrackObjectUrl(removedTrack);
       }
       if (shuffle && playlist.length > 0) buildShuffleOrder(currentIdx);
       emitPlayerChange("playlistchange");
@@ -757,7 +771,8 @@
         album: "",
         duration: "",
         cover: "",
-        source: "drag"
+        source: "drag",
+        objectUrlOwned: true
       };
     });
 

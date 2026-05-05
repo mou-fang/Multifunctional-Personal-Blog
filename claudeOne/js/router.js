@@ -19,6 +19,7 @@
   var loadedCSS = {};   // url -> true
   var loadedJS = {};    // url -> true
   var isNavigating = false;
+  var pendingNavigation = null;
 
   var TRANSITION_MS = 260;  // must match CSS exit animation duration
 
@@ -44,6 +45,19 @@
     var hash = "#/" + pageName;
     if (window.location.hash !== hash) {
       history.pushState(null, "", hash);
+    }
+  }
+
+  function finishNavigation() {
+    isNavigating = false;
+    if (!pendingNavigation) return;
+
+    var next = pendingNavigation;
+    pendingNavigation = null;
+    if (next.pageName !== currentPage) {
+      setTimeout(function () {
+        navigateTo(next.pageName, next.opts);
+      }, 0);
     }
   }
 
@@ -101,12 +115,28 @@
   /* ---- Core navigation ---------------------------------------------------- */
   function navigateTo(pageName, opts) {
     opts = opts || {};
-    if (isNavigating) return;
-    if (pageName === currentPage) return;
 
     var meta = PAGES[pageName];
     if (!meta) {
       console.warn("[router] Unknown page:", pageName);
+      if (PAGES.home) {
+        pageName = "home";
+        opts = Object.assign({}, opts, { replace: true });
+        meta = PAGES.home;
+        if (window.ClaudeOne && typeof window.ClaudeOne.toast === "function") {
+          window.ClaudeOne.toast("页面不存在，已回到首页", "err", 2200);
+        }
+      } else {
+        return;
+      }
+    }
+
+    if (isNavigating) {
+      pendingNavigation = { pageName: pageName, opts: opts };
+      return;
+    }
+    if (pageName === currentPage) {
+      if (opts.replace) history.replaceState(null, "", "#/" + pageName);
       return;
     }
 
@@ -129,7 +159,7 @@
       var main = document.querySelector("[data-content-slot]");
       if (!main) {
         console.error("[router] Content slot missing");
-        isNavigating = false;
+        finishNavigation();
         return;
       }
       main.innerHTML = "";
@@ -183,11 +213,11 @@
           window.scrollTo({ top: 0, behavior: "instant" });
 
           currentPage = pageName;
-          isNavigating = false;
+          finishNavigation();
         }, 10);
       }).catch(function () {
         document.body.setAttribute("data-route-state", "idle");
-        isNavigating = false;
+        finishNavigation();
       });
     });
 

@@ -21,9 +21,11 @@
     files: [],
     results: [],
     processing: false,
-    aborted: false
+    aborted: false,
+    abortController: null
   }
   let idSeq = 0
+  let processRunId = 0
 
   /* ---- DOM refs (rebuilt on mount) ---- */
   var dom = {}
@@ -169,12 +171,24 @@
 
   /* ---- Progress ---- */
   function showProgress (text, done, total) {
+    if (!container) return
     if (dom.progressWrap) dom.progressWrap.hidden = false
     if (dom.progressText) dom.progressText.textContent = text
     if (dom.progressCount) dom.progressCount.textContent = done + ' / ' + total
     if (dom.progressFill) dom.progressFill.style.width = total ? ((done / total) * 100).toFixed(1) + '%' : '0%'
   }
   function hideProgress () { if (dom.progressWrap) dom.progressWrap.hidden = true }
+
+  function revokeResultUrls (result) {
+    if (!result) return
+    if (result.origUrl) URL.revokeObjectURL(result.origUrl)
+    if (result.resultUrl) URL.revokeObjectURL(result.resultUrl)
+  }
+
+  function cancelProcessing () {
+    state.aborted = true
+    if (state.abortController) state.abortController.abort()
+  }
 
   /* ---- Image load ---- */
   function loadImage (file) {
@@ -338,6 +352,8 @@
 
   async function processAll () {
     if (!state.files.length) { toast('请先上传图片', 'err'); return }
+    if (state.processing) cancelProcessing()
+    const runId = ++processRunId
     const params = getParams()
     const files = [...state.files]
     const total = files.length
@@ -346,6 +362,7 @@
     state.aborted = false
     state.results = []
     const mainAbort = new AbortController()
+    state.abortController = mainAbort
 
     if (dom.startBtn) dom.startBtn.hidden = true
     if (dom.cancelBtn) dom.cancelBtn.hidden = false
@@ -361,17 +378,24 @@
 
     const worker = async () => {
       while (queue.length && !state.aborted) {
+        if (!container || runId !== processRunId || mainAbort.signal.aborted) break
         const item = queue.shift()
         const idx = done
         showProgress('压缩: ' + item.name, done, total)
         try {
           const r = await processImage(item, params, mainAbort.signal)
+          if (!container || runId !== processRunId || mainAbort.signal.aborted) {
+            revokeResultUrls(r)
+            if (runId === processRunId) state.aborted = true
+            break
+          }
           state.results.push(r)
         } catch (e) {
-          if (e.name === 'AbortError') { state.aborted = true; break }
+          if (e.name === 'AbortError') { if (runId === processRunId) state.aborted = true; break }
           state.results.push({ id: item.id, origFile: item, status: 'error', error: e.message, origSize: item.size, origW: item.width, origH: item.height, origUrl: URL.createObjectURL(item.file) })
         }
         done++
+        if (!container || runId !== processRunId) break
         showProgress(state.aborted ? '已取消' : '处理中...', done, total)
         renderResults()
       }
@@ -380,7 +404,14 @@
     const workers = Array.from({ length: Math.min(concurrency, total) }, () => worker())
     await Promise.all(workers)
 
+    if (!container || runId !== processRunId) {
+      if (runId === processRunId) state.processing = false
+      if (state.abortController === mainAbort) state.abortController = null
+      return
+    }
+
     state.processing = false
+    if (state.abortController === mainAbort) state.abortController = null
     if (dom.startBtn) dom.startBtn.hidden = false
     if (dom.cancelBtn) dom.cancelBtn.hidden = true
     if (dom.clearBtn) dom.clearBtn.hidden = false
@@ -507,7 +538,7 @@
     })
 
     on(dom.startBtn, 'click', function() { processAll() })
-    on(dom.cancelBtn, 'click', function() { state.aborted = true })
+    on(dom.cancelBtn, 'click', cancelProcessing)
     on(dom.clearBtn, 'click', function() {
       state.files.forEach(f => URL.revokeObjectURL(f.thumb))
       state.files = []
@@ -636,6 +667,16 @@
 
   function unmount() {
     if (ac) { ac.abort(); ac = null; }
+    processRunId++
+    cancelProcessing()
+    state.processing = false
+    state.abortController = null
+    state.files.forEach(f => URL.revokeObjectURL(f.thumb))
+    state.files = []
+    state.results.forEach(revokeResultUrls)
+    state.results = []
+    closePreview()
+    dom = {}
     container = null;
   }
 
