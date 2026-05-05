@@ -1,4 +1,7 @@
 window.CLAUDE_ONE_CONFIG = Object.freeze({
+  api: Object.freeze({
+    baseUrl: "",
+  }),
   deepseek: Object.freeze({
     baseUrl: "https://api.deepseek.com",
     chatPath: "/chat/completions",

@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+claudeOne/server/node_modules/
+
+# Runtime files
+*.log
+output/
+.playwright-cli/
+claudeOne/.playwright-cli/
+claudeOne/server/uploads/*
+!claudeOne/server/uploads/.gitkeep
+
+# User-provided media. Keep the generated playlist artifact tracked.
+claudeOne/music/*
+!claudeOne/music/.gitkeep
+!claudeOne/music/playlist.js

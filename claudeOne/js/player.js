@@ -62,6 +62,12 @@
     return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
   }
 
+  function revokeTrackObjectUrl(track) {
+    if (!track || !track.objectUrlOwned || !track.src || !track.src.startsWith("blob:")) return;
+    try { URL.revokeObjectURL(track.src); } catch (_) {}
+    track.objectUrlOwned = false;
+  }
+
   function saveState() {
     try { localStorage.setItem(STORAGE_VOL, volume); } catch (_) {}
     try { localStorage.setItem(STORAGE_IDX, currentIdx); } catch (_) {}
@@ -226,9 +232,9 @@
   }
 
   function applyPlaybackModeEffects() {
-    var single = getPlaybackMode() === "one";
-    audioEl.loop = single;
-    if (single) audioEl.setAttribute("loop", "");
+    var shouldLoop = getPlaybackMode() === "one";
+    audioEl.loop = shouldLoop;
+    if (shouldLoop) audioEl.setAttribute("loop", "");
     else audioEl.removeAttribute("loop");
   }
 
@@ -247,44 +253,6 @@
     modeBtn.style.width = "auto";
     modeBtn.style.padding = "4px 10px";
     if (stableMode !== "sequence") {
-      modeBtn.classList.add("global-player__btn--active");
-    } else {
-      modeBtn.classList.remove("global-player__btn--active");
-    }
-    return;
-    var modeLabel = shuffle ? "随机" : repeatMode === "one" ? "单曲" : "顺序";
-    var modeTitle = shuffle ? "随机播放" : repeatMode === "one" ? "单曲循环" : "顺序播放";
-    modeBtn.textContent = modeLabel;
-    modeBtn.setAttribute("title", modeTitle);
-    modeBtn.setAttribute("aria-label", modeTitle);
-    modeBtn.setAttribute("data-mode", shuffle ? "shuffle" : repeatMode === "one" ? "one" : "sequence");
-    modeBtn.style.fontSize = "0.7rem";
-    modeBtn.style.fontWeight = "700";
-    modeBtn.style.width = "auto";
-    modeBtn.style.padding = "4px 10px";
-    if (shuffle || repeatMode !== "off") {
-      modeBtn.classList.add("global-player__btn--active");
-    } else {
-      modeBtn.classList.remove("global-player__btn--active");
-    }
-    return;
-    var label, title;
-    if (shuffle) {
-      label = "随机"; title = "Random - click to switch";
-    } else if (repeatMode === "one") {
-      label = "单曲"; title = "Repeat one - click to switch";
-    } else if (repeatMode === "all") {
-      label = "循环"; title = "Repeat all - click to switch";
-    } else {
-      label = "顺序"; title = "Sequential - click to switch";
-    }
-    modeBtn.textContent = label;
-    modeBtn.setAttribute("title", title);
-    modeBtn.style.fontSize = "0.7rem";
-    modeBtn.style.fontWeight = "700";
-    modeBtn.style.width = "auto";
-    modeBtn.style.padding = "4px 10px";
-    if (shuffle || repeatMode !== "off") {
       modeBtn.classList.add("global-player__btn--active");
     } else {
       modeBtn.classList.remove("global-player__btn--active");
@@ -432,6 +400,27 @@
     if (!trackLoadError) updateProgress();
   }
 
+  function replayCurrentTrack() {
+    if (currentIdx < 0 || currentIdx >= playlist.length) return;
+    trackLoadError = false;
+    try { audioEl.currentTime = 0; } catch (_) {}
+    updateProgress();
+
+    audioEl.play().then(function () {
+      isPlaying = true;
+      root.removeAttribute("hidden");
+      root.setAttribute("data-playing", "");
+      updatePlayBtn();
+      saveState();
+      emitPlayerChange("repeatone");
+    }).catch(function (e) {
+      console.warn("[player] Repeat-one replay blocked:", e.message);
+      isPlaying = false;
+      root.removeAttribute("data-playing");
+      updatePlayBtn();
+    });
+  }
+
   function updateProgress() {
     const dur = audioEl.duration;
     const cur = audioEl.currentTime;
@@ -446,16 +435,15 @@
 
   function onAudioEnded() {
     if (getPlaybackMode() === "one") {
-      trackLoadError = false;
-      audioEl.currentTime = 0;
-      audioEl.play().catch(function() {});
+      replayCurrentTrack();
       return;
     }
     // Remove external/drag tracks after playback — they are temporary
     if (currentIdx >= 0 && currentIdx < playlist.length) {
       var src = playlist[currentIdx].source;
       if (src === "external" || src === "drag") {
-        playlist.splice(currentIdx, 1);
+        var removed = playlist.splice(currentIdx, 1)[0];
+        revokeTrackObjectUrl(removed);
         // Adjust index: if we removed the last track, go to start
         if (currentIdx >= playlist.length) currentIdx = playlist.length - 1;
         if (shuffle) buildShuffleOrder(currentIdx);
@@ -582,7 +570,8 @@
         album: track.album || "",
         duration: track.duration || "",
         cover: track.cover || "",
-        source: "external"
+        source: "external",
+        objectUrlOwned: track.src.indexOf("blob:") === 0
       });
       if (shuffle) buildShuffleOrder(idx);
       loadAndPlay(idx);
@@ -665,10 +654,11 @@
 
     removeTrack: function (idx) {
       if (idx < 0 || idx >= playlist.length) return;
-      playlist.splice(idx, 1);
+      var removedTrack = playlist.splice(idx, 1)[0];
       if (idx === currentIdx) {
         audioEl.pause();
         audioEl.src = "";
+        revokeTrackObjectUrl(removedTrack);
         isPlaying = false;
         updatePlayBtn();
         root.removeAttribute("data-playing");
@@ -680,7 +670,10 @@
           root.setAttribute("hidden", "");
         }
       } else if (idx < currentIdx) {
+        revokeTrackObjectUrl(removedTrack);
         currentIdx--;
+      } else {
+        revokeTrackObjectUrl(removedTrack);
       }
       if (shuffle && playlist.length > 0) buildShuffleOrder(currentIdx);
       emitPlayerChange("playlistchange");
@@ -778,7 +771,8 @@
         album: "",
         duration: "",
         cover: "",
-        source: "drag"
+        source: "drag",
+        objectUrlOwned: true
       };
     });
 

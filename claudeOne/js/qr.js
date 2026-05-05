@@ -33,6 +33,8 @@
   let qrCode = null;
   let logoDataUrl = "";
   let config = JSON.parse(JSON.stringify(DEFAULTS));
+  let renderSeq = 0;
+  const renderIntervals = new Set();
 
   /* ---- Content type helpers ---- */
   function buildContentData() {
@@ -79,6 +81,11 @@
       const canvas = wrap.querySelector("canvas");
       if (!canvas) { resolve(); return; }
       let elapsed = 0;
+      function finish(interval) {
+        clearInterval(interval);
+        renderIntervals.delete(interval);
+        resolve();
+      }
       const interval = setInterval(() => {
         elapsed += 100;
         try {
@@ -86,21 +93,19 @@
           if (ctx) {
             const pixel = ctx.getImageData(0, 0, 1, 1).data;
             if (pixel[3] > 0 || elapsed > 3000) {
-              clearInterval(interval);
-              resolve();
+              finish(interval);
             }
           }
         } catch (_) {
           // Canvas tainted by logo SVG — rendering is done, just can't read pixels
-          clearInterval(interval);
-          resolve();
+          finish(interval);
           return;
         }
         if (elapsed > 4000) {
-          clearInterval(interval);
-          resolve();
+          finish(interval);
         }
       }, 100);
+      renderIntervals.add(interval);
     });
   }
 
@@ -113,6 +118,7 @@
       const wrap = $("[data-qr-canvas]");
       if (wrap) wrap.innerHTML = '<p class="muted" style="text-align:center;padding:var(--space-8)">请先输入内容</p>';
       qrCode = null;
+      renderSeq++;
       return;
     }
 
@@ -120,9 +126,11 @@
     if (!wrap) return;
 
     try {
+      const seq = ++renderSeq;
       const instance = new QRCodeStyling(config);
       qrCode = instance;
       renderQR(instance, wrap).catch((e) => {
+        if (seq !== renderSeq) return;
         console.error("[qr] render failed:", e);
       });
     } catch (e) {
@@ -896,6 +904,10 @@
     if (ac) { ac.abort(); ac = null; }
     clearTimeout(updateTimer);
     updateTimer = null;
+    renderSeq++;
+    renderIntervals.forEach((interval) => clearInterval(interval));
+    renderIntervals.clear();
+    qrCode = null;
     container = null;
   }
   window.__page_qr = { mount: mount, unmount: unmount };

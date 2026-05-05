@@ -19,6 +19,8 @@
   let container = null;
   let ac = null;
   let rafId = null;
+  let mounted = false;
+  const activeTurnFinishers = new Set();
 
   // --- Module-level state (persists across mount/unmount) ---
   let stage, hero, css, CUBELET, GAP, STEP, TURN_MS;
@@ -222,21 +224,25 @@
 
   async function runQueue() {
     if (turning) return;
-    while (queue.length > 0) {
+    while (mounted && queue.length > 0) {
       const item = queue.shift();
       turning = true;
-      stage.setAttribute("data-turning", "true");
+      if (stage) stage.setAttribute("data-turning", "true");
       await doTurn(item.name, item.fast ? 140 : TURN_MS);
+      if (!mounted) {
+        item.resolve && item.resolve();
+        break;
+      }
       if (item.recordHistory) history.push(item.name);
       turning = false;
-      stage.removeAttribute("data-turning");
+      if (stage) stage.removeAttribute("data-turning");
       item.resolve && item.resolve();
     }
   }
 
   function doTurn(name, durationMs) {
     const t = TURNS[name];
-    if (!t) return Promise.resolve();
+    if (!t || !mounted || !cube || !cubelets) return Promise.resolve();
     const idx = AXIS_IDX[t.axis];
     const slice = cubelets.filter((c) => c.pos[idx] === t.layer);
     const angle = t.sign * 90;
@@ -266,9 +272,17 @@
       sliceDiv.style.transform = rotFn;
 
       let done = false;
+      let fallbackTimer = null;
       const finish = () => {
         if (done) return;
         done = true;
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        activeTurnFinishers.delete(finish);
+        if (!mounted || !cube) {
+          sliceDiv.remove();
+          resolve();
+          return;
+        }
         slice.forEach((c) => {
           c.pos = rotateVec(R, c.pos);
           c.orient = matMul(R, c.orient);
@@ -278,8 +292,9 @@
         sliceDiv.remove();
         resolve();
       };
+      activeTurnFinishers.add(finish);
       sliceDiv.addEventListener("transitionend", finish, { once: true });
-      setTimeout(finish, durationMs + 80);
+      fallbackTimer = setTimeout(finish, durationMs + 80);
     });
   }
 
@@ -977,11 +992,15 @@
   // ---------------------------------------------------------------- lifecycle
   function mount(el) {
     container = el;
+    mounted = true;
     ac = new AbortController();
     const signal = ac.signal;
 
     stage = el.querySelector("[data-cube-stage]");
-    if (!stage) return;
+    if (!stage) {
+      mounted = false;
+      return;
+    }
 
     hero = stage.closest(".cube-hero__cube") || stage.parentElement;
     css = getComputedStyle(stage);
@@ -1022,6 +1041,9 @@
   }
 
   function unmount() {
+    mounted = false;
+    activeTurnFinishers.forEach((finish) => finish());
+    activeTurnFinishers.clear();
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
     if (ac) { ac.abort(); ac = null; }
     clearTimeout(scatterTimer);
