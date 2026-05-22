@@ -592,12 +592,12 @@
   display: grid;
   place-items: center;
   padding: var(--space-6);
-  background: rgba(31, 53, 89, 0.26);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: rgba(8, 12, 24, 0.55);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--dur) var(--ease-out);
+  transition: opacity 0.45s var(--ease-out);
 }
 
 .winner-reveal[hidden] {
@@ -610,41 +610,189 @@
 }
 
 .winner-card {
-  width: min(560px, 100%);
-  padding: clamp(30px, 6vw, 58px);
+  width: min(520px, 100%);
+  padding: clamp(36px, 6vw, 64px) clamp(28px, 5vw, 52px);
   border-radius: var(--radius-xl);
   text-align: center;
-  color: var(--ink);
-  background: var(--surface);
-  box-shadow: var(--shadow-out);
-  transform: scale(0.92) translateY(18px);
-  transition: transform var(--dur-slow) var(--ease-spring);
+  color: #f0e6d2;
+  background: linear-gradient(165deg, #1a1f35 0%, #10141f 40%, #0a0d16 100%);
+  border: 1px solid rgba(255, 215, 106, 0.18);
+  box-shadow:
+    0 0 80px rgba(255, 200, 80, 0.12),
+    0 0 200px rgba(255, 180, 60, 0.06),
+    0 30px 80px rgba(0, 0, 0, 0.5);
+  transform: scale(0.88) translateY(24px);
+  transition: transform 0.6s cubic-bezier(0.16, 1.2, 0.3, 1), box-shadow 0.6s ease;
   position: relative;
+  z-index: 2;
   overflow: hidden;
 }
 
+/* Animated golden glow behind the card */
+.winner-card__glow {
+  position: absolute;
+  top: -40%;
+  left: -20%;
+  right: -20%;
+  bottom: -40%;
+  background: radial-gradient(ellipse at 50% 30%, rgba(255, 210, 90, 0.15), transparent 60%);
+  pointer-events: none;
+  animation: winnerGlowPulse 3s ease-in-out infinite;
+}
+
+@keyframes winnerGlowPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+/* Confetti layer (full-screen behind card) */
+.winner-card__confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.reveal-confetti {
+  position: absolute;
+  top: -20px;
+  width: 10px;
+  height: 16px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: revealConfettiFall var(--rc-dur, 3s) var(--rc-delay, 0s) ease-in forwards;
+}
+
+@keyframes revealConfettiFall {
+  0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(100vh) rotate(var(--rc-spin, 720deg)) scale(0.5); }
+}
+
+/* Star burst layer (around the card) */
+.winner-card__starburst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.star-burst {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  animation: starBurst var(--sb-dur, 2.5s) var(--sb-delay, 0s) ease-in-out infinite;
+  filter: drop-shadow(0 0 4px rgba(255, 215, 106, 0.5));
+}
+
+.star-burst--4 {
+  width: 14px;
+  height: 14px;
+  background:
+    linear-gradient(#ffd76a 0 0) center/2px 100%,
+    linear-gradient(#ffd76a 0 0) center/100% 2px;
+  background-repeat: no-repeat;
+}
+
+.star-burst--6 {
+  width: 12px;
+  height: 12px;
+  clip-path: polygon(50% 0%, 65% 35%, 100% 35%, 75% 55%, 85% 90%, 50% 70%, 15% 90%, 25% 55%, 0% 35%, 35% 35%);
+  background: #ffd76a;
+}
+
+.star-burst--dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ffd76a;
+  box-shadow: 0 0 8px 3px rgba(255, 215, 106, 0.65);
+}
+
+@keyframes starBurst {
+  0% { opacity: 0; transform: scale(0) rotate(0deg); }
+  15% { opacity: 1; transform: scale(1.2) rotate(30deg); }
+  50% { opacity: 0.9; transform: scale(0.9) rotate(90deg); }
+  85% { opacity: 0.7; }
+  100% { opacity: 0; transform: scale(0.3) rotate(180deg); }
+}
+
+/* Sparkle particles layer */
+.winner-card__sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.winner-sparkle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffd76a;
+  box-shadow: 0 0 6px 2px rgba(255, 215, 106, 0.6);
+  animation: sparkleFloat var(--sparkle-dur, 2s) var(--sparkle-delay, 0s) ease-in-out infinite;
+  opacity: 0;
+}
+
+@keyframes sparkleFloat {
+  0% { opacity: 0; transform: translateY(0) scale(0); }
+  20% { opacity: 1; transform: translateY(-8px) scale(1); }
+  80% { opacity: 0.8; }
+  100% { opacity: 0; transform: translateY(calc(-100% - 20px)) scale(0.3); }
+}
+
+/* Celebration icon */
+.winner-card__icon {
+  display: block;
+  font-size: clamp(2.2rem, 6vw, 3.5rem);
+  margin-bottom: var(--space-3);
+  animation: iconBounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both;
+  filter: drop-shadow(0 4px 12px rgba(255, 200, 80, 0.3));
+}
+
+@keyframes iconBounce {
+  0% { opacity: 0; transform: scale(0) rotate(-20deg); }
+  60% { transform: scale(1.2) rotate(5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+/* Top decorative border glow */
 .winner-card::before {
   content: "";
   position: absolute;
-  top: -120px;
-  left: 50%;
-  width: 330px;
-  height: 330px;
-  border-radius: 50%;
-  transform: translateX(-50%);
-  background: radial-gradient(circle, rgba(247, 185, 85, 0.22), transparent 66%);
-  pointer-events: none;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 215, 106, 0.7), rgba(255, 180, 60, 0.9), rgba(255, 215, 106, 0.7), transparent);
+  border-radius: 2px;
+  animation: borderGlowSlide 3s ease-in-out infinite;
 }
 
+@keyframes borderGlowSlide {
+  0%, 100% { opacity: 0.5; left: 10%; right: 10%; }
+  50% { opacity: 1; left: 5%; right: 5%; }
+}
+
+/* Star decoration */
 .winner-card::after {
   content: "★";
   position: absolute;
-  top: var(--space-6);
-  right: var(--space-8);
-  color: var(--warning);
-  font-size: 1.25rem;
-  opacity: 0.38;
+  top: var(--space-5);
+  right: var(--space-6);
+  color: rgba(255, 215, 106, 0.25);
+  font-size: 1.4rem;
   pointer-events: none;
+  animation: starTwinkle 2s ease-in-out infinite;
+}
+
+@keyframes starTwinkle {
+  0%, 100% { opacity: 0.2; transform: scale(1) rotate(0deg); }
+  50% { opacity: 0.5; transform: scale(1.15) rotate(10deg); }
 }
 
 .winner-card > * {
@@ -660,28 +808,56 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 14px;
+  padding: 8px 18px;
   border-radius: var(--radius-pill);
-  color: var(--warning);
-  background: var(--surface-sunken);
+  color: #ffd76a;
+  background: rgba(255, 215, 106, 0.1);
+  border: 1px solid rgba(255, 215, 106, 0.2);
   font-size: 0.92rem;
   font-weight: 900;
   letter-spacing: 0.08em;
+  text-shadow: 0 0 12px rgba(255, 215, 106, 0.3);
 }
 
 .winner-card h2 {
   margin-top: var(--space-4);
   font-family: "Sora", "Manrope", sans-serif;
-  font-size: clamp(2.5rem, 8vw, 5rem);
+  font-size: clamp(2.8rem, 9vw, 5.5rem);
   line-height: 1;
-  color: var(--ink);
+  color: #fff;
   overflow-wrap: anywhere;
+  text-shadow: 0 0 40px rgba(255, 210, 90, 0.25);
+  animation: nameReveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+
+@keyframes nameReveal {
+  0% { opacity: 0; transform: translateY(16px) scale(0.95); filter: blur(6px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }
 
 .winner-card p {
   margin: var(--space-4) 0 var(--space-8);
-  color: var(--ink-soft);
+  color: rgba(240, 230, 210, 0.7);
   font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.winner-card .btn-primary {
+  background: linear-gradient(135deg, #ffd76a 0%, #ffb13b 100%);
+  color: #1a1200;
+  font-weight: 800;
+  border: none;
+  box-shadow: 0 0 28px rgba(255, 200, 80, 0.25), 0 4px 18px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.winner-card .btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 36px rgba(255, 200, 80, 0.35), 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+.winner-card .btn-primary:active {
+  transform: translateY(0);
 }
 
 body[data-theme="liquid-glass"] .random-badge,
@@ -696,51 +872,37 @@ body[data-theme="liquid-glass"] .tiny-btn {
 }
 
 body[data-theme="liquid-glass"] .winner-reveal {
-  background:
-    radial-gradient(circle at 22% 18%, rgba(42, 107, 255, 0.18), transparent 30%),
-    radial-gradient(circle at 78% 72%, rgba(140, 75, 255, 0.14), transparent 34%),
-    rgba(243, 243, 243, 0.38);
+  background: rgba(8, 12, 24, 0.45);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
 }
 
 body[data-theme="liquid-glass"] .winner-card {
-  background: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(165deg, rgba(26, 31, 53, 0.92), rgba(16, 20, 31, 0.95));
   backdrop-filter: blur(var(--backdrop-blur));
   -webkit-backdrop-filter: blur(var(--backdrop-blur));
-  border: 1px solid var(--border);
-  box-shadow: var(--glass-shadow);
-  filter: brightness(0.99);
+  border: 1px solid rgba(255, 215, 106, 0.2);
+  box-shadow:
+    0 0 80px rgba(255, 200, 80, 0.1),
+    var(--glass-shadow);
 }
 
 body[data-theme="liquid-glass"] .winner-card::before {
-  top: 8px;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
-  width: auto;
-  height: auto;
-  transform: none;
-  border: 1px solid rgba(0, 0, 0, 0.78);
-  filter: blur(10px);
-  opacity: 0.5;
-  background: transparent;
+  background: linear-gradient(90deg, transparent, rgba(255, 215, 106, 0.6), rgba(255, 180, 60, 0.8), rgba(255, 215, 106, 0.6), transparent);
 }
 
 body[data-theme="liquid-glass"] .winner-card::after {
-  content: "";
-  inset: 0;
-  top: 0;
-  right: 0;
-  border-radius: inherit;
-  background: var(--glass-overlay);
-  color: transparent;
-  filter: blur(3px);
-  opacity: 0.85;
+  color: rgba(255, 215, 106, 0.3);
+  background: transparent;
+  filter: none;
+  opacity: 1;
 }
 
 body[data-theme="liquid-glass"] .winner-card__kicker {
-  background: rgba(255, 255, 255, 0.55);
-  color: var(--ink);
-  box-shadow: var(--glass-shadow-sm);
+  background: rgba(255, 215, 106, 0.12);
+  border-color: rgba(255, 215, 106, 0.25);
+  color: #ffd76a;
+  box-shadow: none;
 }
 
 body[data-theme="liquid-glass"] .draw-stage {
@@ -757,24 +919,36 @@ body[data-theme="neumorphism"] .tiny-btn {
 }
 
 body[data-theme="neumorphism"] .winner-reveal {
-  background: rgba(230, 239, 255, 0.72);
+  background: rgba(8, 12, 24, 0.5);
 }
 
 body[data-theme="neumorphism"] .winner-card {
-  background: var(--surface);
-  box-shadow: 18px 18px 42px #bbc6dc, -18px -18px 42px #ffffff;
-  border: none;
+  background: linear-gradient(165deg, #1a1f35, #10141f 40%, #0a0d16);
+  border: 1px solid rgba(255, 215, 106, 0.15);
+  box-shadow:
+    0 0 80px rgba(255, 200, 80, 0.1),
+    0 30px 80px rgba(0, 0, 0, 0.5);
+}
+
+body[data-theme="neumorphism"] .winner-card::before {
+  background: linear-gradient(90deg, transparent, rgba(255, 215, 106, 0.6), rgba(255, 180, 60, 0.8), rgba(255, 215, 106, 0.6), transparent);
+}
+
+body[data-theme="neumorphism"] .winner-card::after {
+  color: rgba(255, 215, 106, 0.3);
 }
 
 body[data-theme="neumorphism"] .winner-card__kicker {
-  box-shadow: var(--shadow-in-sm);
+  background: rgba(255, 215, 106, 0.1);
+  border: 1px solid rgba(255, 215, 106, 0.2);
+  color: #ffd76a;
+  box-shadow: none;
 }
 
 body[data-theme="neumorphism"] .winner-card .btn-primary {
   box-shadow:
-    8px 8px 18px #c5cee0,
-    -8px -8px 18px #ffffff,
-    0 0 28px rgba(111, 155, 255, 0.28);
+    0 0 28px rgba(255, 200, 80, 0.25),
+    0 4px 18px rgba(0, 0, 0, 0.3);
 }
 
 @media (max-width: 1080px) {
@@ -863,6 +1037,17 @@ body[data-theme="neumorphism"] .winner-card .btn-primary {
   .draw-button,
   .tiny-btn {
     transition: none;
+  }
+
+  .winner-card__glow,
+  .winner-sparkle,
+  .winner-card__icon,
+  .winner-card h2,
+  .winner-card::before,
+  .winner-card::after,
+  .reveal-confetti,
+  .star-burst {
+    animation: none;
   }
 
   .wheel-halo,

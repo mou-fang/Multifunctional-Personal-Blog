@@ -514,15 +514,6 @@
         </div>
       </section>
 
-      <div class="winner-reveal" data-winner-reveal aria-hidden="true" hidden>
-        <div class="winner-card" role="dialog" aria-modal="true" aria-labelledby="winnerTitle">
-          <span class="winner-card__kicker" data-reveal-prize>一等奖</span>
-          <h2 id="winnerTitle" data-reveal-name>中奖者</h2>
-          <p data-reveal-copy>恭喜中奖</p>
-          <button class="btn btn-primary" data-reveal-close type="button">继续抽奖</button>
-        </div>
-      </div>
-
       <img data-pixelit-src style="display:none" alt="" />
       <canvas data-pixelit-work style="display:none"></canvas>
   </template>
@@ -1791,6 +1782,20 @@
           </section>
         </aside>
       </section>
+
+      <div class="winner-reveal" data-winner-reveal aria-hidden="true" hidden>
+        <div class="winner-card__confetti" data-reveal-confetti aria-hidden="true"></div>
+        <div class="winner-card__starburst" data-reveal-starburst aria-hidden="true"></div>
+        <div class="winner-card" role="dialog" aria-modal="true" aria-labelledby="winnerTitle">
+          <div class="winner-card__sparkles" data-reveal-sparkles aria-hidden="true"></div>
+          <div class="winner-card__glow" aria-hidden="true"></div>
+          <span class="winner-card__icon" aria-hidden="true">🎉</span>
+          <span class="winner-card__kicker" data-reveal-prize>一等奖</span>
+          <h2 id="winnerTitle" data-reveal-name>中奖者</h2>
+          <p data-reveal-copy>恭喜中奖</p>
+          <button class="btn btn-primary" data-reveal-close type="button">继续抽奖</button>
+        </div>
+      </div>
   </template>
 
 </body>

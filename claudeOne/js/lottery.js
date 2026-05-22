@@ -256,6 +256,9 @@
     els.revealName = document.querySelector("[data-reveal-name]");
     els.revealCopy = document.querySelector("[data-reveal-copy]");
     els.revealClose = document.querySelector("[data-reveal-close]");
+    els.revealSparkles = document.querySelector("[data-reveal-sparkles]");
+    els.revealConfetti = document.querySelector("[data-reveal-confetti]");
+    els.revealStarburst = document.querySelector("[data-reveal-starburst]");
   }
 
   function buildBulbRing() {
@@ -714,6 +717,61 @@
       els.reveal.setAttribute("data-visible", "true");
       els.reveal.setAttribute("aria-hidden", "false");
     }
+
+    /* generate confetti across the full modal */
+    var confettiColors = ["#ffd76a", "#ff5d7c", "#8f6cff", "#5fd18d", "#5ba8ff", "#ff9a4b", "#f15bb5", "#ffffff"];
+    if (els.revealConfetti) {
+      els.revealConfetti.innerHTML = "";
+      for (var ci = 0; ci < 60; ci++) {
+        var cp = document.createElement("span");
+        cp.className = "reveal-confetti";
+        cp.style.left = randomInt(100) + "%";
+        cp.style.background = confettiColors[randomInt(confettiColors.length)];
+        cp.style.setProperty("--rc-dur", (2.5 + randomInt(25) / 10) + "s");
+        cp.style.setProperty("--rc-delay", (randomInt(25) / 10) + "s");
+        cp.style.setProperty("--rc-spin", (360 + randomInt(1080)) + "deg");
+        cp.style.width = (7 + randomInt(5)) + "px";
+        cp.style.height = (12 + randomInt(8)) + "px";
+        cp.style.borderRadius = randomInt(3) === 0 ? "50%" : "2px";
+        els.revealConfetti.appendChild(cp);
+      }
+    }
+
+    /* generate star burst around the modal */
+    if (els.revealStarburst) {
+      els.revealStarburst.innerHTML = "";
+      var starTypes = ["star-burst--4", "star-burst--6", "star-burst--dot"];
+      for (var si = 0; si < 28; si++) {
+        var star = document.createElement("span");
+        var typeIdx = randomInt(starTypes.length);
+        star.className = "star-burst " + starTypes[typeIdx];
+        /* spread around edges: top/bottom rows + left/right columns */
+        var edge = randomInt(4);
+        if (edge === 0) { star.style.left = randomInt(100) + "%"; star.style.top = randomInt(15) + "%"; }
+        else if (edge === 1) { star.style.left = randomInt(100) + "%"; star.style.top = (85 + randomInt(15)) + "%"; }
+        else if (edge === 2) { star.style.left = randomInt(10) + "%"; star.style.top = randomInt(100) + "%"; }
+        else { star.style.left = (90 + randomInt(10)) + "%"; star.style.top = randomInt(100) + "%"; }
+        star.style.setProperty("--sb-dur", (2 + randomInt(20) / 10) + "s");
+        star.style.setProperty("--sb-delay", (randomInt(25) / 10) + "s");
+        els.revealStarburst.appendChild(star);
+      }
+    }
+
+    /* generate sparkle particles on the card */
+    if (els.revealSparkles) {
+      els.revealSparkles.innerHTML = "";
+      for (var i = 0; i < 30; i++) {
+        var s = document.createElement("span");
+        s.className = "winner-sparkle";
+        s.style.left = randomInt(100) + "%";
+        s.style.top = (20 + randomInt(80)) + "%";
+        s.style.setProperty("--sparkle-dur", (1.5 + randomInt(20) / 10) + "s");
+        s.style.setProperty("--sparkle-delay", (randomInt(20) / 10) + "s");
+        s.style.width = (3 + randomInt(4)) + "px";
+        s.style.height = s.style.width;
+        els.revealSparkles.appendChild(s);
+      }
+    }
   }
 
   function hideWinner() {
@@ -722,6 +780,9 @@
       els.reveal.setAttribute("aria-hidden", "true");
       els.reveal.hidden = true;
     }
+    if (els.revealSparkles) els.revealSparkles.innerHTML = "";
+    if (els.revealConfetti) els.revealConfetti.innerHTML = "";
+    if (els.revealStarburst) els.revealStarburst.innerHTML = "";
   }
 
   function copyWinnerNames() {
