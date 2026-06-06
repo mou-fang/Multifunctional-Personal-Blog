@@ -485,7 +485,7 @@
   }
 
   function upsertParticipant(name) {
-    const clean = normalizeName(name);
+    const clean = normalizeName(stripLeadingNumberDot(name));
     if (!clean) {
       var toastFn = window.ClaudeOne && window.ClaudeOne.toast;
       if (toastFn) toastFn("请输入参与者姓名", "err");
@@ -533,9 +533,13 @@
     renderForms();
   }
 
+  function stripLeadingNumberDot(name) {
+    return String(name || "").replace(/^\d+\./, "");
+  }
+
   function importParticipants() {
     if (!els.bulkInput) return;
-    const lines = els.bulkInput.value.split(/\r?\n/).map((line) => normalizeName(line)).filter(Boolean);
+    const lines = els.bulkInput.value.split(/\r?\n/).map((line) => normalizeName(stripLeadingNumberDot(line))).filter(Boolean);
     if (lines.length === 0) {
       var t = window.ClaudeOne && window.ClaudeOne.toast;
       if (t) t("请先粘贴名单", "err");

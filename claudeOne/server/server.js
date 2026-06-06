@@ -322,8 +322,8 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-const server = app.listen(PORT, () => {
-  console.log(`[claudeOne] Server running on http://localhost:${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[claudeOne] Server running on http://0.0.0.0:${PORT}`);
   console.log(`[claudeOne] Frontend →  http://localhost:${PORT}`);
   console.log(`[claudeOne] API     →  http://localhost:${PORT}/api/ascii`);
   console.log(`[claudeOne] Health  →  http://localhost:${PORT}/api/health`);
