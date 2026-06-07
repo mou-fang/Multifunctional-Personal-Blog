@@ -1061,5 +1061,94 @@
     container = null;
   }
 
-  window.__page_home = { mount: mount, unmount: unmount };
+  function assistantDelay(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  async function ensureAssistantCubeReady() {
+    if (!mounted || !stage) throw new Error("魔方页面尚未加载完成");
+    if (scattered) {
+      gatherCubelets();
+      await assistantDelay(840);
+    }
+    while (resetting) await assistantDelay(24);
+  }
+
+  function normalizeAssistantMove(args) {
+    var move = String((args && (args.move || args.face || args.turn)) || "U")
+      .trim()
+      .toUpperCase()
+      .replace(/PRIME/g, "'")
+      .replace(/’/g, "'");
+    if (move.length > 1 && move[1] !== "'") move = move[0];
+    if (!TURNS[move]) throw new Error("不支持的魔方转法：" + move);
+    return move;
+  }
+
+  async function assistantTurn(args) {
+    await ensureAssistantCubeReady();
+    var move = normalizeAssistantMove(args || {});
+    await enqueueTurn(move, !!(args && args.fast));
+    return "已转动 " + move;
+  }
+
+  async function assistantRandomTurns(count) {
+    await ensureAssistantCubeReady();
+    count = clamp(parseInt(count, 10) || 8, 1, 40);
+    var last = null;
+    for (var i = 0; i < count; i++) {
+      var pick;
+      do {
+        pick = TURN_NAMES[Math.floor(Math.random() * TURN_NAMES.length)];
+      } while (last && pick.charAt(0) === last.charAt(0));
+      await enqueueTurn(pick, true);
+      last = pick;
+    }
+    return count;
+  }
+
+  async function assistantScramble(args) {
+    var count = await assistantRandomTurns(args && args.count ? args.count : 22);
+    return "已打乱魔方，共转动 " + count + " 步";
+  }
+
+  async function assistantPlay(args) {
+    var count = await assistantRandomTurns(args && args.count ? args.count : 8);
+    return "我让魔方自己玩了 " + count + " 步";
+  }
+
+  async function assistantReset() {
+    await ensureAssistantCubeReady();
+    if (history.length === 0 && queue.length === 0 && !turning) return "魔方已经是初始状态";
+    await reset();
+    return "已还原魔方";
+  }
+
+  window.__page_home = {
+    mount: mount,
+    unmount: unmount,
+    assistant: {
+      describe: function () {
+        return "首页的 3D 魔方可以转动 U/D/L/R/F/B 六个面，也可以打乱、还原或让助手随机玩几步。";
+      },
+      getState: function () {
+        return {
+          page: "首页魔方",
+          mounted: !!mounted,
+          turning: !!turning,
+          queuedTurns: queue.length,
+          history: history.slice(-12),
+          scattered: !!scattered,
+          scatterMode: scatterMode,
+          resetting: !!resetting,
+        };
+      },
+      actions: {
+        turn: assistantTurn,
+        scramble: assistantScramble,
+        reset: assistantReset,
+        play: assistantPlay,
+      },
+    },
+  };
 })();

@@ -20,6 +20,7 @@
   var loadedJS = {};    // url -> true
   var isNavigating = false;
   var pendingNavigation = null;
+  var readyResolvers = {};
 
   var TRANSITION_MS = 260;  // must match CSS exit animation duration
 
@@ -59,6 +60,28 @@
         navigateTo(next.pageName, next.opts);
       }, 0);
     }
+  }
+
+  function resolveReady(pageName) {
+    var waiters = readyResolvers[pageName] || [];
+    delete readyResolvers[pageName];
+    waiters.forEach(function (resolve) { resolve(pageName); });
+    window.dispatchEvent(new CustomEvent("claudeone:router-ready", {
+      detail: {
+        page: pageName,
+        lifecycle: currentLifecycle || null,
+        meta: PAGES[pageName] || null,
+      },
+    }));
+  }
+
+  function whenReady(pageName) {
+    pageName = pageName || currentPage || resolveRoute();
+    if (pageName === currentPage && !isNavigating) return Promise.resolve(pageName);
+    return new Promise(function (resolve) {
+      if (!readyResolvers[pageName]) readyResolvers[pageName] = [];
+      readyResolvers[pageName].push(resolve);
+    });
   }
 
   /* ---- CSS loading -------------------------------------------------------- */
@@ -213,6 +236,7 @@
           window.scrollTo({ top: 0, behavior: "instant" });
 
           currentPage = pageName;
+          resolveReady(pageName);
           finishNavigation();
         }, 10);
       }).catch(function () {
@@ -288,6 +312,7 @@
             if (currentLifecycle && typeof currentLifecycle.mount === "function") {
               try { currentLifecycle.mount(main); } catch (e) { console.warn("[router] initial mount error:", e); }
             }
+            resolveReady(initialRoute);
           }, 10);
         });
       }
@@ -297,6 +322,14 @@
     window.__ClaudeOneRouter = {
       go: navigateTo,
       getCurrent: function () { return currentPage; },
+      getLifecycle: function () { return currentLifecycle; },
+      getMeta: function (pageName) { return PAGES[pageName || currentPage] || null; },
+      listPages: function () {
+        return Object.keys(PAGES).map(function (key) {
+          return Object.assign({ route: key }, PAGES[key]);
+        });
+      },
+      whenReady: whenReady,
       reload: function () {
         if (currentPage) navigateTo(currentPage);
       }

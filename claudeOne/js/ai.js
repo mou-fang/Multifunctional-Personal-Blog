@@ -654,7 +654,6 @@
     streamAbort = new AbortController();
     toggleStreamingUi(true);
 
-    const url = CFG.baseUrl + CFG.chatPath;
     const body = {
       model: state.model,
       messages: state.apiMessages,
@@ -667,70 +666,30 @@
       },
     };
 
-    const resp = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + apiKey,
-      },
-      body: JSON.stringify(body),
-      signal: streamAbort.signal,
-    });
-
-    if (!resp.ok) {
-      const errText = await resp.text().catch(() => "");
-      throw new Error("DeepSeek 返回 " + resp.status + ": " + errText.slice(0, 240));
-    }
-    if (!resp.body) throw new Error("响应没有 body");
-
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder("utf-8");
-    let buffer = "";
     let fullText = "";
     let fullReasoning = "";
     let started = false;
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      let idx;
-      while ((idx = buffer.indexOf("\n\n")) >= 0) {
-        const chunk = buffer.slice(0, idx);
-        buffer = buffer.slice(idx + 2);
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          if (!line.startsWith("data:")) continue;
-          const data = line.slice(5).trim();
-          if (!data) continue;
-          if (data === "[DONE]") {
-            break;
+    await window.ClaudeOneDeepSeek.stream(apiKey, body, streamAbort.signal, {
+      onDelta: function(delta) {
+        if (delta.reasoning_content) {
+          if (!started) {
+            assistantView.setContent("");
+            started = true;
           }
-          try {
-            const json = JSON.parse(data);
-            const delta = json && json.choices && json.choices[0] && json.choices[0].delta || {};
-            if (delta.reasoning_content) {
-              if (!started) {
-                assistantView.setContent("");
-                started = true;
-              }
-              fullReasoning += delta.reasoning_content;
-              assistantView.appendReasoning(delta.reasoning_content);
-            }
-            if (delta.content) {
-              if (!started) {
-                assistantView.setContent("");
-                started = true;
-              }
-              fullText += delta.content;
-              assistantView.appendContent(delta.content);
-            }
-          } catch (parseErr) {
-            console.warn("[claudeOne] bad SSE chunk", parseErr, data.slice(0, 120));
-          }
+          fullReasoning += delta.reasoning_content;
+          assistantView.appendReasoning(delta.reasoning_content);
         }
-      }
-    }
+        if (delta.content) {
+          if (!started) {
+            assistantView.setContent("");
+            started = true;
+          }
+          fullText += delta.content;
+          assistantView.appendContent(delta.content);
+        }
+      },
+    });
 
     // Commit to history
     state.history.push({

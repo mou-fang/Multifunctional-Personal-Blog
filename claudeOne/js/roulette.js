@@ -624,5 +624,73 @@
     container = null;
   }
 
-  window.__page_game = { mount: mount, unmount: unmount };
+  const assistant = {
+    describe: function() {
+      return "俄罗斯转盘页面：设置玩家、弹巢和子弹后开始游戏，每次扣扳机会根据当前弹巢结果淘汰或保留玩家。";
+    },
+    getState: function() {
+      return {
+        phase: state.phase,
+        players: state.players.map((p) => ({ name: p.name, alive: p.alive })),
+        chamberSize: state.chamberSize,
+        bulletCount: state.bulletCount,
+        endCondition: state.endCondition,
+        turnOrder: state.turnOrder,
+        autoSpin: state.autoSpin,
+        revealAfterMiss: state.revealAfterMiss,
+        currentPlayer: state.playOrder.length ? state.players[state.playOrder[state.currentIdx]]?.name : "",
+        turns: state.turns.slice(-8),
+        outcome: state.outcome,
+      };
+    },
+    actions: {
+      setPlayers: function(args) {
+        const names = Array.isArray(args.names)
+          ? args.names
+          : String(args.text || "").split(/[\n,，、]+/);
+        const cleaned = names.map((name) => String(name || "").trim()).filter(Boolean);
+        if (cleaned.length < (C.playersMin || 2)) throw new Error("至少需要 " + (C.playersMin || 2) + " 名玩家");
+        state.players = cleaned.slice(0, C.playersMax || 10).map(makePlayer);
+        state.phase = "setup";
+        clampSettings();
+        renderPlayerList();
+        updatePlayerCountLabel();
+        renderPhase();
+        return "已设置 " + state.players.length + " 名玩家";
+      },
+      setSettings: function(args) {
+        if (Number.isFinite(Number(args.chamberSize))) state.chamberSize = Number(args.chamberSize);
+        if (Number.isFinite(Number(args.bulletCount))) state.bulletCount = Number(args.bulletCount);
+        if (args.endCondition) state.endCondition = args.endCondition;
+        if (args.turnOrder) state.turnOrder = args.turnOrder;
+        if (args.autoSpin != null) state.autoSpin = !!args.autoSpin;
+        if (args.revealAfterMiss != null) state.revealAfterMiss = !!args.revealAfterMiss;
+        clampSettings();
+        renderPhase();
+        return "设置已更新";
+      },
+      start: function() {
+        start();
+        return "已开始游戏";
+      },
+      fire: function() {
+        fire();
+        return "已扣扳机";
+      },
+      newGame: function() {
+        state.phase = "setup";
+        state.ended = false;
+        state.outcome = null;
+        renderPhase();
+        return "已回到新局设置";
+      },
+      sameSettings: function() {
+        state.players.forEach((p) => { p.alive = true; });
+        start();
+        return "已沿用设置重开";
+      },
+    },
+  };
+
+  window.__page_game = { mount: mount, unmount: unmount, assistant: assistant };
 })();

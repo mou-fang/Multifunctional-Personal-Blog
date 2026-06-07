@@ -2639,6 +2639,7 @@
   function mount(el) {
     stopAuto(false);
     ac = new AbortController();
+    el.classList.add("sokoban-page");
     init(el, ac.signal);
   }
 
@@ -2647,6 +2648,7 @@
     if (ac) { ac.abort(); ac = null; }
     clearHint();
     state.autoplay = false;
+    if (container) container.classList.remove("sokoban-page");
     container = null;
     // Clear DOM references but keep game state
     Object.keys(els).forEach(function (k) { els[k] = null; });

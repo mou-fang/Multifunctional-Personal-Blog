@@ -465,7 +465,7 @@ body[data-theme="liquid-glass"] .theme-toggle__thumb::after {
 .modal-root {
   position: fixed;
   inset: 0;
-  z-index: 999;
+  z-index: 2400;
   display: grid;
   place-items: center;
   padding: var(--space-6);
@@ -518,7 +518,7 @@ body[data-theme="liquid-glass"] .theme-toggle__thumb::after {
   position: fixed;
   top: var(--space-6);
   right: var(--space-6);
-  z-index: 998;
+  z-index: 2300;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -558,7 +558,7 @@ body[data-theme="liquid-glass"] .theme-toggle__thumb::after {
 .theme-transition-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 3000;
   pointer-events: none;
   clip-path: circle(150vmax at var(--tx, 50%) var(--ty, 50%));
 }

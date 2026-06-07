@@ -887,6 +887,8 @@
       }, { signal: ac.signal });
     }
     document.addEventListener("keydown", function(e) {
+      var assistantRoot = document.querySelector("[data-site-assistant]");
+      if (assistantRoot && ((e.target && assistantRoot.contains(e.target)) || (document.activeElement && assistantRoot.contains(document.activeElement)))) return;
       if (e.key === "Escape") hideWinner();
       if (e.key === "Enter" && document.activeElement === document.body && !state.spinning) spin();
     }, { signal: ac.signal });
@@ -919,5 +921,92 @@
     container = null;
   }
 
-  window.__page_lottery = { mount: mount, unmount: unmount };
+  const assistant = {
+    describe: function() {
+      return "幸运抽奖页面：管理参与者名单、奖项和名额，用 Web Crypto 真随机从未中奖参与者中抽取中奖者。";
+    },
+    getState: function() {
+      const prize = currentPrize();
+      return {
+        participants: state.participants.map((p) => p.name),
+        prizes: state.prizes.map((p) => ({
+          name: p.name,
+          quota: p.quota,
+          used: prizeWinners(p.id).length,
+        })),
+        winners: state.winners.map((w) => ({ name: w.name, prizeName: w.prizeName })),
+        currentPrize: prize ? prize.name : "",
+        activeCount: activeParticipants().length,
+        spinning: state.spinning,
+      };
+    },
+    actions: {
+      setParticipants: function(args) {
+        const names = Array.isArray(args.names)
+          ? args.names
+          : String(args.text || "").split(/[\n,，、\s]+/);
+        const cleaned = names.map((name) => normalizeName(stripLeadingNumberDot(name))).filter(Boolean);
+        if (!cleaned.length) throw new Error("缺少参与者名单");
+        state.participants = cleaned.slice(0, PARTICIPANT_MAX).map(makeParticipant);
+        state.winners = [];
+        state.editingParticipantId = "";
+        saveState();
+        renderAll();
+        return "已设置 " + state.participants.length + " 名参与者";
+      },
+      addParticipant: function(args) {
+        upsertParticipant(args.name || "");
+        return "已添加参与者";
+      },
+      setPrizes: function(args) {
+        const prizes = Array.isArray(args.prizes) ? args.prizes : [];
+        if (!prizes.length) throw new Error("缺少奖项");
+        state.prizes = prizes.slice(0, 24).map((p) => makePrize(p.name || "奖项", p.quota || 1));
+        state.winners = [];
+        state.currentPrizeId = state.prizes[0] ? state.prizes[0].id : "";
+        state.editingPrizeId = "";
+        saveState();
+        renderAll();
+        return "已设置 " + state.prizes.length + " 个奖项";
+      },
+      addPrize: function(args) {
+        upsertPrize(args.name || "奖项", args.quota || 1);
+        return "已添加奖项";
+      },
+      selectPrize: function(args) {
+        const text = normalizeName(args.name || args.prize || "", PRIZE_NAME_MAX).toLowerCase();
+        const prize = state.prizes.find((p) => p.name.toLowerCase().includes(text));
+        if (!prize) throw new Error("找不到奖项");
+        state.currentPrizeId = prize.id;
+        saveState();
+        renderAll();
+        return "已选择 " + prize.name;
+      },
+      draw: function() {
+        spin();
+        return "已开始抽奖";
+      },
+      resetWinners: function() {
+        resetWinnersOnly();
+        return "已重置中奖记录";
+      },
+      resetAll: function() {
+        resetEverything();
+        return "已重置全部";
+      },
+      clearParticipants: function() {
+        state.participants = [];
+        state.winners = [];
+        saveState();
+        renderAll();
+        return "已清空参与者";
+      },
+      copyWinners: function() {
+        copyWinnerNames();
+        return "已复制中奖名单";
+      },
+    },
+  };
+
+  window.__page_lottery = { mount: mount, unmount: unmount, assistant: assistant };
 })();
