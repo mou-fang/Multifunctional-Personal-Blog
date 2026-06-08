@@ -8,7 +8,7 @@
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self' https:; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2324355c'/%3E%3Cpath d='M20 42 42 20v22H20Z' fill='%23f8fbff'/%3E%3C/svg%3E" />
+  <link rel="icon" type="image/png" href="./logo/e1703e10-52d1-4402-bc11-083e5565afc1.png" />
   <title>claudeOne · 魔方工作台</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="./css/animations.css" />
   <link rel="stylesheet" href="./css/player.css" />
   <link rel="stylesheet" href="./css/assistant.css" />
+  <link rel="stylesheet" href="./css/easter-egg.css" />
   <!-- Page-specific CSS loaded on demand by router -->
 </head>
 <body data-page="home" data-route-state="idle">
@@ -33,7 +34,9 @@
   <div class="site-shell">
     <header class="site-header page-chunk" data-reveal-order="1">
       <a class="site-brand" href="#/home" data-nav-link>
-        <span class="brand-mark" aria-hidden="true">◩</span>
+        <span class="brand-mark" aria-hidden="true">
+          <img src="./logo/e1703e10-52d1-4402-bc11-083e5565afc1.png" alt="" />
+        </span>
         <span class="brand-text">
           <small>魔方的</small>
           <strong>妙妙工具</strong>
@@ -284,6 +287,7 @@
   <script src="./js/page-registry.js"></script>
   <script src="./js/router.js"></script>
   <script src="./js/assistant.js"></script>
+  <script src="./js/easter-egg.js"></script>
   <template id="page-pixel">
 <!-- Hero -->
       <section class="page-chunk" data-reveal-order="2">

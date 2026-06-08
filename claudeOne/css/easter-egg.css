@@ -1,0 +1,257 @@
+/* ===== claudeOne :: easter egg ===== */
+.assistant-msg[data-tone="nightmare"] {
+  max-width: 95%;
+  animation: easterWarningLurch 180ms steps(2, end) 3;
+}
+
+.assistant-msg[data-tone="nightmare"] .assistant-bubble {
+  position: relative;
+  overflow: hidden;
+  color: #f4e3d8;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-shadow:
+    1px 1px 0 #130908,
+    0 0 12px rgba(125, 0, 0, .76);
+  background:
+    radial-gradient(circle at 14% 18%, rgba(142, 0, 0, .72) 0 5px, transparent 6px),
+    radial-gradient(circle at 78% 12%, rgba(89, 0, 0, .74) 0 4px, transparent 5px),
+    linear-gradient(152deg, #2b1713 0%, #5a0c09 43%, #18100e 100%);
+  border: 1px solid rgba(75, 0, 0, .82);
+  border-radius: 4px 18px 7px 3px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 226, 202, .1),
+    inset 0 -18px 30px rgba(0, 0, 0, .44),
+    0 10px 28px rgba(38, 0, 0, .44);
+}
+
+.assistant-msg[data-tone="nightmare"] .assistant-bubble::before,
+.assistant-msg[data-tone="nightmare"] .assistant-bubble::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.assistant-msg[data-tone="nightmare"] .assistant-bubble::before {
+  inset: -22% -8% auto;
+  height: 56%;
+  background:
+    linear-gradient(88deg, transparent 0 9%, rgba(12, 0, 0, .48) 10% 13%, transparent 14% 25%, rgba(105, 0, 0, .7) 26% 30%, transparent 31% 100%),
+    repeating-linear-gradient(104deg, rgba(255, 255, 255, .08) 0 1px, transparent 1px 9px);
+  transform: rotate(-4deg);
+  opacity: .78;
+}
+
+.assistant-msg[data-tone="nightmare"] .assistant-bubble::after {
+  right: 18px;
+  bottom: -13px;
+  width: 16px;
+  height: 42px;
+  border-radius: 999px;
+  background: linear-gradient(#7a0000, rgba(34, 0, 0, .96));
+  box-shadow:
+    -34px -14px 0 -5px rgba(119, 0, 0, .85),
+    -58px 6px 0 -7px rgba(64, 0, 0, .78),
+    18px -8px 0 -6px rgba(154, 0, 0, .82);
+  filter: blur(.2px);
+}
+
+body[data-easter-locked="true"] {
+  cursor: not-allowed;
+}
+
+body[data-easter-phase="corrupt"] {
+  background: #100c0a;
+  animation: easterPagePulse 540ms steps(2, end) infinite;
+}
+
+body[data-easter-phase="corrupt"] .ambient {
+  opacity: .08;
+  filter: grayscale(1) contrast(2.4) blur(10px);
+}
+
+body[data-easter-phase="corrupt"] :is(.site-shell, .global-player, .site-assistant, .toast-rail) {
+  filter: sepia(.45) saturate(.7) contrast(1.4);
+}
+
+body[data-easter-phase="corrupt"] :is(
+  .site-header,
+  .card,
+  .btn,
+  button,
+  input,
+  select,
+  textarea,
+  .pill,
+  .global-player,
+  .assistant-panel,
+  .assistant-launcher,
+  .assistant-bubble,
+  .modal-card,
+  .nav-link,
+  .tool-card,
+  .page-chunk
+) {
+  color: #ead7c4 !important;
+  border-color: rgba(93, 0, 0, .78) !important;
+  background:
+    radial-gradient(circle at 16% 12%, rgba(111, 0, 0, .55) 0 4px, transparent 5px),
+    linear-gradient(145deg, rgba(51, 24, 18, .96), rgba(16, 12, 10, .96)) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 220, 185, .08),
+    inset 0 -24px 34px rgba(0, 0, 0, .42),
+    0 8px 24px rgba(44, 0, 0, .35) !important;
+  text-shadow: 1px 1px 0 #120807, 0 0 8px rgba(128, 0, 0, .44);
+  animation:
+    easterElementShake 140ms steps(2, end) infinite,
+    easterElementBlink 760ms steps(2, end) infinite;
+}
+
+body[data-easter-phase="corrupt"] :is(
+  button,
+  .btn,
+  a,
+  input,
+  select,
+  textarea,
+  label,
+  [role="button"],
+  [tabindex]
+) {
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+}
+
+body[data-easter-phase="corrupt"] :is(img, canvas, svg, video) {
+  filter: grayscale(1) contrast(1.65) brightness(.68) saturate(.35);
+  animation: easterMediaTear 220ms steps(2, end) infinite;
+}
+
+body[data-easter-phase="corrupt"] .site-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2147482000;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .05) 0 1px, transparent 1px 5px),
+    radial-gradient(circle at 22% 18%, rgba(118, 0, 0, .28), transparent 14%),
+    radial-gradient(circle at 72% 74%, rgba(56, 0, 0, .24), transparent 18%);
+  mix-blend-mode: multiply;
+  animation: easterStaticDrift 320ms steps(2, end) infinite;
+}
+
+.easter-void,
+.easter-jumpscare {
+  position: fixed;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.easter-void {
+  z-index: 2147483200;
+  background: #f7f4ed;
+  transition: opacity 80ms linear, visibility 0s linear 80ms;
+}
+
+body[data-easter-phase="blank"] :is(.site-shell, .global-player, .site-assistant, .ambient, .toast-rail),
+body[data-easter-phase="jumpscare"] :is(.site-shell, .global-player, .site-assistant, .ambient, .toast-rail) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+body[data-easter-phase="blank"] .easter-void {
+  opacity: 1;
+  visibility: visible;
+  transition: none;
+}
+
+.easter-jumpscare {
+  inset: -4vh -4vw;
+  z-index: 2147483600;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #050000;
+}
+
+.easter-jumpscare img {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  object-fit: cover;
+  transform: scale(.06);
+  transform-origin: center;
+  filter: contrast(1.36) saturate(.78) brightness(.82);
+  user-select: none;
+}
+
+body[data-easter-phase="jumpscare"] .easter-void {
+  opacity: 0;
+  visibility: hidden;
+}
+
+body[data-easter-phase="jumpscare"] .easter-jumpscare {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+body[data-easter-phase="jumpscare"] .easter-jumpscare img {
+  animation:
+    easterJumpscareZoom 780ms cubic-bezier(.05, .95, .05, 1) forwards,
+    easterJumpscareShake 78ms steps(2, end) 180ms infinite;
+}
+
+@keyframes easterWarningLurch {
+  0% { transform: translate(0, 0) rotate(0); }
+  50% { transform: translate(-2px, 1px) rotate(-.6deg); }
+  100% { transform: translate(2px, -1px) rotate(.4deg); }
+}
+
+@keyframes easterPagePulse {
+  0%, 100% { filter: brightness(.92); }
+  50% { filter: brightness(1.24) contrast(1.16); }
+}
+
+@keyframes easterElementShake {
+  0%, 100% { transform: translate(0, 0) skewX(0); }
+  25% { transform: translate(-1px, 1px) skewX(-.25deg); }
+  50% { transform: translate(2px, -1px) skewX(.3deg); }
+  75% { transform: translate(-2px, 0) skewX(-.2deg); }
+}
+
+@keyframes easterElementBlink {
+  0%, 68%, 100% { opacity: 1; }
+  69%, 76% { opacity: .42; }
+  77%, 82% { opacity: .84; }
+}
+
+@keyframes easterMediaTear {
+  0%, 100% { transform: translateX(0) scale(1); }
+  50% { transform: translateX(2px) scale(1.006); }
+}
+
+@keyframes easterStaticDrift {
+  0% { transform: translate(0, 0); opacity: .52; }
+  50% { transform: translate(3px, -2px); opacity: .78; }
+  100% { transform: translate(-2px, 1px); opacity: .46; }
+}
+
+@keyframes easterJumpscareZoom {
+  0% { transform: scale(.05) rotate(-5deg); opacity: 0; }
+  8% { opacity: 1; }
+  42% { transform: scale(1.26) rotate(1.5deg); }
+  100% { transform: scale(1.16) rotate(0); opacity: 1; }
+}
+
+@keyframes easterJumpscareShake {
+  0%, 100% { translate: 0 0; }
+  25% { translate: -12px 8px; }
+  50% { translate: 10px -9px; }
+  75% { translate: -7px -5px; }
+}

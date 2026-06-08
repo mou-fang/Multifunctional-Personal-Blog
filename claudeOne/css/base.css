@@ -269,6 +269,12 @@ body[data-theme="liquid-glass"] .ambient {
   background: var(--surface);
 }
 
+.brand-mark img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
 .brand-text {
   display: flex;
   flex-direction: column;

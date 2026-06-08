@@ -1410,6 +1410,7 @@
       at: Date.now(),
       actions: opts.actions || [],
       streaming: !!opts.streaming,
+      tone: opts.tone || "",
     };
     state.messages.push(item);
     state.messages = state.messages.slice(-MAX_HISTORY);
@@ -1439,6 +1440,7 @@
       row.className = "assistant-msg";
       row.dataset.role = m.role;
       if (m.streaming) row.dataset.streaming = "true";
+      if (m.tone) row.dataset.tone = m.tone;
       const bubble = document.createElement("div");
       bubble.className = "assistant-bubble";
       if (m.role === "assistant" || m.role === "system") {
@@ -1455,7 +1457,33 @@
       }
       els.messages.appendChild(row);
     });
-    els.messages.scrollTop = els.messages.scrollHeight;
+    scrollMessagesToBottom();
+  }
+
+  function scrollMessagesToBottom() {
+    if (!els.messages) return;
+    const scroll = () => {
+      if (!els.messages) return;
+      const previousBehavior = els.messages.style.scrollBehavior;
+      els.messages.style.scrollBehavior = "auto";
+      const bottom = Math.max(0, els.messages.scrollHeight - els.messages.clientHeight);
+      els.messages.scrollTop = bottom;
+      if (typeof els.messages.scrollTo === "function") {
+        try { els.messages.scrollTo({ top: bottom, behavior: "auto" }); } catch (_) {}
+      }
+      if (previousBehavior) els.messages.style.scrollBehavior = previousBehavior;
+      else els.messages.style.removeProperty("scroll-behavior");
+    };
+    scroll();
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => {
+        scroll();
+        requestAnimationFrame(scroll);
+      });
+    }
+    window.setTimeout(scroll, 80);
+    window.setTimeout(scroll, 240);
+    window.setTimeout(scroll, 640);
   }
 
   function showTyping() {
@@ -1465,7 +1493,7 @@
     row.dataset.typing = "true";
     row.innerHTML = '<div class="assistant-bubble"><span class="assistant-typing"><span></span><span></span><span></span></span></div>';
     els.messages.appendChild(row);
-    els.messages.scrollTop = els.messages.scrollHeight;
+    scrollMessagesToBottom();
     return row;
   }
 
@@ -3026,6 +3054,29 @@
     runAction: runAction,
     open: function() { setOpen(true); },
     close: function() { setOpen(false); },
+    openWithGeometry: function(geometry) {
+      if (geometry && typeof geometry === "object") {
+        state.geometry = clampAssistantGeometry({
+          left: Number(geometry.left),
+          top: Number(geometry.top),
+          width: Number(geometry.width),
+          height: Number(geometry.height),
+        });
+      }
+      if (state.open) {
+        ROOT.dataset.open = "true";
+        applyAssistantGeometry();
+      } else {
+        setOpen(true);
+      }
+    },
+    pushMessage: function(role, content, options) {
+      const opts = Object.assign({ silent: true }, options || {});
+      const item = addMessage(role || "assistant", content, opts);
+      scrollMessagesToBottom();
+      return item;
+    },
+    scrollToBottom: scrollMessagesToBottom,
     getAdapter: getAdapter,
     debugResolve: function(text, modelIntent) {
       return resolveUserIntent(String(text || ""), normalizeIntent(modelIntent || { reply: "", actions: [] }));
