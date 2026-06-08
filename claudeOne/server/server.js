@@ -68,7 +68,7 @@ app.use(express.static(STATIC_DIR, {
 }));
 
 // SPA fallback — serve index.html for any unmatched GET (hash routes)
-app.get(/^\/(home|games|tools|game|sokoban|lottery|music|playlist|ai|ascii|pixel|compress|qr)/, (_req, res) => {
+app.get(/^\/(home|games|tools|game|sokoban|minesweeper|lottery|music|playlist|ai|ascii|pixel|compress|qr)/, (_req, res) => {
   res.sendFile(path.join(STATIC_DIR, "index.html"));
 });
 

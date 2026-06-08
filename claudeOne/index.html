@@ -8,6 +8,7 @@
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self' https:; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2324355c'/%3E%3Cpath d='M20 42 42 20v22H20Z' fill='%23f8fbff'/%3E%3C/svg%3E" />
   <title>claudeOne · 魔方工作台</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -853,6 +854,113 @@
           <button class="btn btn-ghost" data-clear-results type="button" hidden>清空结果</button>
         </div>
       </section>
+  </template>
+
+  <template id="page-minesweeper">
+    <section class="minesweeper-hero page-chunk" data-reveal-order="2">
+      <div>
+        <span class="pill pill--accent">Minesweeper</span>
+        <h1>扫雷</h1>
+        <p>
+          调整棋盘大小和炸弹数量，第一下必定安全。提示会像解谜游戏一样逐层展开：先给方向，再给坐标，最后直接告诉你该点哪里。
+        </p>
+      </div>
+      <div class="mine-timer" aria-label="计时">
+        <span>TIME</span>
+        <strong data-mine-time>00:00</strong>
+      </div>
+    </section>
+
+    <section class="minesweeper-layout page-chunk" data-reveal-order="3">
+      <div class="minesweeper-stage card">
+        <header class="mine-hud">
+          <div>
+            <span class="card-eyebrow" data-mine-mode>初级</span>
+            <h2 data-mine-title>9 × 9 / 10 雷</h2>
+          </div>
+          <div class="mine-stats">
+            <span><strong data-mine-left>10</strong> 剩余雷数</span>
+            <span><strong data-mine-opened>0</strong> 已翻开</span>
+            <span data-mine-state>待开始</span>
+          </div>
+        </header>
+
+        <div class="mine-board-wrap">
+          <div class="mine-board" data-mine-board aria-label="扫雷棋盘" tabindex="0"></div>
+          <div class="mine-result" data-mine-result hidden>
+            <div class="mine-result__card">
+              <span class="section-kicker" data-mine-result-kicker>Result</span>
+              <h2 data-mine-result-title>完成</h2>
+              <p data-mine-result-text>这一局结束了。</p>
+              <div class="modal-actions">
+                <button class="btn btn-ghost" data-mine-close-result type="button">继续看棋盘</button>
+                <button class="btn btn-primary" data-mine-new-from-result type="button">再来一局</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mine-actions">
+          <button class="btn btn-primary" data-mine-hint type="button">提示</button>
+          <button class="btn btn-ghost" data-mine-new type="button">新开一局</button>
+          <button class="btn btn-ghost" data-mine-reveal-answer type="button">直接给答案</button>
+        </div>
+        <div class="mine-status" data-mine-status>
+          左键翻开格子，右键或长按标旗。第一下不会踩雷。
+        </div>
+      </div>
+
+      <aside class="minesweeper-control">
+        <section class="card mine-panel">
+          <div class="panel-head">
+            <div>
+              <span class="section-kicker">Board</span>
+              <h2>棋盘设置</h2>
+            </div>
+          </div>
+          <div class="mine-presets" data-mine-presets role="radiogroup" aria-label="棋盘预设">
+            <button class="mine-preset" data-mine-preset="beginner" type="button">初级 9×9</button>
+            <button class="mine-preset" data-mine-preset="intermediate" type="button">中级 16×16</button>
+            <button class="mine-preset" data-mine-preset="expert" type="button">专家 30×16</button>
+            <button class="mine-preset" data-mine-preset="custom" type="button">自定义</button>
+          </div>
+          <div class="mine-custom-grid">
+            <label class="field">
+              <span class="field__label">宽度</span>
+              <input class="input" data-mine-cols type="number" min="6" max="30" value="9" />
+            </label>
+            <label class="field">
+              <span class="field__label">高度</span>
+              <input class="input" data-mine-rows type="number" min="6" max="24" value="9" />
+            </label>
+            <label class="field">
+              <span class="field__label">炸弹数量</span>
+              <input class="input" data-mine-bombs type="number" min="1" max="668" value="10" />
+            </label>
+          </div>
+          <button class="btn btn-primary" data-mine-apply type="button">应用并开局</button>
+        </section>
+
+        <section class="card mine-panel">
+          <span class="section-kicker">Rules</span>
+          <h2>规则简述</h2>
+          <ul class="mine-rules">
+            <li>数字表示周围 8 格里有多少颗雷。</li>
+            <li>确定是雷的格子可以标旗，标旗后不会被误翻开。</li>
+            <li>翻开所有非雷格子即胜利；踩到炸弹即失败。</li>
+            <li>提示按次数逐渐变清晰，最后会给出明确操作。</li>
+          </ul>
+        </section>
+
+        <section class="card mine-panel">
+          <span class="section-kicker">Hint</span>
+          <h2>解谜提示</h2>
+          <p class="mine-hint-text" data-mine-hint-text>
+            需要卡关时点“提示”。同一局里越点越具体。
+          </p>
+        </section>
+      </aside>
+    </section>
   </template>
 
   <template id="page-sokoban">

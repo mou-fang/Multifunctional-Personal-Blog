@@ -53,6 +53,11 @@
       summary: "固定关卡和随机关卡推箱子，可移动、重置、提示、自动完成、生成随机关卡。",
       actions: ["move", "reset", "hint", "auto", "selectLevel", "random", "brutal"],
     },
+    minesweeper: {
+      name: "扫雷",
+      summary: "经典扫雷页面，可调整棋盘大小和炸弹数量，包含计时、标旗、规则说明和渐进式提示。",
+      actions: ["newGame", "setBoard", "hint", "answer", "reveal", "flag"],
+    },
     lottery: {
       name: "幸运抽奖",
       summary: "大转盘抽奖工具，可管理参与者、奖项、名额、中奖记录并开始抽奖。",
@@ -101,6 +106,7 @@
     home: "turn { move:'U' }, scramble { count }, reset, play { count }",
     game: "setPlayers { names }, setSettings { chamberSize, bulletCount, endCondition, turnOrder, autoSpin, revealAfterMiss }, start, fire",
     sokoban: "move { dir:'up|down|left|right' }, reset, hint, auto, selectLevel { id }, random { difficulty }, brutal",
+    minesweeper: "newGame { preset:'beginner|intermediate|expert' }, setBoard { cols, rows, bombs }, hint, answer, reveal { row, col }, flag { row, col }",
     lottery: "setParticipants { names }, setPrizes { prizes:[{name, quota}] }, addPrize { name, quota }, selectPrize { name }, draw",
     music: "音乐解锁工具: openFilePicker, setNaming { format }, playFirst, downloadAll, clear。只在用户说解锁/加密音乐文件时使用。",
     playlist: "内置音乐播放器: playTrack { index|number|title|query }, play, pause, next, prev, cycleMode, openPlaylist。听歌/播放音乐/点歌必须使用 playlist，不要使用 music。",
@@ -112,6 +118,7 @@
   };
 
   const PAGE_ALIASES = [
+    { page: "minesweeper", words: ["扫雷", "地雷", "炸弹", "标旗", "雷区", "雷数"] },
     { page: "sokoban", words: ["推箱子", "箱子", "过一关", "自动完成", "自动过关"] },
     { page: "home", words: ["魔方", "cube", "首页魔方"] },
     { page: "lottery", words: ["抽奖", "开奖", "中奖", "名单", "奖项", "奖品"] },
@@ -2596,6 +2603,76 @@
           return "已生成随机关卡";
         },
         brutal() { click("[data-brutal-challenge]"); return "已生成深渊挑战"; },
+      },
+    },
+    minesweeper: {
+      getState: () => {
+        if (window.MinesweeperAPI && typeof window.MinesweeperAPI.getState === "function") {
+          return window.MinesweeperAPI.getState();
+        }
+        return {
+          page: "扫雷",
+          board: normalizeText(q("[data-mine-title]")?.textContent),
+          remainingBombs: normalizeText(q("[data-mine-left]")?.textContent),
+          opened: normalizeText(q("[data-mine-opened]")?.textContent),
+          status: normalizeText(q("[data-mine-state]")?.textContent),
+          time: normalizeText(q("[data-mine-time]")?.textContent),
+          hint: normalizeText(q("[data-mine-hint-text]")?.textContent),
+        };
+      },
+      actions: {
+        newGame(args) {
+          args = args || {};
+          if (window.MinesweeperAPI && typeof window.MinesweeperAPI.newGame === "function") {
+            window.MinesweeperAPI.newGame(args);
+            return "已新开扫雷";
+          }
+          if (args.preset) click('[data-mine-preset="' + String(args.preset).replace(/"/g, "") + '"]');
+          click("[data-mine-new]");
+          return "已新开扫雷";
+        },
+        setBoard(args) {
+          args = args || {};
+          if (window.MinesweeperAPI && typeof window.MinesweeperAPI.newGame === "function") {
+            window.MinesweeperAPI.newGame(args);
+            return "已设置扫雷棋盘";
+          }
+          if (args.cols || args.width) setValue("[data-mine-cols]", args.cols || args.width);
+          if (args.rows || args.height) setValue("[data-mine-rows]", args.rows || args.height);
+          if (args.bombs) setValue("[data-mine-bombs]", args.bombs);
+          click("[data-mine-apply]");
+          return "已设置扫雷棋盘";
+        },
+        hint() {
+          if (window.MinesweeperAPI && typeof window.MinesweeperAPI.hint === "function") window.MinesweeperAPI.hint();
+          else click("[data-mine-hint]");
+          return "已请求扫雷提示";
+        },
+        answer() {
+          if (window.MinesweeperAPI && typeof window.MinesweeperAPI.answer === "function") window.MinesweeperAPI.answer();
+          else click("[data-mine-reveal-answer]");
+          return "已给出扫雷答案";
+        },
+        reveal(args) {
+          if (window.MinesweeperAPI && typeof window.MinesweeperAPI.reveal === "function") {
+            window.MinesweeperAPI.reveal(args || {});
+            return "已翻开扫雷格子";
+          }
+          const row = Number(args && args.row) || 1;
+          const col = Number(args && args.col) || 1;
+          const title = normalizeText(q("[data-mine-title]")?.textContent);
+          const cols = Number((title.match(/(\d+)\s*[×x]/) || [])[1]) || 9;
+          const index = (row - 1) * cols + (col - 1);
+          click('[data-index="' + index + '"]');
+          return "已翻开扫雷格子";
+        },
+        flag(args) {
+          if (window.MinesweeperAPI && typeof window.MinesweeperAPI.flag === "function") {
+            window.MinesweeperAPI.flag(args || {});
+            return "已标旗扫雷格子";
+          }
+          throw new Error("扫雷页面尚未准备好");
+        },
       },
     },
     lottery: {

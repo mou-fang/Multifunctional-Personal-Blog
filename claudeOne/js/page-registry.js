@@ -43,6 +43,14 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     js: ["js/sokoban.js"],
     lifecycle: "__page_sokoban"
   },
+  minesweeper: {
+    title: "claudeOne · 扫雷",
+    description: "claudeOne 扫雷 — 可调棋盘、雷数、计时和渐进提示的经典扫雷",
+    templateId: "page-minesweeper",
+    css: ["css/minesweeper.css"],
+    js: ["js/minesweeper.js"],
+    lifecycle: "__page_minesweeper"
+  },
   lottery: {
     title: "claudeOne · 幸运抽奖",
     description: "claudeOne 幸运抽奖 — 大屏互动抽奖工具",
