@@ -9,6 +9,7 @@ output/
 claudeOne/.playwright-cli/
 claudeOne/server/uploads/*
 !claudeOne/server/uploads/.gitkeep
+claudeOne/server/.music-key-cache/
 
 # User-provided media. Keep the generated playlist artifact tracked.
 claudeOne/music/*

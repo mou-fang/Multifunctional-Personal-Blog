@@ -6,6 +6,7 @@
   const CLICK_WINDOW_MS = 5000;
   const CLICK_LIMIT = 5;
   const IDLE_WARNING_MS = 60000;
+  const IDLE_TRIGGER_CHANCE = 0.25;
   const CORRUPT_MS = 5000;
   const BLANK_MS = 2000;
   const JUMPSCARE_SRC = "./imge/jumpscare.webp";
@@ -44,7 +45,9 @@
 
   function boot() {
     installOverlays();
-    state.idleTimer = window.setTimeout(() => triggerWarning("idle"), IDLE_WARNING_MS);
+    state.idleTimer = window.setTimeout(() => {
+      if (Math.random() < IDLE_TRIGGER_CHANCE) triggerWarning("idle");
+    }, IDLE_WARNING_MS);
 
     document.addEventListener("click", onPlayPauseClick, true);
     bindPlayPauseButton();

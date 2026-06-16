@@ -31,7 +31,234 @@
   align-items: center;
 }
 
+/* QQ Music login explainer */
+.music-auth {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.75fr);
+  gap: var(--space-6);
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+
+.music-auth__main,
+.music-auth__side {
+  min-width: 0;
+}
+
+.music-auth__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.music-auth__head h2 {
+  font-size: clamp(1.2rem, 1.2vw + 0.9rem, 1.7rem);
+}
+
+.music-auth__head p,
+.music-auth__note,
+.music-auth__rule span,
+.music-auth__qr p {
+  color: var(--ink-muted);
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
+.music-auth__rules {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.music-auth__rule {
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.music-auth__rule strong {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.music-auth__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.music-auth__status {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.music-auth__status[data-tone="ok"] {
+  color: var(--success);
+  background: rgba(79, 199, 165, 0.15);
+}
+
+.music-auth__status[data-tone="warn"] {
+  color: var(--warning);
+  background: rgba(247, 185, 85, 0.15);
+}
+
+.music-auth__status[data-tone="err"] {
+  color: var(--danger);
+  background: rgba(255, 107, 122, 0.15);
+}
+
+.music-auth__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.music-auth__scan-btn {
+  appearance: none;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+  min-height: 40px;
+  padding: 9px 18px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: var(--shadow-out-sm);
+  transition: transform var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    background var(--dur) var(--ease-out),
+    color var(--dur) var(--ease-out),
+    opacity var(--dur) var(--ease-out);
+}
+
+.music-auth__scan-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  color: var(--ink);
+  box-shadow: var(--shadow-out);
+}
+
+.music-auth__scan-btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: var(--shadow-in-sm);
+}
+
+.music-auth__scan-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+body[data-theme="neumorphism"] .music-auth__scan-btn {
+  background: linear-gradient(145deg, #eef5ff 0%, #dfe9fb 100%);
+  color: var(--ink-soft);
+  border-color: rgba(255, 255, 255, 0.45);
+  box-shadow: 6px 6px 14px #c5cee0, -6px -6px 14px #ffffff;
+}
+
+body[data-theme="neumorphism"] .music-auth__scan-btn:hover:not(:disabled) {
+  background: linear-gradient(145deg, #f4f8ff 0%, #e6efff 100%);
+  box-shadow: 8px 8px 18px #c5cee0, -8px -8px 18px #ffffff;
+}
+
+body[data-theme="neumorphism"] .music-auth__scan-btn:active:not(:disabled) {
+  box-shadow: var(--shadow-in-sm);
+  background: var(--surface-sunken);
+}
+
+body[data-theme="liquid-glass"] .music-auth__scan-btn {
+  background: rgba(255, 255, 255, 0.58);
+  color: var(--ink-soft);
+  border-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  box-shadow: var(--glass-shadow-sm);
+}
+
+body[data-theme="liquid-glass"] .music-auth__scan-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(145deg, rgba(255,255,255,0.66), rgba(255,255,255,0.08) 58%);
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+body[data-theme="liquid-glass"] .music-auth__scan-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--ink);
+  box-shadow: var(--glass-shadow);
+}
+
+body[data-theme="liquid-glass"] .music-auth__scan-btn:active:not(:disabled) {
+  box-shadow:
+    inset 2px 2px 5px rgba(0, 0, 0, 0.14),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.75),
+    0 1px 3px rgba(0, 0, 0, 0.14);
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.music-auth__qr {
+  display: grid;
+  place-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+  text-align: center;
+}
+
+.music-auth__qr[hidden] {
+  display: none;
+}
+
+.music-auth__qr img {
+  width: min(220px, 100%);
+  aspect-ratio: 1;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  background: #fff;
+  padding: 10px;
+}
+
 /* ===== Upload zone (card, mirrors pixel upload pattern) ===== */
+.music-limit-notice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: rgba(247, 185, 85, 0.14);
+  color: var(--ink-muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.music-limit-notice strong {
+  color: var(--warning);
+  font-weight: 800;
+}
+
 .music-upload {
   position: relative;
   border-radius: var(--radius-xl);
@@ -243,6 +470,11 @@
   background: rgba(247, 185, 85, 0.15);
 }
 
+.file-card__status[data-status="queued"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .file-card__status[data-status="done"] {
   color: var(--success);
   background: rgba(79, 199, 165, 0.15);
@@ -297,12 +529,13 @@
 }
 
 /* File card decrypting dot animation */
-.file-card__status[data-status="decrypting"]::after {
+.file-card__status[data-status="decrypting"]::after,
+.file-card__status[data-status="queued"]::after {
   content: "";
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--warning);
+  background: currentColor;
   animation: decryptDot 1.2s ease-in-out infinite;
 }
 
@@ -450,6 +683,15 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  .music-auth {
+    grid-template-columns: 1fr;
+    padding: var(--space-5);
+  }
+
+  .music-auth__rules {
+    grid-template-columns: 1fr;
+  }
+
   .music-upload__inner {
     padding: var(--space-8) var(--space-4);
   }

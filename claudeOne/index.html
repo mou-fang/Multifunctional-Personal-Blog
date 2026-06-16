@@ -544,7 +544,7 @@
         <div class="music-hero__copy">
           <span class="pill pill--accent">Music Tool</span>
           <h1>音乐解锁</h1>
-          <p>移除已购音乐文件的加密保护。完全在浏览器本地解密，无需上传服务器，保护你的隐私。</p>
+          <p>移除已购音乐文件的加密保护。QQ音乐旧格式与网易云可直接本地解锁；新版 QQ 音乐文件需要使用你自己的 QQ 音乐登录态向 QQ 官方接口获取 EKey。</p>
           <div class="music-hero__formats">
             <span class="pill">网易云 .ncm</span>
             <span class="pill">QQ音乐 .qmc*</span>
@@ -554,18 +554,67 @@
         </div>
       </section>
 
+      <section class="music-auth page-chunk" data-qq-auth-panel data-reveal-order="3">
+        <div class="music-auth__main">
+          <div class="music-auth__head">
+            <span class="pill pill--accent">QQ Music Login</span>
+            <h2>新版 QQ 音乐为什么需要扫码登录？</h2>
+            <p>
+              新版 .mflac / .mgg 的 musicex 文件里没有完整解密密钥，只保存歌曲标识。服务器必须使用你的 QQ 音乐账号向 QQ 官方接口请求 EKey；
+              账号有这首歌的下载/播放权限才会返回密钥。旧版 QMC、NCM 和带内置密钥的老 .mflac 不需要登录。
+            </p>
+          </div>
+          <div class="music-auth__rules">
+            <div class="music-auth__rule">
+              <strong>不用登录</strong>
+              <span>.ncm、旧版 .qmc0 / .qmc2 / .qmc3、旧版 QTag / STag 文件，浏览器或本机服务可直接处理。</span>
+            </div>
+            <div class="music-auth__rule">
+              <strong>需要登录</strong>
+              <span>新版 QQ musicex：常见于新的 .mflac / .mgg。免费歌曲用普通账号；会员/数字专辑歌曲需要对应权限。</span>
+            </div>
+            <div class="music-auth__rule">
+              <strong>如何使用</strong>
+              <span>扫码后 Cookie 只保存在服务器内存中，默认 2 小时过期；解锁完成后可点击退出登录立即清除。</span>
+            </div>
+          </div>
+        </div>
+        <div class="music-auth__side">
+          <div class="music-auth__status" data-qq-login-status data-tone="idle">未登录。旧格式可直接上传；新版 QQ 文件请先扫码登录。</div>
+          <div class="music-auth__actions" role="group" aria-label="选择 QQ 音乐扫码登录方式">
+            <button class="music-auth__scan-btn" type="button" data-qq-login-wx>微信扫码登录</button>
+            <button class="music-auth__scan-btn" type="button" data-qq-login-qq>QQ 扫码登录</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-qq-logout hidden>退出登录</button>
+          </div>
+          <div class="music-auth__qr" data-qq-qr-wrap hidden>
+            <img data-qq-qr-img alt="QQ 音乐扫码登录二维码" />
+            <p data-qq-qr-hint>请扫码并在手机上确认登录，本页会自动检测状态。</p>
+          </div>
+          <p class="music-auth__note" data-qq-login-detail>
+            说明：本站不会把你的 QQ 音乐 Cookie 返回给浏览器，也不会写入仓库；服务器只用它请求这次解锁所需的 EKey。
+          </p>
+        </div>
+      </section>
+
       <!-- Workspace -->
-      <section class="music-workspace page-chunk" data-reveal-order="3">
+      <section class="music-workspace page-chunk" data-reveal-order="4">
+        <div class="music-limit-notice" data-music-limit-notice>
+          <strong>使用频率提醒</strong>
+          <span data-music-limit-text>
+            当前服务器默认允许：每个 IP 每小时最多解锁 100 个文件；全站同时最多 4 个解锁任务。遇到“服务器繁忙”时稍等片刻再试即可。
+          </span>
+        </div>
+
         <!-- Upload zone -->
         <div class="music-upload" data-upload-zone data-dragover="false">
           <div class="music-upload__inner">
             <div class="music-upload__icon">&#9835;</div>
             <div class="music-upload__title">拖拽文件到此处，或点击选择</div>
             <div class="music-upload__hint">
-              支持网易云音乐 (.ncm)、QQ音乐 (.qmc0 / .qmc3 / .qmcflac / .qmcogg / .mflac / .mgg / .tkm / .bkcmp3 / .bkcflac)
+              支持网易云音乐 (.ncm)、QQ音乐 (.qmc0 / .qmc2 / .qmc3 / .qmcflac / .qmcogg / .mflac / .mgg / .tkm / .bkcmp3 / .bkcflac)
             </div>
           </div>
-          <input type="file" class="music-upload__input" data-file-input multiple accept=".ncm,.qmc0,.qmc3,.qmcflac,.qmcogg,.mflac,.mgg,.tkm,.bkcmp3,.bkcflac,.tm0,.tm2,.tm3,.tm6" aria-label="选择音乐文件" />
+          <input type="file" class="music-upload__input" data-file-input multiple accept=".ncm,.qmc0,.qmc2,.qmc3,.qmcflac,.qmcogg,.mflac,.mgg,.tkm,.bkcmp3,.bkcflac,.tm0,.tm2,.tm3,.tm6" aria-label="选择音乐文件" />
         </div>
 
         <!-- Options bar -->
@@ -590,7 +639,6 @@
           <div class="file-list__empty" data-empty-state>
             <span class="file-list__empty-icon">&#9835;</span>
             <p>拖拽加密音乐文件到上方区域，开始解锁</p>
-            <p class="muted">你的文件不会离开浏览器</p>
           </div>
         </div>
       </section>

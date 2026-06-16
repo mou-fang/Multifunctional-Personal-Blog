@@ -52,7 +52,7 @@ window.CLAUDE_ONE_CONFIG = Object.freeze({
   }),
   music: Object.freeze({
     supportedExts: Object.freeze([
-      ".ncm", ".qmc0", ".qmc3", ".qmcflac", ".qmcogg",
+      ".ncm", ".qmc0", ".qmc2", ".qmc3", ".qmcflac", ".qmcogg",
       ".mflac", ".mgg", ".tkm", ".bkcmp3", ".bkcflac",
       ".tm0", ".tm2", ".tm3", ".tm6",
     ]),

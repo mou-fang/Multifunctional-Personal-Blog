@@ -5,7 +5,8 @@
   "description": "ASCII art converter backend for claudeOne",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test qq-music-unlock.test.js qq-music-auth.test.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
