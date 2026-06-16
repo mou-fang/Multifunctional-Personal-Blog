@@ -14,6 +14,7 @@ const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
 const {
   QQMusicAuthError,
+  authFromQQCallbackUrl,
   checkQQMusicQRLogin,
   createQQMusicQRLogin,
   publicAuthInfo,
@@ -513,6 +514,32 @@ app.get("/api/music/auth/status/:id", qqAuthPollLimiter, async (req, res, next) 
       session.imageUrl = "";
       session.url = "";
     }
+    res.json({ success: true, session: publicQQAuthSession(session) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/music/auth/callback", qqAuthCreateLimiter, async (req, res, next) => {
+  try {
+    cleanupQQAuthSessions();
+    const callbackUrl = String(req.body?.callbackUrl || "").trim();
+    const auth = await authFromQQCallbackUrl(callbackUrl);
+    const id = uuidv4();
+    const session = {
+      id,
+      type: "qq",
+      key: "",
+      status: "success",
+      message: "QQ 音乐登录成功，可以解锁该账号有权限的新版文件",
+      imageUrl: "",
+      url: "",
+      qrExpiresAt: 0,
+      expiresAt: Date.now() + QQ_AUTH_SESSION_TTL,
+      auth,
+      ekeyCache: new Map(),
+    };
+    qqAuthSessions.set(id, session);
     res.json({ success: true, session: publicQQAuthSession(session) });
   } catch (error) {
     next(error);

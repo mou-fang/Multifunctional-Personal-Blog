@@ -21,8 +21,10 @@
     ".tm0", ".tm2", ".tm3", ".tm6",
   ]);
   const SERVER_UNLOCK_EXTS = new Set([".mflac", ".mgg"]);
+  const FRONTEND_UNLOCK_EXTS = new Set([".ncm"]);
   const API_BASE = CFG && CFG.api ? String(CFG.api.baseUrl || "").replace(/\/$/, "") : "";
   const AUTH_STORAGE_KEY = "claudeOne:music-qq-auth-session";
+  const QQ_OFFICIAL_AUTH_URL = "https://graph.qq.com/oauth2.0/authorize?response_type=code&client_id=100497308&redirect_uri=https%3A%2F%2Fy.qq.com%2Fportal%2Fwx_redirect.html%3Flogin_type%3D1%26surl%3Dhttps%253A%252F%252Fy.qq.com%252F&state=claudeone-manual&display=pc&scope=get_user_info%2Cget_app_friends";
   const DEFAULT_API_UNLOCK_CONCURRENCY = 2;
   let worker = null;
   let idCounter = 0;
@@ -41,7 +43,8 @@
   let downloadAllBtn, clearAllBtn;
   let namingRadios, emptyState;
   let musicLimitText;
-  let qqLoginStatus, qqLoginWxBtn, qqLoginQqBtn, qqLogoutBtn;
+  let qqLoginStatus, qqLoginWxBtn, qqLogoutBtn;
+  let qqOpenOfficialBtn, qqCallbackInput, qqSubmitCallbackBtn;
   let qqQrWrap, qqQrImg, qqQrHint, qqLoginDetail;
 
   const AUDIO_MIME_BY_EXT = {
@@ -162,7 +165,8 @@
 
   function setAuthButtonsBusy(isBusy) {
     if (qqLoginWxBtn) qqLoginWxBtn.disabled = !!isBusy;
-    if (qqLoginQqBtn) qqLoginQqBtn.disabled = !!isBusy;
+    if (qqOpenOfficialBtn) qqOpenOfficialBtn.disabled = !!isBusy;
+    if (qqSubmitCallbackBtn) qqSubmitCallbackBtn.disabled = !!isBusy;
   }
 
   function renderAuthSession(session) {
@@ -183,8 +187,11 @@
 
     if (isLoggedIn) {
       var display = qqAuthSession.auth.display || "已登录 QQ 音乐";
-      setAuthStatus(display + "。新版 .mflac/.mgg 会使用这个账号请求 EKey。", "ok");
-      if (qqLoginDetail) qqLoginDetail.textContent = "登录态只保存在服务器内存中，默认 2 小时过期。退出登录会立即清除 Cookie 和本次临时 EKey 缓存。";
+      var keyHint = qqAuthSession.auth.hasMusicKey
+        ? "已拿到服务器解锁所需的 QQ 音乐 musickey，"
+        : "还没有拿到 QQ 音乐 musickey，";
+      setAuthStatus(display + "。" + keyHint + "新版 .mflac/.mgg 会使用这个账号请求 EKey。", qqAuthSession.auth.hasMusicKey ? "ok" : "warn");
+      if (qqLoginDetail) qqLoginDetail.textContent = "登录态只保存在服务器内存中，默认 2 小时过期；页面只显示是否已拿到 musickey，不会把 Cookie 或 musickey 返回给浏览器。退出登录会立即清除 Cookie 和本次临时 EKey 缓存。";
     } else if (status === "scanned") {
       setAuthStatus("已扫码，请在手机上确认授权登录。", "warn");
     } else if (status === "waiting") {
@@ -194,8 +201,8 @@
     } else if (status === "failed") {
       setAuthStatus(qqAuthSession.message || "登录失败，请重新扫码。", "err");
     } else {
-      setAuthStatus("未登录。旧格式可直接上传；新版 QQ 文件请先扫码登录。", "idle");
-      if (qqLoginDetail) qqLoginDetail.textContent = "说明：本站不会把你的 QQ 音乐 Cookie 返回给浏览器，也不会写入仓库；服务器只用它请求这次解锁所需的 EKey。";
+      setAuthStatus("未登录。旧格式可直接上传；新版 QQ 文件可用微信扫码或导入 QQ 登录态。", "idle");
+      if (qqLoginDetail) qqLoginDetail.textContent = "说明：微信扫码可直接完成；QQ 官方页会自动跳到 y.qq.com，所以 QQ 账号需要导入 document.cookie。服务器只保存在内存中，退出登录会立即清除。";
     }
 
     setAuthButtonsBusy(isPolling);
@@ -261,6 +268,42 @@
       setAuthButtonsBusy(false);
       renderAuthSession(null);
       setAuthStatus(error.message || "二维码生成失败，请稍后重试。", "err");
+    }
+  }
+
+  function openQQOfficialLogin() {
+    window.open(QQ_OFFICIAL_AUTH_URL, "_blank", "noopener,noreferrer");
+    setAuthStatus("已打开 QQ 官方登录页。登录后会跳到 y.qq.com；如果必须用 QQ 登录，请导入 y.qq.com 的 document.cookie。", "warn");
+    if (qqLoginDetail) qqLoginDetail.textContent = "QQ 官方页会在浏览器里消耗 code 并写入 y.qq.com Cookie。只在你自己的本地/自部署站点导入 document.cookie；不要在陌生网站粘贴。";
+  }
+
+  async function submitQQCallbackLogin() {
+    var callbackUrl = qqCallbackInput ? qqCallbackInput.value.trim() : "";
+    if (!callbackUrl) {
+      setAuthStatus("请先粘贴 y.qq.com 的 document.cookie，或包含 code= 的回调地址。", "err");
+      return;
+    }
+    var generation = ++qqAuthGeneration;
+    try {
+      stopAuthPolling();
+      setAuthButtonsBusy(true);
+      setAuthStatus("正在导入 QQ 音乐登录态...", "warn");
+      var response = await fetch(API_BASE + "/api/music/auth/callback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ callbackUrl: callbackUrl })
+      });
+      var payload = await response.json();
+      if (!response.ok || !payload.success) throw new Error(payload.error || "QQ 回调登录失败");
+      if (generation !== qqAuthGeneration) return;
+      if (qqCallbackInput) qqCallbackInput.value = "";
+      renderAuthSession(payload.session);
+    } catch (error) {
+      if (generation !== qqAuthGeneration) return;
+      renderAuthSession(null);
+      setAuthStatus(error.message || "QQ 登录态导入失败，请确认粘贴的是 y.qq.com 的 document.cookie。", "err");
+    } finally {
+      if (generation === qqAuthGeneration) setAuthButtonsBusy(false);
     }
   }
 
@@ -348,7 +391,7 @@
         if (CS && CS.toast) CS.toast("不支持格式: " + file.name + "。支持 .ncm/.qmc/.mflac/.mgg 等音乐加密格式", "err", 3500);
         continue;
       }
-      if (!SERVER_UNLOCK_EXTS.has(ext) && !worker) {
+      if (!SERVER_UNLOCK_EXTS.has(ext) && !FRONTEND_UNLOCK_EXTS.has(ext) && !worker) {
         if (CS && CS.toast) CS.toast("浏览器解密引擎未就绪: " + file.name, "err", 2500);
         continue;
       }
@@ -383,6 +426,10 @@
       enqueueApiUnlock(id, file);
       return;
     }
+    if (ext === ".ncm") {
+      decryptNcmInBrowser(id, file);
+      return;
+    }
     var reader = new FileReader();
     reader.onload = function () {
       if (!worker) return;
@@ -391,6 +438,33 @@
     reader.onerror = function () {
       var entry = fileResults.get(id);
       if (entry) { entry.status = "error"; entry.error = "无法读取文件"; updateFileCardDOM(id); }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function decryptNcmInBrowser(id, file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var entry = fileResults.get(id);
+      if (!entry) return;
+      try {
+        if (!window.ClaudeOneNcmDecrypt || typeof window.ClaudeOneNcmDecrypt.decrypt !== "function") {
+          throw new Error("NCM 前端解密器未加载，请刷新页面后重试");
+        }
+        completeEntry(entry, window.ClaudeOneNcmDecrypt.decrypt(reader.result, file.name));
+      } catch (error) {
+        entry.status = "error";
+        entry.error = error.message || "NCM 解锁失败";
+      }
+      refreshEntry(id);
+    };
+    reader.onerror = function () {
+      var entry = fileResults.get(id);
+      if (entry) {
+        entry.status = "error";
+        entry.error = "无法读取文件";
+        refreshEntry(id);
+      }
     };
     reader.readAsArrayBuffer(file);
   }
@@ -729,8 +803,10 @@
     musicLimitText = el.querySelector("[data-music-limit-text]");
     qqLoginStatus = el.querySelector("[data-qq-login-status]");
     qqLoginWxBtn = el.querySelector("[data-qq-login-wx]");
-    qqLoginQqBtn = el.querySelector("[data-qq-login-qq]");
     qqLogoutBtn = el.querySelector("[data-qq-logout]");
+    qqOpenOfficialBtn = el.querySelector("[data-qq-open-official]");
+    qqCallbackInput = el.querySelector("[data-qq-callback-url]");
+    qqSubmitCallbackBtn = el.querySelector("[data-qq-submit-callback]");
     qqQrWrap = el.querySelector("[data-qq-qr-wrap]");
     qqQrImg = el.querySelector("[data-qq-qr-img]");
     qqQrHint = el.querySelector("[data-qq-qr-hint]");
@@ -774,7 +850,11 @@
     if (downloadAllBtn) downloadAllBtn.addEventListener("click", downloadAll, { signal: signal });
     if (clearAllBtn) clearAllBtn.addEventListener("click", clearAll, { signal: signal });
     if (qqLoginWxBtn) qqLoginWxBtn.addEventListener("click", function () { startQQLogin("wx"); }, { signal: signal });
-    if (qqLoginQqBtn) qqLoginQqBtn.addEventListener("click", function () { startQQLogin("qq"); }, { signal: signal });
+    if (qqOpenOfficialBtn) qqOpenOfficialBtn.addEventListener("click", openQQOfficialLogin, { signal: signal });
+    if (qqSubmitCallbackBtn) qqSubmitCallbackBtn.addEventListener("click", submitQQCallbackLogin, { signal: signal });
+    if (qqCallbackInput) qqCallbackInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") submitQQCallbackLogin();
+    }, { signal: signal });
     if (qqLogoutBtn) qqLogoutBtn.addEventListener("click", logoutQQAuth, { signal: signal });
 
     // Naming format

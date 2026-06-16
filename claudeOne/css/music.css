@@ -34,7 +34,7 @@
 /* QQ Music login explainer */
 .music-auth {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.75fr);
+  grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
   gap: var(--space-6);
   padding: var(--space-6);
   border-radius: var(--radius-xl);
@@ -59,6 +59,7 @@
 .music-auth__head p,
 .music-auth__note,
 .music-auth__rule span,
+.music-auth__guide,
 .music-auth__qr p {
   color: var(--ink-muted);
   font-size: 0.88rem;
@@ -121,7 +122,100 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
-  align-items: center;
+  align-items: stretch;
+}
+
+.music-auth__actions > button {
+  min-height: 40px;
+}
+
+.music-auth__actions .music-auth__scan-btn {
+  flex: 1 1 150px;
+}
+
+.music-auth__actions .music-auth__logout-btn {
+  flex: 0 0 auto;
+}
+
+.music-auth__callback {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+  align-items: stretch;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+}
+
+.music-auth__cookie-field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.music-auth__cookie-field span {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.music-auth__callback input {
+  width: 100%;
+  min-width: 100%;
+  min-height: 46px;
+  border: 1px solid rgba(127, 140, 170, 0.22);
+  border-radius: var(--radius-lg);
+  padding: 11px 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.86rem;
+  box-shadow: var(--shadow-in-sm);
+  outline: none;
+  transition: border-color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    background var(--dur) var(--ease-out);
+}
+
+.music-auth__callback input:focus {
+  border-color: color-mix(in srgb, var(--accent) 58%, transparent);
+  box-shadow: var(--shadow-in-sm), 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.music-auth__callback .btn {
+  justify-self: stretch;
+  min-height: 42px;
+}
+
+.music-auth__guide {
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-sunken));
+  display: grid;
+  gap: var(--space-3);
+}
+
+.music-auth__guide strong {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.music-auth__guide ol {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.music-auth__guide p {
+  margin: 0;
+}
+
+.music-auth__guide code {
+  padding: 0.05rem 0.35rem;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--ink-soft);
+  font-size: 0.82em;
 }
 
 .music-auth__scan-btn {
@@ -166,6 +260,23 @@
   opacity: 0.68;
 }
 
+.music-auth__logout-btn {
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface));
+  color: var(--danger);
+  box-shadow: var(--shadow-out-sm);
+}
+
+.music-auth__logout-btn:hover {
+  background: color-mix(in srgb, var(--danger) 20%, var(--surface));
+  color: var(--danger);
+  box-shadow: var(--shadow-out);
+}
+
+.music-auth__logout-btn:active {
+  box-shadow: var(--shadow-in-sm);
+}
+
 body[data-theme="neumorphism"] .music-auth__scan-btn {
   background: linear-gradient(145deg, #eef5ff 0%, #dfe9fb 100%);
   color: var(--ink-soft);
@@ -181,6 +292,19 @@ body[data-theme="neumorphism"] .music-auth__scan-btn:hover:not(:disabled) {
 body[data-theme="neumorphism"] .music-auth__scan-btn:active:not(:disabled) {
   box-shadow: var(--shadow-in-sm);
   background: var(--surface-sunken);
+}
+
+body[data-theme="neumorphism"] .music-auth__callback input {
+  background: var(--surface-sunken);
+  border-color: rgba(255, 255, 255, 0.48);
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .music-auth__logout-btn {
+  background: linear-gradient(145deg, #ffe6eb 0%, #ffd3dc 100%);
+  color: var(--danger);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 6px 6px 14px #c5cee0, -6px -6px 14px #ffffff;
 }
 
 body[data-theme="liquid-glass"] .music-auth__scan-btn {
@@ -214,6 +338,29 @@ body[data-theme="liquid-glass"] .music-auth__scan-btn:active:not(:disabled) {
     inset -1px -1px 2px rgba(255, 255, 255, 0.75),
     0 1px 3px rgba(0, 0, 0, 0.14);
   background: rgba(255, 255, 255, 0.52);
+}
+
+body[data-theme="liquid-glass"] .music-auth__callback input {
+  background: rgba(255, 255, 255, 0.48);
+  border-color: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  box-shadow: inset 1px 1px 4px rgba(0, 0, 0, 0.1), inset -1px -1px 2px rgba(255, 255, 255, 0.68);
+}
+
+body[data-theme="liquid-glass"] .music-auth__callback,
+body[data-theme="liquid-glass"] .music-auth__guide {
+  background: rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+}
+
+body[data-theme="liquid-glass"] .music-auth__logout-btn {
+  background: color-mix(in srgb, var(--danger) 18%, rgba(255, 255, 255, 0.55));
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 30%, rgba(255, 255, 255, 0.5));
+  box-shadow: var(--glass-shadow-sm);
 }
 
 .music-auth__qr {
@@ -689,6 +836,10 @@ body[data-theme="liquid-glass"] .music-auth__scan-btn:active:not(:disabled) {
   }
 
   .music-auth__rules {
+    grid-template-columns: 1fr;
+  }
+
+  .music-auth__callback {
     grid-template-columns: 1fr;
   }
 
