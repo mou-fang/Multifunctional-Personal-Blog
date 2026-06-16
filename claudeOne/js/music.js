@@ -15,7 +15,11 @@
 
   // --- Persistent module state (survives mount/unmount) ----------------------
   const fileResults = new Map();
-  const SUPPORTED = CFG ? CFG.music.supportedExts : [];
+  const FALLBACK_SUPPORTED_EXTS = Object.freeze([
+    ".ncm", ".qmc0", ".qmc2", ".qmc3", ".qmcflac", ".qmcogg",
+    ".mflac", ".mgg", ".tkm", ".bkcmp3", ".bkcflac",
+    ".tm0", ".tm2", ".tm3", ".tm6",
+  ]);
   const SERVER_UNLOCK_EXTS = new Set([".mflac", ".mgg"]);
   const API_BASE = CFG && CFG.api ? String(CFG.api.baseUrl || "").replace(/\/$/, "") : "";
   const AUTH_STORAGE_KEY = "claudeOne:music-qq-auth-session";
@@ -48,6 +52,35 @@
     wav: "audio/wav",
     aac: "audio/aac"
   };
+
+  function getMusicConfig() {
+    return (window.CLAUDE_ONE_CONFIG && window.CLAUDE_ONE_CONFIG.music) ||
+      (CFG && CFG.music) ||
+      {};
+  }
+
+  function getSupportedExts() {
+    var configured = getMusicConfig().supportedExts;
+    return configured && configured.length
+      ? Array.prototype.slice.call(configured)
+      : FALLBACK_SUPPORTED_EXTS;
+  }
+
+  function getMaxMusicFileSize() {
+    return Number(getMusicConfig().maxFileSize) || 200 * 1024 * 1024;
+  }
+
+  function getFileExt(name) {
+    var cleanName = String(name || "").trim().toLowerCase();
+    var supported = getSupportedExts().slice().sort(function (a, b) {
+      return b.length - a.length;
+    });
+    for (var i = 0; i < supported.length; i++) {
+      if (cleanName.endsWith(supported[i])) return supported[i];
+    }
+    var match = cleanName.match(/(\.[^./\\\s]+)$/);
+    return match ? match[1] : "";
+  }
 
   function detectImageMime(buffer) {
     var bytes = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 16));
@@ -310,16 +343,16 @@
     var added = 0;
     for (var i = 0; i < files.length; i++) {
       var file = files[i];
-      var ext = "." + file.name.split(".").pop().toLowerCase();
-      if (!SUPPORTED.includes(ext)) {
-        if (CS && CS.toast) CS.toast("不支持格式: " + file.name, "err", 2500);
+      var ext = getFileExt(file.name);
+      if (!getSupportedExts().includes(ext)) {
+        if (CS && CS.toast) CS.toast("不支持格式: " + file.name + "。支持 .ncm/.qmc/.mflac/.mgg 等音乐加密格式", "err", 3500);
         continue;
       }
       if (!SERVER_UNLOCK_EXTS.has(ext) && !worker) {
         if (CS && CS.toast) CS.toast("浏览器解密引擎未就绪: " + file.name, "err", 2500);
         continue;
       }
-      if (file.size > CFG.music.maxFileSize) {
+      if (file.size > getMaxMusicFileSize()) {
         if (CS && CS.toast) CS.toast("文件过大: " + file.name, "err", 2500);
         continue;
       }
@@ -345,7 +378,7 @@
   }
 
   function readAndDecrypt(id, file) {
-    var ext = "." + file.name.split(".").pop().toLowerCase();
+    var ext = getFileExt(file.name);
     if (SERVER_UNLOCK_EXTS.has(ext)) {
       enqueueApiUnlock(id, file);
       return;
@@ -489,7 +522,7 @@
       if (error.code === "QQ_LOGIN_REQUIRED" || error.code === "QQ_AUTH_REQUIRED") {
         setAuthStatus("这个文件是新版 QQ musicex，需要先扫码登录自己的 QQ 音乐账号，再重新上传或重试解锁。", "err");
       } else if (error.code === "QQ_VIP_REQUIRED") {
-        setAuthStatus("QQ 官方没有给这个账号返回 EKey：通常是账号没有该歌曲的会员、购买或下载权限。", "err");
+        setAuthStatus(error.message || "QQ 官方没有给这个账号返回 EKey：通常是账号没有该歌曲的会员、购买或下载权限。", "err");
       } else if (error.code === "RATE_LIMITED" || error.code === "MUSIC_SERVER_BUSY" || error.code === "MUSIC_IP_BUSY") {
         setAuthStatus(error.message || "服务器正在保护资源，请稍后再试。", "warn");
       }

@@ -26,6 +26,7 @@ const ENCV2_KEY2 = Buffer.from([
 ]);
 const CACHE_DIR = path.join(__dirname, ".music-key-cache");
 const QQ_API_URL = "https://u.y.qq.com/cgi-bin/musicu.fcg";
+const QQ_API_REFERER = "https://y.qq.com/";
 
 const AUDIO_TYPES = Object.freeze({
   ".flac": "audio/flac",
@@ -522,6 +523,8 @@ async function postQQApi(payload, cookie = "") {
       headers: {
         "Content-Type": "application/json",
         "User-Agent": "QQMusic/21",
+        "Referer": QQ_API_REFERER,
+        "Origin": "https://y.qq.com",
         ...(cookie ? { Cookie: cookie } : {}),
       },
       body: JSON.stringify(payload),
@@ -536,36 +539,151 @@ async function postQQApi(payload, cookie = "") {
   }
 }
 
-async function fetchEkey(meta, auth) {
-  const fileMid = meta.filename.replace(/\.(?:mflac|mgg)$/i, "");
+function createQQGuid() {
+  if (typeof crypto.randomInt === "function") {
+    return String(crypto.randomInt(1000000000, 10000000000));
+  }
+  return String(Math.floor(Math.random() * 9000000000) + 1000000000);
+}
+
+function uniqueNonEmpty(values) {
+  return Array.from(new Set(values.map(value => String(value || "").trim()).filter(Boolean)));
+}
+
+function getMusicexFileInfo(meta) {
+  const filename = String(meta.filename || "").trim();
+  const fileMid = filename.replace(/\.(?:mflac|mgg)$/i, "");
   if (!fileMid || !meta.songMid) {
     throw new QQMusicUnlockError("INVALID_QQ_FILE", "musicex 文件缺少歌曲或文件标识");
   }
-  const extension = fileMid.startsWith("F0") ? ".mflac" : ".mgg";
-  const result = await postQQApi({
+  const extMatch = filename.match(/\.(?:mflac|mgg)$/i);
+  const extension = extMatch ? extMatch[0].toLowerCase() : (fileMid.startsWith("F0") ? ".mflac" : ".mgg");
+  return {
+    fileMid,
+    filename: filename || `${fileMid}${extension}`,
+    extension,
+  };
+}
+
+function buildEkeyAttempts(meta, auth) {
+  const fileInfo = getMusicexFileInfo(meta);
+  const filenames = uniqueNonEmpty([
+    fileInfo.filename,
+    `${fileInfo.fileMid}${fileInfo.extension}`,
+  ]);
+  const authUin = String(auth?.uin || "").trim();
+  const hasAuthUin = authUin && authUin !== "0";
+  const attempts = [];
+
+  function push(name, module, method, uin, guid = createQQGuid()) {
+    attempts.push({
+      name,
+      module,
+      method,
+      uin: String(uin || "0"),
+      commUin: Number(uin) || 0,
+      guid,
+      filenames,
+    });
+  }
+
+  if (hasAuthUin) push("CgiGetVkey/auth-random", "vkey.GetVkeyServer", "CgiGetVkey", authUin);
+  push("CgiGetVkey/zero-random", "vkey.GetVkeyServer", "CgiGetVkey", "0");
+  push("UrlGetVkey/zero-random", "music.vkey.GetVkey", "UrlGetVkey", "0");
+  if (hasAuthUin) push("UrlGetVkey/auth-random", "music.vkey.GetVkey", "UrlGetVkey", authUin);
+  if (hasAuthUin) push("CgiGetVkey/auth-fixed", "vkey.GetVkeyServer", "CgiGetVkey", authUin, "10000");
+
+  return attempts;
+}
+
+function buildEkeyPayload(attempt, songMid) {
+  const songmids = attempt.filenames.map(() => songMid);
+  return {
     comm: {
       cv: 4747474, ct: 24, format: "json", inCharset: "utf-8", outCharset: "utf-8",
-      notice: 0, platform: "yqq.json", needNewCode: 1, uin: Number(auth.uin),
+      notice: 0, platform: "yqq.json", needNewCode: 1, uin: attempt.commUin,
       g_tk_new_20200303: 5381, g_tk: 5381,
     },
     req_1: {
-      module: "vkey.GetVkeyServer",
-      method: "CgiGetVkey",
+      module: attempt.module,
+      method: attempt.method,
       param: {
-        filename: [`${fileMid}${extension}`], guid: "10000", songmid: [meta.songMid],
-        songtype: [0], uin: auth.uin, loginflag: 1, platform: "20",
+        filename: attempt.filenames,
+        guid: attempt.guid,
+        songmid: songmids,
+        songtype: songmids.map(() => 0),
+        uin: attempt.uin,
+        loginflag: 1,
+        platform: "20",
       },
     },
-  }, auth.cookie);
-  const item = result?.req_1?.data?.midurlinfo?.[0];
-  if (!item?.ekey) {
-    throw new QQMusicUnlockError(
-      "QQ_VIP_REQUIRED",
-      "QQ 音乐没有返回解密密钥，请确认当前登录账号拥有该歌曲的下载/会员权限",
-      403,
-    );
+  };
+}
+
+function getMidUrlInfo(result) {
+  const items = result?.req_1?.data?.midurlinfo;
+  return Array.isArray(items) ? items : [];
+}
+
+function getFirstEkey(result) {
+  for (const item of getMidUrlInfo(result)) {
+    const ekey = String(item?.ekey || "").trim();
+    if (ekey) return ekey;
   }
-  return item.ekey;
+  return "";
+}
+
+function compactQQDiagnostic(value, maxLength = 80) {
+  return String(value ?? "")
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function summarizeEkeyAttempt(attempt, result) {
+  const req = result?.req_1 || {};
+  const data = req.data || {};
+  const items = getMidUrlInfo(result);
+  const first = items[0] || {};
+  const parts = [
+    attempt.name,
+    `code=${req.code ?? result?.code ?? "?"}`,
+    `items=${items.length}`,
+  ];
+  const message = req.message || req.msg || data.msg || first.msg || first.errmsg || first.reason;
+  const subCode = first.subcode ?? first.vkeyerr ?? first.errtype ?? first.errcode;
+  if (message) parts.push(`msg=${compactQQDiagnostic(message, 60)}`);
+  if (subCode !== undefined) parts.push(`sub=${compactQQDiagnostic(subCode, 24)}`);
+  if (first.purl !== undefined) parts.push(`purl=${first.purl ? "yes" : "empty"}`);
+  if (first.ekey !== undefined) parts.push(`ekey=${first.ekey ? "yes" : "empty"}`);
+  if (first.filename) parts.push(`file=${compactQQDiagnostic(first.filename, 80)}`);
+  return parts.join(" ");
+}
+
+function formatEkeyDiagnostics(diagnostics) {
+  return diagnostics.slice(0, 4).join("; ");
+}
+
+async function fetchEkey(meta, auth) {
+  const attempts = buildEkeyAttempts(meta, auth);
+  const diagnostics = [];
+
+  for (const attempt of attempts) {
+    const result = await postQQApi(buildEkeyPayload(attempt, meta.songMid), auth.cookie);
+    const ekey = getFirstEkey(result);
+    if (ekey) return ekey;
+    diagnostics.push(summarizeEkeyAttempt(attempt, result));
+  }
+
+  const detail = formatEkeyDiagnostics(diagnostics);
+  if (detail) console.warn("[music] QQ Music returned empty EKey:", detail);
+  throw new QQMusicUnlockError(
+    "QQ_VIP_REQUIRED",
+    "QQ 音乐没有返回解密密钥。网站已尝试多种 EKey 请求方式仍为空；通常是登录会话失效、账号没有这首歌的下载/会员权限，或 QQ 音乐拒绝了当前文件标识。请重新扫码登录，并确认这首歌能在 QQ 音乐客户端用当前账号下载。" +
+      (detail ? ` 诊断: ${detail}` : ""),
+    403,
+  );
 }
 
 async function getEkey(meta, auth = null, options = {}) {
