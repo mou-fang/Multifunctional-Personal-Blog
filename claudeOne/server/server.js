@@ -13,22 +13,19 @@ const path = require("path");
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
 const {
+  QQMusicUnlockError,
   QQMusicAuthError,
-  authFromQQCallbackUrl,
-  checkQQMusicQRLogin,
-  createQQMusicQRLogin,
+  authFromCookieString,
   publicAuthInfo,
-} = require("./qq-music-auth");
-const { QQMusicUnlockError, unlockQQMusic } = require("./qq-music-unlock");
+  fetchEkey,
+  fetchSongMetadata,
+} = require("./qq-music-unlock");
 
 const os = require("os");
 
 const PORT = process.env.PORT || 3001;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const MAX_MUSIC_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
 const MAX_CONCURRENT = 3;
-const MAX_MUSIC_CONCURRENT = Number(process.env.MUSIC_MAX_CONCURRENT || 4);
-const MAX_MUSIC_CONCURRENT_PER_IP = Number(process.env.MUSIC_MAX_CONCURRENT_PER_IP || 2);
 const UPLOADS_DIR = path.join(__dirname, "uploads");
 const STATIC_DIR = path.join(__dirname, "..");  // claudeOne/ root
 
@@ -52,32 +49,23 @@ const ALLOWED_MIMES = new Set([
   "image/tiff",
   "image/gif",
 ]);
-const QQ_MUSIC_EXTS = new Set([".mflac", ".mgg"]);
-const coverCache = new Map();
 const qqAuthSessions = new Map();
 const QQ_AUTH_SESSION_TTL = 2 * 60 * 60 * 1000; // 2 hours
 const RATE_LIMITS = {
-  qqAuthCreate: {
-    windowMs: 60 * 1000,
-    max: Number(process.env.RATE_LIMIT_QQ_AUTH_CREATE || 20),
-    message: "扫码二维码生成太频繁，请稍后再试",
-  },
-  qqAuthPoll: {
-    windowMs: 60 * 1000,
-    max: Number(process.env.RATE_LIMIT_QQ_AUTH_POLL || 240),
-    message: "扫码状态查询太频繁，请稍后再试",
-  },
-  musicUnlock: {
+  musicEkey: {
     windowMs: 60 * 60 * 1000,
-    max: Number(process.env.RATE_LIMIT_MUSIC_UNLOCK || 100),
-    message: "音乐解锁请求太频繁，请稍后再试",
+    max: Number(process.env.RATE_LIMIT_MUSIC_EKEY || 200),
+    message: "EKey 请求太频繁，请稍后再试",
+  },
+  musicMetadata: {
+    windowMs: 60 * 60 * 1000,
+    max: Number(process.env.RATE_LIMIT_MUSIC_METADATA || 200),
+    message: "元数据请求太频繁，请稍后再试",
   },
 };
 
 // ---- concurrent limiting ----
 let activeJobs = 0;
-let activeMusicJobs = 0;
-const activeMusicJobsByIp = new Map();
 
 // ---- Express app ----
 const app = express();
@@ -130,46 +118,13 @@ const upload = multer({
   },
 });
 
-const musicUpload = multer({
-  storage,
-  limits: { fileSize: MAX_MUSIC_FILE_SIZE },
-  fileFilter: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (QQ_MUSIC_EXTS.has(ext)) {
-      cb(null, true);
-    } else {
-      const error = new Error(`不支持的 QQ 音乐文件格式: ${ext || "未知"}`);
-      error.code = "UNSUPPORTED_QQ_FORMAT";
-      cb(error);
-    }
-  },
-});
-
-function publicQQAuthSession(session) {
-  if (!session) return null;
-  return {
-    id: session.id,
-    type: session.type,
-    status: session.status,
-    message: session.message,
-    imageUrl: session.imageUrl,
-    url: session.url,
-    qrExpiresAt: session.qrExpiresAt,
-    expiresAt: session.expiresAt,
-    auth: publicAuthInfo(session.auth),
-  };
-}
-
-function getQQAuthSession(id, { requireAuth = false } = {}) {
+function getQQAuthSession(id) {
   const sessionId = String(id || "").trim();
   if (!sessionId) return null;
   const session = qqAuthSessions.get(sessionId);
   if (!session || session.expiresAt <= Date.now()) {
     if (session) qqAuthSessions.delete(sessionId);
-    throw new QQMusicUnlockError("QQ_LOGIN_REQUIRED", "QQ 音乐登录会话已过期，请重新扫码登录", 401);
-  }
-  if (requireAuth && !session.auth) {
-    throw new QQMusicUnlockError("QQ_LOGIN_REQUIRED", "请先完成 QQ 音乐扫码登录，再解锁新版 .mflac/.mgg", 401);
+    throw new QQMusicUnlockError("QQ_LOGIN_REQUIRED", "QQ 音乐登录会话已过期，请重新导入 Cookie", 401);
   }
   return session;
 }
@@ -224,43 +179,8 @@ function createRateLimiter({ windowMs, max, message }) {
   };
 }
 
-function withMusicConcurrency(req, res, next) {
-  const ip = getClientIp(req);
-  const activeForIp = activeMusicJobsByIp.get(ip) || 0;
-  if (activeMusicJobs >= MAX_MUSIC_CONCURRENT) {
-    return res.status(503).json({
-      success: false,
-      code: "MUSIC_SERVER_BUSY",
-      error: `音乐解锁服务繁忙，当前最多同时处理 ${MAX_MUSIC_CONCURRENT} 个任务，请稍后再试`,
-    });
-  }
-  if (activeForIp >= MAX_MUSIC_CONCURRENT_PER_IP) {
-    return res.status(429).json({
-      success: false,
-      code: "MUSIC_IP_BUSY",
-      error: `同一 IP 最多同时处理 ${MAX_MUSIC_CONCURRENT_PER_IP} 个音乐解锁任务，请等待当前任务完成`,
-    });
-  }
-
-  activeMusicJobs += 1;
-  activeMusicJobsByIp.set(ip, activeForIp + 1);
-  let released = false;
-  const release = () => {
-    if (released) return;
-    released = true;
-    activeMusicJobs = Math.max(0, activeMusicJobs - 1);
-    const nextCount = (activeMusicJobsByIp.get(ip) || 1) - 1;
-    if (nextCount > 0) activeMusicJobsByIp.set(ip, nextCount);
-    else activeMusicJobsByIp.delete(ip);
-  };
-  res.on("finish", release);
-  res.on("close", release);
-  next();
-}
-
-const qqAuthCreateLimiter = createRateLimiter(RATE_LIMITS.qqAuthCreate);
-const qqAuthPollLimiter = createRateLimiter(RATE_LIMITS.qqAuthPoll);
-const musicUnlockLimiter = createRateLimiter(RATE_LIMITS.musicUnlock);
+const musicEkeyLimiter = createRateLimiter(RATE_LIMITS.musicEkey);
+const musicMetadataLimiter = createRateLimiter(RATE_LIMITS.musicMetadata);
 
 // ---- Validation ----
 const VALID_MODES = new Set(["ascii", "braille"]);
@@ -462,85 +382,36 @@ app.post("/api/ascii", (req, res, next) => {
   }
 });
 
-// ---- QQ Music auth / unlock ------------------------------------------------
-app.post("/api/music/auth/qr", qqAuthCreateLimiter, async (req, res, next) => {
+// ---- QQ Music auth (cookie import) -----------------------------------------
+
+function cleanupQQAuthSessions() {
+  const now = Date.now();
+  for (const [id, session] of qqAuthSessions) {
+    if (session.expiresAt <= now) qqAuthSessions.delete(id);
+  }
+}
+
+app.post("/api/music/auth/cookie", async (req, res, next) => {
   try {
     cleanupQQAuthSessions();
-    const type = String(req.body?.type || "wx").trim().toLowerCase() === "qq" ? "qq" : "wx";
-    const qr = await createQQMusicQRLogin(type);
+    const rawCookie = String(req.body?.cookie || "").trim();
+    const auth = authFromCookieString(rawCookie);
     const id = uuidv4();
     const session = {
       id,
-      type: qr.type,
-      key: qr.key,
-      status: "waiting",
-      message: type === "qq" ? "请使用 QQ 扫码，并在手机上确认登录" : "请使用微信扫码，并在手机上确认登录",
-      imageUrl: qr.imageUrl,
-      url: qr.url || "",
-      qrExpiresAt: qr.expiresAt,
-      expiresAt: Date.now() + QQ_AUTH_SESSION_TTL,
-      auth: null,
-      ekeyCache: new Map(),
-    };
-    qqAuthSessions.set(id, session);
-    res.json({ success: true, session: publicQQAuthSession(session) });
-  } catch (error) {
-    next(error);
-  }
-});
-
-app.get("/api/music/auth/status/:id", qqAuthPollLimiter, async (req, res, next) => {
-  try {
-    const session = getQQAuthSession(req.params.id);
-    if (!session) {
-      throw new QQMusicUnlockError("QQ_LOGIN_REQUIRED", "请先创建 QQ 音乐扫码登录会话", 401);
-    }
-    if (session.auth) {
-      return res.json({ success: true, session: publicQQAuthSession(session) });
-    }
-    if (session.qrExpiresAt <= Date.now()) {
-      session.status = "expired";
-      session.message = "二维码已过期，请重新生成";
-      return res.json({ success: true, session: publicQQAuthSession(session) });
-    }
-
-    const result = await checkQQMusicQRLogin(session.type, session.key);
-    session.status = result.status;
-    session.message = result.message || session.message;
-    if (result.status === "success" && result.auth) {
-      session.auth = result.auth;
-      session.message = "QQ 音乐登录成功，可以解锁该账号有权限的新版文件";
-      session.expiresAt = Date.now() + QQ_AUTH_SESSION_TTL;
-      session.imageUrl = "";
-      session.url = "";
-    }
-    res.json({ success: true, session: publicQQAuthSession(session) });
-  } catch (error) {
-    next(error);
-  }
-});
-
-app.post("/api/music/auth/callback", qqAuthCreateLimiter, async (req, res, next) => {
-  try {
-    cleanupQQAuthSessions();
-    const callbackUrl = String(req.body?.callbackUrl || "").trim();
-    const auth = await authFromQQCallbackUrl(callbackUrl);
-    const id = uuidv4();
-    const session = {
-      id,
-      type: "qq",
-      key: "",
-      status: "success",
-      message: "QQ 音乐登录成功，可以解锁该账号有权限的新版文件",
-      imageUrl: "",
-      url: "",
-      qrExpiresAt: 0,
       expiresAt: Date.now() + QQ_AUTH_SESSION_TTL,
       auth,
-      ekeyCache: new Map(),
     };
     qqAuthSessions.set(id, session);
-    res.json({ success: true, session: publicQQAuthSession(session) });
+    res.json({
+      success: true,
+      session: {
+        id,
+        expiresAt: session.expiresAt,
+        uin: auth.uin,
+        display: auth.display,
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -551,104 +422,95 @@ app.delete("/api/music/auth/:id", (req, res) => {
   res.json({ success: true });
 });
 
-app.post("/api/music/unlock", musicUnlockLimiter, withMusicConcurrency, musicUpload.single("file"), async (req, res, next) => {
-  const inputPath = req.file?.path;
-  let outputPath = "";
+// ---- QQ Music ekey proxy ---------------------------------------------------
 
+app.post("/api/music/ekey", musicEkeyLimiter, async (req, res, next) => {
   try {
-    if (!req.file) {
-      throw new QQMusicUnlockError("MISSING_FILE", "请选择 QQ 音乐加密文件");
-    }
-
     const authSessionId = String(req.body?.authSessionId || "").trim();
-    const authSession = authSessionId ? getQQAuthSession(authSessionId, { requireAuth: true }) : null;
-    const workPrefix = path.join(UPLOADS_DIR, uuidv4());
-    const result = await unlockQQMusic(inputPath, workPrefix, req.file.originalname, authSession ? {
-      auth: authSession.auth,
-      ekeyCache: authSession.ekeyCache,
-      allowSharedEkeyCache: false,
-    } : undefined);
-    outputPath = result.outputPath;
+    const songMid = String(req.body?.songMid || "").trim();
+    const filename = String(req.body?.filename || "").trim();
 
-    let coverUrl = "";
-    if (result.cover?.data?.length) {
-      const coverId = uuidv4();
-      coverCache.set(coverId, {
-        data: result.cover.data,
-        mime: result.cover.mime || "image/jpeg",
-        expiresAt: Date.now() + 5 * 60 * 1000,
-      });
-      coverUrl = `/api/music/cover/${coverId}`;
+    if (!authSessionId) {
+      throw new QQMusicUnlockError("QQ_LOGIN_REQUIRED", "请先导入 QQ 音乐 Cookie", 401);
+    }
+    if (!songMid) {
+      throw new QQMusicUnlockError("INVALID_REQUEST", "缺少歌曲标识 songMid");
     }
 
-    const metadata = {
-      title: result.title,
-      artist: result.artist,
-      album: result.album,
-      ext: result.extension,
-      mime: result.mime,
-      coverUrl,
-    };
-    res.setHeader("X-Music-Meta", Buffer.from(JSON.stringify(metadata), "utf8").toString("base64url"));
-    res.setHeader("Access-Control-Expose-Headers", "X-Music-Meta");
-    res.setHeader("Content-Type", result.mime);
-    res.setHeader("Cache-Control", "no-store");
-    res.sendFile(path.resolve(outputPath), error => {
-      fs.rmSync(outputPath, { force: true });
-      outputPath = "";
-      if (error && !res.headersSent) next(error);
-      else if (error) console.error("[music] Response stream error:", error.message);
-    });
+    const session = getQQAuthSession(authSessionId);
+    if (!session || !session.auth) {
+      throw new QQMusicUnlockError("QQ_LOGIN_REQUIRED", "QQ 音乐登录会话无效或已过期", 401);
+    }
+
+    const meta = { songMid, filename, ekey: null };
+    const ekey = await fetchEkey(meta, session.auth);
+    res.json({ success: true, ekey });
   } catch (error) {
-    if (outputPath) fs.rmSync(outputPath, { force: true });
-    if (error instanceof QQMusicUnlockError && error.code === "QQ_AUTH_REQUIRED") {
-      next(new QQMusicUnlockError(
-        "QQ_LOGIN_REQUIRED",
-        "这个文件是新版 QQ 音乐 musicex 格式，需要先在页面上扫码登录你自己的 QQ 音乐账号，再由服务器向 QQ 官方接口获取该账号可用的 EKey",
-        401,
-      ));
-      return;
-    }
     next(error);
-  } finally {
-    if (inputPath) fs.rmSync(inputPath, { force: true });
   }
 });
 
-app.get("/api/music/cover/:id", (req, res) => {
-  const cover = coverCache.get(req.params.id);
-  if (!cover || cover.expiresAt <= Date.now()) {
-    coverCache.delete(req.params.id);
-    return res.status(404).json({ success: false, error: "封面已过期，请重新解锁文件" });
+// ---- QQ Music metadata proxy -----------------------------------------------
+
+app.post("/api/music/metadata", musicMetadataLimiter, async (req, res, next) => {
+  try {
+    const songMid = String(req.body?.songMid || "").trim();
+    if (!songMid) {
+      return res.json({ success: true, metadata: null });
+    }
+    const authSessionId = String(req.body?.authSessionId || "").trim();
+    const session = authSessionId ? getQQAuthSession(authSessionId) : null;
+    const auth = session?.auth || null;
+    const metadata = await fetchSongMetadata(songMid, auth);
+    res.json({ success: true, metadata });
+  } catch (error) {
+    next(error);
   }
-  res.setHeader("Content-Type", cover.mime);
-  res.setHeader("Cache-Control", "private, max-age=300");
-  res.send(cover.data);
 });
 
-const coverCleanupTimer = setInterval(() => {
-  const now = Date.now();
-  for (const [id, cover] of coverCache) {
-    if (cover.expiresAt <= now) coverCache.delete(id);
-  }
-  cleanupQQAuthSessions();
-}, 60 * 1000);
-coverCleanupTimer.unref();
+// ---- Cover image proxy (for CORS) ------------------------------------------
 
-// ---- Health check ----
+app.get("/api/music/cover/:albumMid", async (req, res, next) => {
+  try {
+    const albumMid = String(req.params.albumMid || "").trim();
+    if (!albumMid || albumMid.length > 64) {
+      return res.status(400).json({ success: false, error: "无效的专辑标识" });
+    }
+    const url = `https://y.gtimg.cn/music/photo_new/T002R500x500M000${albumMid}.jpg`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0" },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (!response.ok) {
+        return res.status(404).json({ success: false, error: "封面获取失败" });
+      }
+      const contentType = response.headers.get("content-type") || "image/jpeg";
+      const data = Buffer.from(await response.arrayBuffer());
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.send(data);
+    } catch (fetchError) {
+      clearTimeout(timer);
+      res.status(502).json({ success: false, error: "封面获取失败" });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ---- Health check ----------------------------------------------------------
+
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
     activeJobs,
-    activeMusicJobs,
-    maxMusicConcurrent: MAX_MUSIC_CONCURRENT,
     musicLimits: {
-      authQrPerMinute: RATE_LIMITS.qqAuthCreate.max,
-      authPollPerMinute: RATE_LIMITS.qqAuthPoll.max,
-      unlockPerHour: RATE_LIMITS.musicUnlock.max,
-      maxConcurrent: MAX_MUSIC_CONCURRENT,
-      maxConcurrentPerIp: MAX_MUSIC_CONCURRENT_PER_IP,
-      maxFileSizeMb: Math.round(MAX_MUSIC_FILE_SIZE / 1024 / 1024),
+      ekeyPerHour: RATE_LIMITS.musicEkey.max,
+      metadataPerHour: RATE_LIMITS.musicMetadata.max,
     },
   });
 });
@@ -663,17 +525,9 @@ app.use("/api", (req, res) => {
 // ---- Global error handler ----
 app.use((err, req, res, _next) => {
   if (err.code === "LIMIT_FILE_SIZE") {
-    const limit = req.originalUrl.startsWith("/api/music/") ? "200MB" : "10MB";
-    return res.status(413).json({ success: false, error: `文件大小超过限制（最大 ${limit}）。` });
+    return res.status(413).json({ success: false, error: "文件大小超过限制（最大 10MB）。" });
   }
-  if (err instanceof QQMusicAuthError) {
-    return res.status(err.status || 400).json({
-      success: false,
-      code: err.code,
-      error: err.message,
-    });
-  }
-  if (err instanceof QQMusicUnlockError || err.code === "UNSUPPORTED_QQ_FORMAT") {
+  if (err instanceof QQMusicUnlockError || err instanceof QQMusicAuthError || err.code === "UNSUPPORTED_QQ_FORMAT") {
     return res.status(err.status || 400).json({
       success: false,
       code: err.code,
