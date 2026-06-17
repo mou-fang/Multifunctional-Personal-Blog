@@ -377,6 +377,222 @@
     return null;
   }
 
+  // ---- Embedded cover extraction -------------------------------------------
+  //
+  // QQ Music decryption produces a raw audio file that usually still carries
+  // its own cover picture (FLAC PICTURE block, ID3 APIC frame, or MP4 covr).
+  // When the server-side metadata lookup fails or returns the wrong song,
+  // this embedded picture is the most reliable fallback for the card cover.
+  // We scan only the leading chunk of the file (covers live near the start).
+
+  function detectImageMime(bytes) {
+    if (!bytes || bytes.length < 4) return "image/jpeg";
+    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
+    if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return "image/gif";
+    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 &&
+        bytes.length > 11 && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return "image/webp";
+    return "image/jpeg";
+  }
+
+  function sliceBuffer(bytes, start, end) {
+    // Return a standalone ArrayBuffer copy so callers can wrap it in a Blob.
+    var sub = bytes.subarray(start, end);
+    var out = new Uint8Array(sub.length);
+    out.set(sub);
+    return out.buffer;
+  }
+
+  function extractFlacPicture(data) {
+    // FLAC: "fLaC" then metadata blocks. Block header: 1 byte (last-flag<<7 | type),
+    // 3 bytes big-endian length. Type 6 = PICTURE. Picture block body layout:
+    //   [pictureType(4)][mimeLen(4)][mime][descLen(4)][desc][width(4)][height(4)]
+    //   [colorDepth(4)][indexedColors(4)][dataLen(4)][data]
+    if (data.length < 8 || data[0] !== 0x66 || data[1] !== 0x4c) return null;
+    var pos = 4;
+    while (pos + 4 <= data.length) {
+      var type = data[pos] & 0x7f;
+      var len = (data[pos + 1] << 16) | (data[pos + 2] << 8) | data[pos + 3];
+      pos += 4;
+      if (type === 6 && pos + 8 <= data.length) {
+        var mimeLen = readUint32BE(data, pos + 4);
+        if (pos + 8 + mimeLen + 4 > data.length) return null;
+        var mimeStart = pos + 8;
+        var descLenPos = mimeStart + mimeLen;
+        var descLen = readUint32BE(data, descLenPos);
+        var fixedStart = descLenPos + 4 + descLen; // start of width(4)height(4)colorDepth(4)indexedColors(4)dataLen(4)
+        if (fixedStart + 20 > data.length) return null;
+        var dataLen = readUint32BE(data, fixedStart + 16);
+        var dataStart = fixedStart + 20;
+        if (dataLen <= 0 || dataStart + dataLen > data.length) return null;
+        var pic = data.subarray(dataStart, dataStart + dataLen);
+        var mime = "";
+        for (var i = 0; i < mimeLen && mimeStart + i < data.length; i++) mime += String.fromCharCode(data[mimeStart + i]);
+        return { picture: sliceBuffer(data, dataStart, dataStart + dataLen), pictureMime: mime || detectImageMime(pic) };
+      }
+      pos += len;
+      // Stop if we've passed the end of the metadata blocks (the "last" flag
+      // is set on the final metadata block; audio frames follow). We don't
+      // strictly need the flag since covers live in early metadata blocks, but
+      // bail out on malformed/oversized lengths to avoid runaway scans.
+      if (pos >= data.length || len <= 0) break;
+    }
+    return null;
+  }
+
+  function syncsafeToInt(data, offset) {
+    return ((data[offset] & 0x7f) << 21) | ((data[offset + 1] & 0x7f) << 14) |
+      ((data[offset + 2] & 0x7f) << 7) | (data[offset + 3] & 0x7f);
+  }
+
+  function extractId3Picture(data) {
+    // ID3v2: "ID3" + version(2) + flags(1) + size(4 syncsafe). Frames: id(4) +
+    // size(4) + flags(2) + data. APIC frame: [encoding(1)][mime\0][picType(1)][desc...][\0][data]
+    if (data.length < 10 || data[0] !== 0x49 || data[1] !== 0x44 || data[2] !== 0x33) return null;
+    var totalSize = syncsafeToInt(data, 6);
+    var pos = 10;
+    var end = Math.min(pos + totalSize, data.length);
+    while (pos + 10 <= end) {
+      var id = String.fromCharCode(data[pos], data[pos + 1], data[pos + 2], data[pos + 3]);
+      var frameSize = (data[pos + 4] << 24) | (data[pos + 5] << 16) | (data[pos + 6] << 8) | data[pos + 7];
+      pos += 10;
+      if (frameSize <= 0 || pos + frameSize > end) break;
+      if (id === "APIC") {
+        // encoding(1), then mime string until \0
+        var mimeStart = pos + 1;
+        var mimeEnd = mimeStart;
+        while (mimeEnd < pos + frameSize && data[mimeEnd] !== 0) mimeEnd++;
+        if (mimeEnd >= pos + frameSize) break;
+        var mime = "";
+        for (var i = mimeStart; i < mimeEnd; i++) mime += String.fromCharCode(data[i]);
+        var picType = data[mimeEnd + 1];
+        // description: encoding-dependent, terminated by \0 (for latin/utf-16)
+        var descStart = mimeEnd + 2;
+        var descEnd = descStart;
+        // Skip the description (find next \0\0 for utf-16 or \0 for latin/utf-8).
+        while (descEnd + 1 < pos + frameSize && !(data[descEnd] === 0 && data[descEnd + 1] === 0) && data[descEnd] !== 0) descEnd++;
+        // Move past the terminator(s).
+        var dataStart = descEnd;
+        if (data[dataStart] === 0) dataStart++;
+        if (dataStart < pos + frameSize && data[dataStart] === 0) dataStart++;
+        var picLen = pos + frameSize - dataStart;
+        if (picLen <= 0) break;
+        var pic = data.subarray(dataStart, dataStart + picLen);
+        return { picture: sliceBuffer(data, dataStart, dataStart + picLen), pictureMime: mime || detectImageMime(pic) };
+      }
+      pos += frameSize;
+    }
+    return null;
+  }
+
+  function extractMp4Picture(data) {
+    // MP4/M4A: "ftyp" box near start, then nested boxes. Cover is in
+    // moov/udta/meta/ilst/covr. We scan the top-level + one level of moov for
+    // an "ilst" box, then look for a "covr" atom inside it.
+    function findBox(buf, start, end, target) {
+      var pos = start;
+      while (pos + 8 <= end) {
+        var size = readUint32BE(buf, pos);
+        var type = String.fromCharCode(buf[pos + 4], buf[pos + 5], buf[pos + 6], buf[pos + 7]);
+        if (size < 8) break;
+        if (type === target) return { start: pos, size: size, dataStart: pos + 8, dataEnd: Math.min(pos + size, end) };
+        pos += size;
+      }
+      return null;
+    }
+    var moov = findBox(data, 0, Math.min(data.length, 256 * 1024), "moov");
+    if (!moov) return null;
+    var udta = findBox(data, moov.dataStart, moov.dataEnd, "udta");
+    var metaSearchStart = udta ? udta.dataStart : moov.dataStart;
+    var metaSearchEnd = udta ? udta.dataEnd : moov.dataEnd;
+    var meta = findBox(data, metaSearchStart, metaSearchEnd, "meta");
+    // MP4 "meta" box is special: it has a 4-byte version/flags field before its children.
+    var metaChildrenStart = meta ? meta.dataStart + 4 : metaSearchStart;
+    var metaChildrenEnd = meta ? meta.dataEnd : metaSearchEnd;
+    var ilst = findBox(data, metaChildrenStart, metaChildrenEnd, "ilst");
+    if (!ilst) return null;
+    var covr = findBox(data, ilst.dataStart, ilst.dataEnd, "covr");
+    if (!covr) return null;
+    // Inside covr: a "data" atom: [size(4)]"data"[flags(4)][4 zero bytes][payload]
+    var dataAtom = findBox(data, covr.dataStart, covr.dataEnd, "data");
+    if (!dataAtom) return null;
+    var payloadStart = dataAtom.dataStart + 8; // skip 4-byte flags + 4 reserved
+    if (payloadStart >= dataAtom.dataEnd) return null;
+    var pic = data.subarray(payloadStart, dataAtom.dataEnd);
+    return { picture: sliceBuffer(data, payloadStart, dataAtom.dataEnd), pictureMime: detectImageMime(pic) };
+  }
+
+  function extractEmbeddedCover(arrayBuffer, ext) {
+    try {
+      var data = new Uint8Array(arrayBuffer);
+      var lower = String(ext || "").toLowerCase();
+      var result = null;
+      if (lower === ".flac") result = extractFlacPicture(data);
+      else if (lower === ".mp3") result = extractId3Picture(data);
+      else if (lower === ".m4a") result = extractMp4Picture(data);
+      else {
+        // Sniff by magic and try the matching extractor.
+        if (data.length >= 4 && data[0] === 0x66 && data[1] === 0x4c && data[2] === 0x61 && data[3] === 0x43) result = extractFlacPicture(data);
+        else if (data.length >= 3 && data[0] === 0x49 && data[1] === 0x44 && data[2] === 0x33) result = extractId3Picture(data);
+        else if (data.length >= 8 && data[4] === 0x66 && data[5] === 0x74 && data[6] === 0x79 && data[7] === 0x70) result = extractMp4Picture(data);
+      }
+      return result;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  // ---- EKey parsing --------------------------------------------------------
+  //
+  // An EKey from the QQ Music API (or embedded in a QTag/STag tail) can be one
+  // of three textual shapes:
+  //   1. EncV2:  "QQMusic EncV2,Key:<base64>"  — the leading prefix is literal
+  //      ASCII, the remainder is standard base64 of the encrypted key blob.
+  //   2. Legacy base64 / URL-safe base64 of the raw key blob directly.
+  //   3. Already-decoded raw bytes (passed in as a Uint8Array).
+  //
+  // We need to return the RAW key bytes (still including the EncV2 prefix bytes
+  // when present) so that deriveKey() can detect the prefix and apply the two
+  // TEA passes. decodeBase64() alone is not enough: it rejects any string that
+  // contains the literal "QQMusic EncV2,Key:" prefix because of the comma/colon.
+
+  function utf8ToBytes(str) {
+    var text = String(str || "");
+    var bytes = new Uint8Array(text.length);
+    for (var i = 0; i < text.length; i++) bytes[i] = text.charCodeAt(i) & 0xff;
+    return bytes;
+  }
+
+  function parseEkeyText(ekey) {
+    if (!ekey) return null;
+    // Already raw bytes.
+    if (typeof ekey !== "string") {
+      return ekey instanceof Uint8Array && ekey.length ? ekey : null;
+    }
+    // Only trim leading/trailing whitespace. Do NOT strip internal spaces: the
+    // EncV2 prefix ("QQMusic EncV2,Key:") contains a literal space.
+    var text = String(ekey).replace(/^\s+|\s+$/g, "");
+    if (!text) return null;
+
+    // EncV2: keep the full literal prefix + base64 payload as raw ASCII bytes.
+    // deriveKey() checks for the EncV2 prefix and runs the two TEA passes.
+    if (text.startsWith(ENCV2_PREFIX_STR)) {
+      return utf8ToBytes(text);
+    }
+
+    // Standard base64 (ignore any internal whitespace here).
+    var standard = decodeBase64(text);
+    if (standard) return standard;
+
+    // URL-safe base64 (replace -/+ and _ with + and /), then pad.
+    var reencoded = text.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
+    var pad = reencoded.length % 4;
+    if (pad === 2) reencoded += "==";
+    else if (pad === 3) reencoded += "=";
+    else if (pad === 1) return null; // malformed base64
+    return decodeBase64(reencoded);
+  }
+
   // ---- Main decrypt function -----------------------------------------------
 
   function decryptAudioFile(arrayBuffer, ekey) {
@@ -386,14 +602,17 @@
       throw new Error("没有识别到 musicex、QTag 或 STag 文件尾部，请使用原始 QQ 音乐加密文件");
     }
 
-    // 2. Get raw key
-    var rawKey;
-    if (tail.ekey) {
-      rawKey = decodeBase64(tail.ekey);
-    } else {
-      rawKey = decodeBase64(ekey);
+    // 2. Get raw key bytes
+    //    - Legacy QTag/STag files embed the EKey in the tail (tail.ekey).
+    //    - musicex files do NOT embed it; the caller must supply the EKey
+    //      fetched from the QQ Music API using the logged-in account.
+    var rawKey = parseEkeyText(tail.ekey || ekey);
+    if (!rawKey) {
+      if (!tail.ekey && !ekey) {
+        throw new Error("此文件没有内嵌 EKey，需要先导入 QQ 音乐 Cookie 才能从服务器获取 EKey");
+      }
+      throw new Error("EKey 编码无效");
     }
-    if (!rawKey) throw new Error("EKey 编码无效");
 
     // 3. Derive key
     var key = deriveKey(rawKey);
@@ -424,11 +643,18 @@
       fullCipher.decrypt(chunk, offset);
     }
 
+    // 6. Extract embedded cover (fallback for when server metadata/cover fails
+    //    or returns the wrong song). QQ Music FLAC/MP3/M4A files carry their
+    //    own cover picture near the start of the audio.
+    var embedded = extractEmbeddedCover(audioData.buffer, ext);
+
     return {
       audio: audioData.buffer,
       ext: ext,
       songMid: tail.songMid,
       filename: tail.filename,
+      picture: embedded ? embedded.picture : null,
+      pictureMime: embedded ? embedded.pictureMime : "",
     };
   }
 
@@ -437,6 +663,7 @@
   root.ClaudeOneQQDecrypt = {
     decrypt: decryptAudioFile,
     parseFileTail: parseFileTail,
+    extractEmbeddedCover: extractEmbeddedCover,
   };
 
 })(typeof self !== "undefined" ? self : this);

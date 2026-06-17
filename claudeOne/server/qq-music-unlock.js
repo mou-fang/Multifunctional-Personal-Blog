@@ -309,18 +309,68 @@ function stripMarkup(value) {
   return String(value || "").replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").trim();
 }
 
+// Extract a clean songmid (14-char base62) from a raw value. The musicex tail
+// stores it as a UTF-16LE string, but callers may pass it with surrounding
+// whitespace or mixed with the filename; trim to the leading alnum run.
+function cleanSongMid(value) {
+  const raw = String(value || "").trim();
+  const match = raw.match(/^[A-Za-z0-9]+/);
+  return match ? match[0] : raw;
+}
+
+// Build a song-info request payload for the batch detail endpoint.
+function buildSongInfoPayload(songMid, uin) {
+  return {
+    comm: { cv: 4747474, ct: 24, format: "json", inCharset: "utf-8", outCharset: "utf-8", uin: Number(uin) || 0, g_tk: 5381 },
+    req_1: {
+      module: "music.musichallSong.songinfoserver",
+      method: "GetSongDetail",
+      param: {
+        song_mid: [songMid],
+        song_id: [0],
+        song_type: [0],
+      },
+    },
+  };
+}
+
 async function fetchSongMetadata(songMid, auth) {
-  if (!songMid) return null;
+  const mid = cleanSongMid(songMid);
+  if (!mid) return null;
+
+  // 1) Prefer the precise GetSongDetail endpoint (looks up by songmid directly,
+  //    no fuzzy text matching that returns the wrong song).
+  try {
+    const result = await postQQApi(buildSongInfoPayload(mid, auth?.uin), auth?.cookie || "");
+    const track = result?.req_1?.data?.tracks?.[0] || result?.req_1?.data?.track_info;
+    if (track && (track.mid || track.songmid)) {
+      const albumMid = track.album?.mid || "";
+      return {
+        title: stripMarkup(track.title || track.name),
+        artist: (track.singer || []).map(item => stripMarkup(item.title || item.name)).filter(Boolean).join("/"),
+        album: stripMarkup(track.album?.title || track.album?.name),
+        albumMid,
+        coverUrl: albumMid ? `/api/music/cover/${albumMid}` : "",
+      };
+    }
+  } catch (_error) {
+    // Fall through to the search-based lookup below.
+  }
+
+  // 2) Fallback: fuzzy search. Only trust a result whose songmid matches the
+  //    one we asked for, to avoid showing the wrong song.
   try {
     const result = await postQQApi({
       comm: { cv: 4747474, ct: 24, format: "json", uin: Number(auth?.uin || 0) },
       req_1: {
         module: "music.search.SearchCgiService",
         method: "DoSearchForQQMusicDesktop",
-        param: { query: songMid, page_num: 1, num_per_page: 1, search_type: 0 },
+        param: { query: mid, page_num: 1, num_per_page: 10, search_type: 0 },
       },
     }, auth?.cookie || "");
-    const song = result?.req_1?.data?.body?.song?.list?.[0];
+    const list = result?.req_1?.data?.body?.song?.list || [];
+    // Pick the first entry whose mid equals the requested songmid.
+    const song = list.find(item => cleanSongMid(item.mid || item.songmid) === mid) || null;
     if (!song) return null;
     const albumMid = song.album?.mid || "";
     return {

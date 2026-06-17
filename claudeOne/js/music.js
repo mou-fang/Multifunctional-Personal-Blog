@@ -364,18 +364,25 @@
         throw new Error("QQ 音乐前端解密器未加载，请刷新页面后重试");
       }
 
-      // 3. Try decrypt (may need ekey from server)
+      // 3. Parse file tail first to decide whether an EKey is needed.
+      //    New-format .mflac/.mgg (musicex) files do NOT embed an EKey, so we
+      //    must fetch it from the server using the logged-in account.
+      //    Legacy QTag/STag files embed the EKey in the tail and decrypt directly.
+      var tail = window.ClaudeOneQQDecrypt.parseFileTail(arrayBuffer);
+      if (!tail) {
+        throw new Error("没有识别到 musicex、QTag 或 STag 文件尾部，请使用原始 QQ 音乐加密文件");
+      }
+
       var result;
       try {
-        result = window.ClaudeOneQQDecrypt.decrypt(arrayBuffer);
+        // tail.ekey is non-empty only for legacy QTag/STag files.
+        result = window.ClaudeOneQQDecrypt.decrypt(arrayBuffer, tail.ekey || "");
       } catch (decryptError) {
-        // If decrypt fails, it might need an ekey from the server
-        if (decryptError.message && decryptError.message.indexOf("EKey") >= 0) {
-          throw decryptError;
-        }
-        // Try with ekey from server
-        var tail = window.ClaudeOneQQDecrypt.parseFileTail(arrayBuffer);
-        if (!tail || !tail.songMid) throw decryptError;
+        // musicex files (tail.ekey == null) need a server-provided EKey.
+        // Re-throw only if the file already had an embedded EKey but still failed
+        // (e.g. invalid key / no playback permission) — we cannot help further.
+        if (tail.ekey) throw decryptError;
+        if (!tail.songMid) throw decryptError;
 
         var authSessionId = getAuthSessionId();
         if (!authSessionId) {
@@ -433,7 +440,10 @@
         }
       }
 
-      // 5. Fetch cover image
+      // 5. Fetch cover image. Prefer the server-provided cover (matches the
+      //    looked-up album). If that's missing or the fetch fails, fall back to
+      //    the picture embedded in the decrypted audio itself (QQ Music files
+      //    carry their own cover), which is always correct for THIS song.
       var picture = null;
       var pictureMime = "";
       if (coverUrl) {
@@ -444,8 +454,12 @@
             picture = await coverResponse.arrayBuffer();
           }
         } catch (_coverError) {
-          // Cover is optional
+          // Cover is optional, fall through to embedded cover.
         }
+      }
+      if (!picture && result.picture) {
+        picture = result.picture;
+        pictureMime = result.pictureMime || "image/jpeg";
       }
 
       // 6. Complete
