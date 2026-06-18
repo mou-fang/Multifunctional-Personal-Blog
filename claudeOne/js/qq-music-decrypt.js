@@ -35,9 +35,14 @@
     0x33, 0x38, 0x36, 0x5a, 0x4a, 0x59, 0x21, 0x40,
     0x23, 0x2a, 0x24, 0x25, 0x5e, 0x26, 0x29, 0x28,
   ]);
+  // ENCV2_KEY2 was previously a wrong cyclic shift of KEY1 — that bug made
+  // every EncV2-formatted EKey (returned by modern QQ Music API endpoints
+  // like CgiGetEVkey) decrypt to garbage, so the cipher couldn't recover the
+  // audio header.  These bytes match unlock-music's reference and are the
+  // authoritative TEA pass-2 key.
   var ENCV2_KEY2 = new Uint8Array([
-    0x2a, 0x24, 0x25, 0x5e, 0x26, 0x29, 0x28, 0x23,
-    0x40, 0x21, 0x33, 0x38, 0x36, 0x5a, 0x4a, 0x59,
+    0x2a, 0x2a, 0x23, 0x21, 0x28, 0x23, 0x24, 0x25,
+    0x26, 0x5e, 0x61, 0x31, 0x63, 0x5a, 0x2c, 0x54,
   ]);
   var ENCV2_PREFIX = new Uint8Array(18);
   for (var _i = 0; _i < ENCV2_PREFIX_STR.length; _i++) ENCV2_PREFIX[_i] = ENCV2_PREFIX_STR.charCodeAt(_i);
@@ -138,6 +143,37 @@
     } catch (_e) {
       return null;
     }
+  }
+
+  // Used by diagnostic logging only.  Keeps the dump short so it fits in a
+  // toast / console line.
+  function bytesToHex(bytes) {
+    var s = "";
+    for (var i = 0; i < bytes.length; i++) {
+      var h = bytes[i].toString(16);
+      s += (h.length < 2 ? "0" : "") + h;
+    }
+    return s;
+  }
+
+  // Newer QQ Music EKey envelopes have an extra base64 layer inside the TEA
+  // body — after deriveKey, the result is still ASCII text representing the
+  // base64 of the real binary cipher key.  This helper checks whether ALL of
+  // the input bytes lie in the base64 alphabet (A–Z, a–z, 0–9, +, /, =) and
+  // if so attempts a base64 decode.  Returns null otherwise so callers can
+  // safely use it as "decode if applicable, ignore if not" without false
+  // positives on classic random-binary derived keys.
+  function decodeBase64IfAscii(bytes) {
+    if (!bytes || bytes.length < 16) return null;
+    var s = "";
+    for (var i = 0; i < bytes.length; i++) {
+      var c = bytes[i];
+      var isB64 = (c >= 0x41 && c <= 0x5a) || (c >= 0x61 && c <= 0x7a) ||
+                  (c >= 0x30 && c <= 0x39) || c === 0x2b || c === 0x2f || c === 0x3d;
+      if (!isB64) return null;
+      s += String.fromCharCode(c);
+    }
+    return decodeBase64(s);
   }
 
   // ---- File tail parsing ---------------------------------------------------
@@ -323,7 +359,28 @@
   }
 
   function decryptEncV2(rawKey) {
-    var first = decryptTencentTea(rawKey.subarray(ENCV2_PREFIX.length), ENCV2_KEY1);
+    // EncV2 ekeys come from the QQ Music API as the ASCII string
+    //   "QQMusic EncV2,Key:" + base64(binary_cipher)
+    // parseEkeyText hands us the raw bytes of that whole string (each char
+    // narrowed to its low byte), so after stripping the prefix we still hold
+    // base64 text rather than the actual ciphertext.  Base64-decode that
+    // before running the TEA passes — without this step both TEA decrypts
+    // operate on ASCII bytes and produce garbage, leaving every musicex /
+    // mflac / mgg file undecryptable.
+    var remainder = rawKey.subarray(ENCV2_PREFIX.length);
+    var binCipher = remainder;
+    var asciiText = "";
+    var allAscii = true;
+    for (var k = 0; k < remainder.length; k++) {
+      var c = remainder[k];
+      if (c > 0x7e || c < 0x20) { allAscii = false; break; }
+      asciiText += String.fromCharCode(c);
+    }
+    if (allAscii) {
+      var decoded = decodeBase64(asciiText);
+      if (decoded) binCipher = decoded;
+    }
+    var first = decryptTencentTea(binCipher, ENCV2_KEY1);
     if (!first) return null;
     var second = decryptTencentTea(first, ENCV2_KEY2);
     if (!second) return null;
@@ -469,6 +526,15 @@
   function createCipherFromDerivedKey(key) {
     if (!key.length) throw new Error("解密密钥为空");
     return key.length > 300 ? new RC4Cipher(key) : new MapCipher(key);
+  }
+
+  // Build cipher of explicit kind ("RC4" or "Map") regardless of key length.
+  // Used by the cipher fallback in decryptAudioFile to recover from cases
+  // where the QQ Music API returned an EKey that doesn't follow the usual
+  // length convention.
+  function createCipherOfKind(kind, key) {
+    if (!key || !key.length) return null;
+    return kind === "RC4" ? new RC4Cipher(key) : new MapCipher(key);
   }
 
   // ---- Audio sniffing -----------------------------------------------------
@@ -697,10 +763,15 @@
   }
 
   // For the second decrypt pass, build a fresh cipher so RC4's internal state
-  // doesn't leak across the preview/full-decrypt boundary.
-  function freshCipher(format, derivedKey) {
+  // doesn't leak across the preview/full-decrypt boundary.  `kind` is the
+  // explicit cipher kind chosen during sniffing — it MUST match the one used
+  // for the preview, not just be re-derived from key length, since the
+  // sniffing fallback can pick a kind that disagrees with the length rule.
+  function freshCipher(format, key, kind) {
     if (format === "v1-static") return new StaticCipher();
-    return derivedKey.length > 300 ? new RC4Cipher(derivedKey) : new MapCipher(derivedKey);
+    if (kind === "RC4" || kind === "Map") return createCipherOfKind(kind, key);
+    // Fallback (legacy callers without kind): use length-based selection.
+    return key.length > 300 ? new RC4Cipher(key) : new MapCipher(key);
   }
 
   // ---- Main decrypt --------------------------------------------------------
@@ -718,6 +789,7 @@
     // Choose the cipher based on the parsed format.
     var derivedKey = null;
     var cipher;
+    var rawKey = null;
     if (tail.format === "v1-static") {
       cipher = new StaticCipher();
     } else if (tail.format === "v1-keyed") {
@@ -730,27 +802,153 @@
       if (!ekeyText) {
         throw new Error("此文件没有内嵌 EKey，需要先导入 QQ 音乐 Cookie 才能从服务器获取 EKey");
       }
-      var rawKey = parseEkeyText(ekeyText);
+      rawKey = parseEkeyText(ekeyText);
       if (!rawKey) throw new Error("EKey 编码无效");
       derivedKey = deriveKey(rawKey);
       if (!derivedKey) throw new Error("无法从 EKey 生成解密密钥");
       cipher = createCipherFromDerivedKey(derivedKey);
     }
 
-    // Sniff the audio format from the first 16 decrypted bytes.
-    var preview = new Uint8Array(Math.min(16, audioData.length));
-    preview.set(audioData.subarray(0, preview.length));
-    cipher.decrypt(preview, 0);
-    var ext = sniffAudio(preview.buffer);
-    if (!ext) {
+    // Sniff the audio format from the first 16 decrypted bytes.  When the
+    // primary cipher (length-threshold-based selection on the derived key)
+    // doesn't produce a recognisable header, try a small set of fallbacks
+    // — the QQ Music API has been observed returning EKeys in shapes that
+    // either skip the TEA envelope (raw bytes ARE the cipher key) or sit
+    // exactly on the wrong side of the 300-byte Map↔RC4 threshold for the
+    // file's actual encoder.  Picking up to four candidates makes the
+    // pipeline robust against those variants without harming files we
+    // already decrypt correctly: the first candidate that yields a known
+    // audio magic wins, and we commit to that key+cipher for the full
+    // decrypt below.
+    function trySniff(candKey, candKind) {
+      var c = createCipherOfKind(candKind, candKey);
+      if (!c) return null;
+      var p = new Uint8Array(Math.min(16, audioData.length));
+      p.set(audioData.subarray(0, p.length));
+      c.decrypt(p, 0);
+      var e = sniffAudio(p.buffer);
+      return e ? { ext: e, key: candKey, kind: candKind, preview: p } : null;
+    }
+
+    var encryptedPreviewHex = bytesToHex(audioData.subarray(0, Math.min(16, audioData.length)));
+    var matched = null;
+    var attempts = [];
+    if (tail.format === "v1-static") {
+      // No key — just sniff what the primary StaticCipher produced.
+      var p0 = new Uint8Array(Math.min(16, audioData.length));
+      p0.set(audioData.subarray(0, p0.length));
+      cipher.decrypt(p0, 0);
+      var ext0 = sniffAudio(p0.buffer);
+      if (ext0) matched = { ext: ext0, key: null, kind: "static", preview: p0 };
+    } else {
+      var primaryKind = derivedKey.length > 300 ? "RC4" : "Map";
+      attempts.push({ key: derivedKey, kind: primaryKind, label: "derived/" + primaryKind });
+      attempts.push({ key: derivedKey, kind: primaryKind === "RC4" ? "Map" : "RC4", label: "derived/" + (primaryKind === "RC4" ? "Map" : "RC4") });
+      if (rawKey && rawKey.length !== derivedKey.length) {
+        var rawKind = rawKey.length > 300 ? "RC4" : "Map";
+        attempts.push({ key: rawKey, kind: rawKind, label: "raw/" + rawKind });
+        attempts.push({ key: rawKey, kind: rawKind === "RC4" ? "Map" : "RC4", label: "raw/" + (rawKind === "RC4" ? "Map" : "RC4") });
+      }
+      // Newer QQ Music encrypted formats wrap the cipher key with an EXTRA
+      // base64 layer inside the TEA envelope.  After deriveKey()'s TEA stage,
+      // the result is still a base64-encoded string of the real cipher key —
+      // we have to base64-decode it once more to get binary key bytes.  Only
+      // attempt this when the entire derived key is composed of base64
+      // alphabet characters (so we don't corrupt classic files whose derived
+      // key is genuinely random binary).
+      var derivedDecoded = decodeBase64IfAscii(derivedKey);
+      if (derivedDecoded && derivedDecoded.length >= 16) {
+        var dKind = derivedDecoded.length > 300 ? "RC4" : "Map";
+        attempts.push({ key: derivedDecoded, kind: dKind, label: "derived64/" + dKind });
+        attempts.push({ key: derivedDecoded, kind: dKind === "RC4" ? "Map" : "RC4", label: "derived64/" + (dKind === "RC4" ? "Map" : "RC4") });
+      }
+      // Likewise but base64-decoding only the TEA-decrypted body (skip the
+      // 8-byte salt / IV that deriveKey passes through unchanged), in case
+      // the new format keeps the binary IV out of the base64 layer.
+      if (derivedKey.length > 8) {
+        var bodyDecoded = decodeBase64IfAscii(derivedKey.subarray(8));
+        if (bodyDecoded && bodyDecoded.length >= 16) {
+          var bKind = bodyDecoded.length > 300 ? "RC4" : "Map";
+          attempts.push({ key: bodyDecoded, kind: bKind, label: "derivedBody64/" + bKind });
+          attempts.push({ key: bodyDecoded, kind: bKind === "RC4" ? "Map" : "RC4", label: "derivedBody64/" + (bKind === "RC4" ? "Map" : "RC4") });
+        }
+      }
+      for (var ai = 0; ai < attempts.length; ai++) {
+        var hit = trySniff(attempts[ai].key, attempts[ai].kind);
+        if (hit) { hit.label = attempts[ai].label; matched = hit; break; }
+      }
+    }
+
+    if (!matched) {
       if (tail.format === "v1-static") {
         throw new Error("文件可能不是 QQ 音乐 QMCv1 静态密钥格式，或文件已损坏");
       }
-      throw new Error("密钥解密后的文件头仍不是有效音频，请确认 QQ 音乐账号拥有该歌曲权限");
+      // Diagnostic: include enough context for the failure to be debugged
+      // remotely.  Real-world failures here usually mean either the ekey is
+      // for a different track / quality, or the cipher pipeline produced the
+      // wrong derived key.  We log to console.warn (always visible in F12)
+      // and embed key sizes / hexes in the error message that the UI shows.
+      var rawKeyLen = rawKey ? rawKey.length : 0;
+      var derivedLen = derivedKey ? derivedKey.length : 0;
+      var ekeyKind = "?";
+      var ekeyHead = "";
+      if (typeof externalEKey === "string") {
+        ekeyKind = externalEKey.indexOf(ENCV2_PREFIX_STR) === 0 ? "EncV2" : "plain";
+        ekeyHead = externalEKey.substr(0, 32);
+      } else if (tail.ekey) {
+        ekeyKind = String(tail.ekey).indexOf(ENCV2_PREFIX_STR) === 0 ? "EncV2(tail)" : "plain(tail)";
+        ekeyHead = String(tail.ekey).substr(0, 32);
+      }
+      var rawHead = rawKey ? bytesToHex(rawKey.subarray(0, Math.min(32, rawKey.length))) : "";
+      var derivedHead = derivedKey ? bytesToHex(derivedKey.subarray(0, Math.min(32, derivedKey.length))) : "";
+      // Show the head of every cipher candidate's decrypted preview so we
+      // can see at a glance whether ANY of them got close to a magic.
+      var triedHeads = "";
+      for (var ti = 0; ti < attempts.length; ti++) {
+        var c2 = createCipherOfKind(attempts[ti].kind, attempts[ti].key);
+        var p2 = new Uint8Array(Math.min(16, audioData.length));
+        p2.set(audioData.subarray(0, p2.length));
+        if (c2) c2.decrypt(p2, 0);
+        triedHeads += " " + attempts[ti].label + "=" + bytesToHex(p2);
+      }
+      var diag = "format=" + tail.format + " ekeyType=" + ekeyKind +
+        " rawKey=" + rawKeyLen + "b derived=" + derivedLen + "b" +
+        " encHead=" + encryptedPreviewHex +
+        " ekeyHead=" + ekeyHead +
+        " rawHead=" + rawHead +
+        " derHead=" + derivedHead +
+        " tries=[" + triedHeads.trim() + "]";
+      try {
+        if (typeof console !== "undefined" && console.warn) {
+          console.warn("[qq-decrypt] sniff failed:", diag);
+          // Verbose dump for offline debugging — full ekey, full rawKey hex,
+          // full derivedKey hex, encrypted file head hex.  Per-song ekey is
+          // safe to share publicly: it isn't a credential and is bound to a
+          // single track.
+          var fullEnc = bytesToHex(audioData.subarray(0, Math.min(64, audioData.length)));
+          var fullRaw = rawKey ? bytesToHex(rawKey) : "";
+          var fullDer = derivedKey ? bytesToHex(derivedKey) : "";
+          var fullEkey = "";
+          if (typeof externalEKey === "string") fullEkey = externalEKey;
+          else if (tail.ekey) fullEkey = String(tail.ekey);
+          console.warn("[qq-decrypt] full ekey:", fullEkey);
+          console.warn("[qq-decrypt] full rawKey hex:", fullRaw);
+          console.warn("[qq-decrypt] full derivedKey hex:", fullDer);
+          console.warn("[qq-decrypt] file head 64 bytes hex:", fullEnc);
+        }
+      } catch (_e) {}
+      throw new Error("密钥解密后的文件头仍不是有效音频，请确认 QQ 音乐账号拥有该歌曲权限。诊断: " + diag);
+    }
+    var ext = matched.ext;
+    // Adopt the matched key/kind for the full decrypt below.
+    if (tail.format !== "v1-static") {
+      derivedKey = matched.key;
     }
 
-    // Full decrypt with a fresh cipher (RC4 needs a clean state).
-    decryptInChunks(audioData, freshCipher(tail.format, derivedKey || new Uint8Array()));
+    // Full decrypt with a fresh cipher (RC4 needs a clean state).  Pass the
+    // matched cipher kind explicitly so RC4↔Map fallbacks survive the
+    // preview→full-decrypt boundary.
+    decryptInChunks(audioData, freshCipher(tail.format, derivedKey || new Uint8Array(), matched.kind));
 
     // Best-effort embedded cover extraction.
     var embedded = extractEmbeddedCover(audioData.buffer, ext);
@@ -766,10 +964,83 @@
     };
   }
 
+  // ---- WASM fallback (unlock-music libparakeet) ---------------------------
+  //
+  // Some QQ Music files use a cipher we don't fully cover with the native
+  // pipeline above (the format keeps evolving server-side).  As a safety net,
+  // optionally route through the upstream Rust→WASM library that's loaded as
+  // window.ClaudeOneQQWasm by libs/qmcwasm/qmcwasm.js.  We only fall back
+  // when our native pipeline fails so:
+  //   - normal files don't pay the wasm load/init cost on success
+  //   - the QQ Music stack remains usable even if the wasm script is absent
+  //
+  // Returns the same result shape as decryptAudioFile so callers can drop it
+  // in.  Throws if the wasm itself can't decrypt either (e.g. ekey simply
+  // doesn't match the file).
+  function decryptViaWasm(arrayBuffer, externalEKey) {
+    var W = (typeof root !== "undefined" && root.ClaudeOneQQWasm) ||
+            (typeof window !== "undefined" && window.ClaudeOneQQWasm) ||
+            null;
+    if (!W || !W.QMC2) {
+      return Promise.reject(new Error("WASM 解密引擎未加载"));
+    }
+    return Promise.resolve(W.ready).then(function () {
+      var data = new Uint8Array(arrayBuffer);
+      var fileSize = data.length;
+      // libparakeet's QMCFooter.parse only needs the trailing portion of the
+      // file — the last 1024 bytes covers every musicex/qtag/stag variant.
+      var footerScan = data.subarray(Math.max(0, fileSize - 1024));
+      var footer = W.QMCFooter.parse(footerScan);
+      if (!footer) throw new Error("WASM 无法识别此 QQ 音乐文件尾部");
+      var audioSize = fileSize - footer.size;
+      if (audioSize <= 0) throw new Error("WASM 解析的音频长度异常");
+
+      // Pick whichever ekey we actually have.  An embedded ekey wins because
+      // it's per-file; otherwise use the one the caller (music.js) fetched
+      // from the server.
+      var ekey = (footer.ekey && footer.ekey.length > 0) ? footer.ekey :
+                 (typeof externalEKey === "string" ? externalEKey : "");
+      if (!ekey) throw new Error("WASM 解密缺少 EKey");
+
+      var audioData = new Uint8Array(audioSize);
+      audioData.set(data.subarray(0, audioSize));
+
+      var cipher = new W.QMC2(ekey);
+      // Decrypt in-place in 64 KiB chunks; the wasm side mutates the buffer
+      // we hand it directly so this avoids large intermediate allocations.
+      var CHUNK = 64 * 1024;
+      for (var off = 0; off < audioSize; off += CHUNK) {
+        var end = Math.min(off + CHUNK, audioSize);
+        var view = audioData.subarray(off, end);
+        cipher.decrypt(view, off);
+      }
+      try { cipher.free(); } catch (_e) { /* best effort */ }
+
+      var ext = sniffAudio(audioData.buffer);
+      if (!ext) throw new Error("WASM 解密后的文件头仍不是有效音频，请确认账号拥有该歌曲权限");
+
+      var embedded = extractEmbeddedCover(audioData.buffer, ext);
+      // Use the wasm-parsed mediaName when available — it's more reliable
+      // than our native parser's offset-based filename extraction for newer
+      // tail layouts.
+      var filename = (footer.mediaName && footer.mediaName.length > 0) ? footer.mediaName : "";
+      return {
+        audio: audioData.buffer,
+        ext: ext,
+        songMid: "",
+        filename: filename,
+        picture: embedded ? embedded.picture : null,
+        pictureMime: embedded ? embedded.pictureMime : "",
+        format: "musicex-wasm",
+      };
+    });
+  }
+
   // ---- Export --------------------------------------------------------------
 
   root.ClaudeOneQQDecrypt = {
     decrypt: decryptAudioFile,
+    decryptViaWasm: decryptViaWasm,
     parseFileTail: parseFileTail,
     extractEmbeddedCover: extractEmbeddedCover,
   };

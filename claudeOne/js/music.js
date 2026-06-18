@@ -383,45 +383,75 @@
       }
 
       var result;
+      var resolvedEkey = "";  // captured for the WASM fallback below
       try {
         // tail.ekey is non-empty only for legacy QTag/STag files.
-        result = window.ClaudeOneQQDecrypt.decrypt(arrayBuffer, tail.ekey || "");
+        resolvedEkey = tail.ekey || "";
+        result = window.ClaudeOneQQDecrypt.decrypt(arrayBuffer, resolvedEkey);
       } catch (decryptError) {
         // musicex files (tail.ekey == null) need a server-provided EKey.
         // Re-throw only if the file already had an embedded EKey but still failed
         // (e.g. invalid key / no playback permission) — we cannot help further.
-        if (tail.ekey) throw decryptError;
-        if (!tail.songMid) throw decryptError;
-
-        var authSessionId = getAuthSessionId();
-        if (!authSessionId) {
-          setAuthStatus("新版 QQ musicex 文件需要导入 Cookie 才能获取 EKey。", "err");
-          throw new Error("需要先导入 QQ 音乐 Cookie 才能解锁此文件");
-        }
-
-        // Fetch ekey from server
-        var ekeyResponse = await fetch(API_BASE + "/api/music/ekey", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            authSessionId: authSessionId,
-            songMid: tail.songMid,
-            filename: tail.filename || "",
-          }),
-        });
-        var ekeyPayload = await ekeyResponse.json();
-        if (!ekeyResponse.ok || !ekeyPayload.success) {
-          var errMsg = ekeyPayload.error || "获取 EKey 失败";
-          if (ekeyPayload.code === "QQ_LOGIN_REQUIRED") {
-            setAuthStatus("Cookie 已过期，请重新导入。", "err");
-          } else if (ekeyPayload.code === "QQ_VIP_REQUIRED") {
-            setAuthStatus(errMsg, "err");
+        var nativeFailed = decryptError;
+        if (!tail.ekey && tail.songMid) {
+          var authSessionId = getAuthSessionId();
+          if (!authSessionId) {
+            setAuthStatus("新版 QQ musicex 文件需要导入 Cookie 才能获取 EKey。", "err");
+            throw new Error("需要先导入 QQ 音乐 Cookie 才能解锁此文件");
           }
-          throw new Error(errMsg);
+
+          // Fetch ekey from server
+          var ekeyResponse = await fetch(API_BASE + "/api/music/ekey", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              authSessionId: authSessionId,
+              songMid: tail.songMid,
+              filename: tail.filename || "",
+            }),
+          });
+          var ekeyPayload = await ekeyResponse.json();
+          if (!ekeyResponse.ok || !ekeyPayload.success) {
+            var errMsg = ekeyPayload.error || "获取 EKey 失败";
+            if (ekeyPayload.code === "QQ_LOGIN_REQUIRED") {
+              setAuthStatus("Cookie 已过期，请重新导入。", "err");
+            } else if (ekeyPayload.code === "QQ_VIP_REQUIRED") {
+              setAuthStatus(errMsg, "err");
+            }
+            throw new Error(errMsg);
+          }
+
+          // Decrypt with ekey
+          resolvedEkey = ekeyPayload.ekey;
+          try {
+            result = window.ClaudeOneQQDecrypt.decrypt(arrayBuffer, resolvedEkey);
+          } catch (e2) {
+            nativeFailed = e2;  // capture for the WASM fallback
+            result = null;
+          }
         }
 
-        // Decrypt with ekey
-        result = window.ClaudeOneQQDecrypt.decrypt(arrayBuffer, ekeyPayload.ekey);
+        // If our native pipeline still couldn't decrypt, try the upstream
+        // unlock-music WASM (libparakeet) — it covers cipher revisions our
+        // native QMC2 implementation doesn't yet handle.  This requires
+        // libs/qmcwasm/qmcwasm.js to have been loaded by music.html.
+        if (!result) {
+          if (!window.ClaudeOneQQDecrypt || typeof window.ClaudeOneQQDecrypt.decryptViaWasm !== "function") {
+            throw nativeFailed;
+          }
+          try {
+            result = await window.ClaudeOneQQDecrypt.decryptViaWasm(arrayBuffer, resolvedEkey);
+          } catch (wasmErr) {
+            // Surface the more specific of the two failures.  If the wasm
+            // path also failed with the same generic "header not audio" the
+            // native path emits, prefer the native error since it carries
+            // the diagnostic dump; otherwise show the wasm-specific message
+            // since it usually means "ekey doesn't match this file".
+            var msg = String(wasmErr && wasmErr.message || wasmErr);
+            var nMsg = String(nativeFailed && nativeFailed.message || nativeFailed);
+            throw new Error(nMsg + " | WASM 兜底也失败: " + msg);
+          }
+        }
       }
 
       // 4. Fetch metadata from server
@@ -488,10 +518,79 @@
     } catch (error) {
       entry = fileResults.get(id);
       if (!entry) return;
+      var f = friendlyDecryptError(error, file.name);
       entry.status = "error";
-      entry.error = error.message || "QQ 音乐解锁失败";
+      entry.error = f.short;
+      entry.errorAdvice = f.advice;
+      // Pop a toast once with the full advice so the user sees it even
+      // without hovering the card.  Subsequent identical failures stay quiet
+      // (the per-card title attribute keeps the message reachable).
+      if (CS && CS.toast && f.advice) CS.toast(f.advice, "err", 6000);
+      // Keep the original technical diagnostic in console for offline debug.
+      try { console.warn("[music] QQ unlock raw error for " + file.name + ":", error && error.message); } catch (_e) {}
     }
     refreshEntry(id);
+  }
+
+  // Translate raw decrypt errors into a (short label, full advice) pair.
+  // Decrypt failures all look the same in code regardless of cause, but for
+  // users the distinction matters: only "ekey doesn't match this file" has a
+  // user-actionable fix (re-download with the currently logged-in account).
+  function friendlyDecryptError(error, fileName) {
+    var raw = String(error && error.message || error || "QQ 音乐解锁失败");
+
+    // Decryption ran but produced garbage.  This is almost always an ekey/file
+    // mismatch — the file was encrypted with a different account's per-user
+    // master key than the one we just looked up via the server.
+    if (raw.indexOf("不是有效音频") >= 0 || raw.indexOf("WASM 兜底也失败") >= 0) {
+      return {
+        short: "密钥与文件不匹配，建议用当前账号重新下载这首歌",
+        advice: "解密失败：拿到的密钥跟这个文件对不上。常见原因是这份 .mflac/.mgg 是用另一个 QQ 账号或另一台设备下载的，密钥跟当前已登录的账号不匹配。或者当前加密格式过旧无法解密" +
+                " 建议：在 QQ 音乐 客户端 重新下载这首歌（变成新加密格式），" +
+                "再把刚下载的文件拖进来即可解锁。如果重下后仍然报这条错，请确认这个账号在 y.qq.com 上能在线播放这首歌。",
+      };
+    }
+
+    // No Cookie imported.
+    if (raw.indexOf("Cookie") >= 0 && raw.indexOf("导入") >= 0) {
+      return {
+        short: "需要先在上方导入 QQ 音乐 Cookie",
+        advice: "新版 .mflac / .mgg 文件需要先在上方导入 Cookie，才能用你的账号去服务器换解密密钥。" +
+                "在 y.qq.com 登录后，按 F12 打开控制台，输入 document.cookie，复制整串内容粘到上面的输入框即可。",
+      };
+    }
+
+    // Cookie expired or rejected.
+    if (raw.indexOf("登录") >= 0 || raw.indexOf("会话") >= 0 || raw.indexOf("过期") >= 0) {
+      return {
+        short: "Cookie 已过期，请重新导入",
+        advice: "QQ 音乐登录态已失效。请退出登录后重新粘贴 y.qq.com 的 document.cookie。",
+      };
+    }
+
+    // VIP / no rights.
+    if (raw.indexOf("VIP") >= 0 || raw.indexOf("权限") >= 0 || raw.indexOf("没有返回") >= 0) {
+      return {
+        short: "账号没有这首歌的下载权限",
+        advice: "QQ 音乐没有给当前账号返回这首歌的解密密钥。常见原因：账号没有这首歌的 VIP / 下载权限；或这首歌已下架 / 在你这个地区受限。" +
+                " 建议先在 y.qq.com 用同一个账号确认这首歌能正常播放，再回来重试。",
+      };
+    }
+
+    // Unrecognised format / corrupted file.
+    if (raw.indexOf("无法识别") >= 0 || raw.indexOf("尾部") >= 0 || raw.indexOf("截断") >= 0) {
+      return {
+        short: "文件格式无效或下载不完整",
+        advice: "文件格式无法识别，可能不是 QQ 音乐加密文件，或下载过程中被截断。请重新下载完整的 .mflac / .mgg 文件。",
+      };
+    }
+
+    // Fallback — keep the raw message but trim the very long diagnostic dump
+    // so the card stays readable.
+    var shortened = raw;
+    var diagAt = shortened.indexOf("诊断:");
+    if (diagAt > 0) shortened = shortened.substring(0, diagAt).trim();
+    return { short: shortened || "QQ 音乐解锁失败", advice: shortened };
   }
 
   // --- DOM rendering (only when mounted) -------------------------------------
@@ -521,10 +620,20 @@
       actionsHTML = '<button class="file-card__action file-card__action--delete" data-action="delete" title="移除">&#10005;</button>';
     }
 
+    // For error rows, surface the FULL friendly advice via the artist row's
+    // title attribute so users can hover to read it.  Also tag the meta and
+    // artist nodes with data-error so the CSS can let the text wrap and the
+    // card grow tall enough to show two or three lines instead of clipping
+    // the message to "解密后的内容不是有效音频..." with an ellipsis.
+    var artistAttr = "";
+    if (entry.status === "error" && entry.errorAdvice) {
+      artistAttr = ' title="' + CS.escapeHtml(entry.errorAdvice) + '" data-error="true"';
+    }
+
     return '<div class="file-card__cover">' + coverHTML + '</div>' +
-      '<div class="file-card__meta">' +
+      '<div class="file-card__meta"' + (entry.status === "error" ? ' data-error="true"' : '') + '>' +
         '<div class="file-card__title">' + CS.escapeHtml(title) + '</div>' +
-        '<div class="file-card__artist">' + CS.escapeHtml(artist) + '</div>' +
+        '<div class="file-card__artist"' + artistAttr + '>' + CS.escapeHtml(artist) + '</div>' +
         '<div class="file-card__album">' + CS.escapeHtml(album) + '</div>' +
       '</div>' +
       '<span class="file-card__status" data-status="' + statusClass + '">' + statusText + '</span>' +

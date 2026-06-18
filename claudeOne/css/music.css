@@ -591,6 +591,28 @@ body[data-theme="liquid-glass"] .music-auth__logout-btn {
   text-overflow: ellipsis;
 }
 
+/* Error rows show a translated, multi-clause message that's longer than the
+ * usual artist/album text.  Allow it to wrap onto a second line so the user
+ * gets the actionable hint ("用当前账号重新下载这首歌") even on narrow cards.
+ * The full advice lives in title= and is reachable via hover. */
+.file-card__meta[data-error="true"] {
+  /* Stop the meta column from forcing single-line layout on its children. */
+  min-width: 0;
+}
+.file-card__artist[data-error="true"] {
+  white-space: normal;
+  text-overflow: clip;
+  /* Allow up to two visual lines so most messages fit fully; longer text
+   * still ellipses cleanly. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  cursor: help;
+  color: var(--err, #c0392b);
+}
+
 .file-card__album {
   font-size: 0.78rem;
   color: var(--ink-muted);

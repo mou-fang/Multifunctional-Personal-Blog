@@ -196,29 +196,67 @@ function buildEkeyAttempts(meta, auth) {
   const hasAuthUin = authUin && authUin !== "0";
   const attempts = [];
 
-  function push(name, module, method, uin, guid = createQQGuid()) {
+  function push(name, module, method, uin, opts = {}) {
     attempts.push({
       name,
       module,
       method,
       uin: String(uin || "0"),
       commUin: Number(uin) || 0,
-      guid,
+      guid: opts.guid || createQQGuid(),
       filenames,
+      // EVkey-specific fields. When `evkey: true`, buildEkeyPayload uses the
+      // GetEVkey parameter shape (musicfile + checklimit + ctx + scene +
+      // referer + nettype + songtype:1) instead of the GetVkey shape.
+      evkey: !!opts.evkey,
+      songtype: opts.songtype != null ? opts.songtype : 0,
     });
   }
 
+  // GetEVkey is the dedicated endpoint for VIP-encrypted .mflac/.mgg media.
+  // QQ Music's vkey.GetVkeyServer/CgiGetVkey path returns a non-empty ekey
+  // only for some accounts; GetEVkey works more reliably and is what we put
+  // first.  songtype must be 1 here (per the official RPC schema).
+  if (hasAuthUin) push("CgiGetEVkey/auth", "music.vkey.GetEVkey", "CgiGetEVkey", authUin, { evkey: true, songtype: 1 });
+  push("CgiGetEVkey/zero", "music.vkey.GetEVkey", "CgiGetEVkey", "0", { evkey: true, songtype: 1 });
+
+  // Legacy GetVkey path (still works for some songs).
   if (hasAuthUin) push("CgiGetVkey/auth-random", "vkey.GetVkeyServer", "CgiGetVkey", authUin);
   push("CgiGetVkey/zero-random", "vkey.GetVkeyServer", "CgiGetVkey", "0");
   push("UrlGetVkey/zero-random", "music.vkey.GetVkey", "UrlGetVkey", "0");
   if (hasAuthUin) push("UrlGetVkey/auth-random", "music.vkey.GetVkey", "UrlGetVkey", authUin);
-  if (hasAuthUin) push("CgiGetVkey/auth-fixed", "vkey.GetVkeyServer", "CgiGetVkey", authUin, "10000");
+  if (hasAuthUin) push("CgiGetVkey/auth-fixed", "vkey.GetVkeyServer", "CgiGetVkey", authUin, { guid: "10000" });
 
   return attempts;
 }
 
 function buildEkeyPayload(attempt, songMid) {
   const songmids = attempt.filenames.map(() => songMid);
+  const songtypes = songmids.map(() => attempt.songtype || 0);
+  const param = attempt.evkey ? {
+    // GetEVkey/CgiGetEVkey shape (per qmpc-rpc reference).
+    checklimit: 0,
+    ctx: 1,
+    downloadfrom: 0,
+    filename: attempt.filenames,
+    guid: attempt.guid,
+    musicfile: attempt.filenames,
+    nettype: "",
+    referer: "y.qq.com",
+    scene: 0,
+    songmid: songmids,
+    songtype: songtypes,
+    uin: attempt.uin,
+  } : {
+    // Legacy GetVkey/CgiGetVkey shape.
+    filename: attempt.filenames,
+    guid: attempt.guid,
+    songmid: songmids,
+    songtype: songtypes,
+    uin: attempt.uin,
+    loginflag: 1,
+    platform: "20",
+  };
   return {
     comm: {
       cv: 4747474, ct: 24, format: "json", inCharset: "utf-8", outCharset: "utf-8",
@@ -228,15 +266,7 @@ function buildEkeyPayload(attempt, songMid) {
     req_1: {
       module: attempt.module,
       method: attempt.method,
-      param: {
-        filename: attempt.filenames,
-        guid: attempt.guid,
-        songmid: songmids,
-        songtype: songmids.map(() => 0),
-        uin: attempt.uin,
-        loginflag: 1,
-        platform: "20",
-      },
+      param,
     },
   };
 }
