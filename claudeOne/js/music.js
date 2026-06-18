@@ -20,7 +20,16 @@
     ".mflac", ".mgg", ".tkm", ".bkcmp3", ".bkcflac",
     ".tm0", ".tm2", ".tm3", ".tm6",
   ]);
-  const QQ_MUSIC_EXTS = new Set([".mflac", ".mgg"]);
+  // All QQ Music encrypted formats route through decryptQQMusicFrontend, which
+  // delegates to qq-music-decrypt.js. That module's parseFileTail handles all
+  // three tail formats (musicex / QTag / STag) so a single code path covers
+  // both new (.mflac/.mgg) and legacy (.qmc*/.tkm/.bkc*/.tm*) extensions.
+  const QQ_MUSIC_EXTS = new Set([
+    ".mflac", ".mgg",
+    ".qmc0", ".qmc2", ".qmc3", ".qmcflac", ".qmcogg",
+    ".tkm", ".bkcmp3", ".bkcflac",
+    ".tm0", ".tm2", ".tm3", ".tm6",
+  ]);
   const FRONTEND_UNLOCK_EXTS = new Set([".ncm"]);
   const API_BASE = CFG && CFG.api ? String(CFG.api.baseUrl || "").replace(/\/$/, "") : "";
   const AUTH_STORAGE_KEY = "claudeOne:music-qq-auth-session";
