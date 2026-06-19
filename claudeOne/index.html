@@ -925,10 +925,10 @@
   <template id="page-minesweeper">
     <section class="minesweeper-hero page-chunk" data-reveal-order="2">
       <div>
-        <span class="pill pill--accent">Minesweeper</span>
-        <h1>扫雷</h1>
+        <span class="pill pill--accent">Gravity</span>
+        <h1>重力扫雷</h1>
         <p>
-          调整棋盘大小和炸弹数量，第一下必定安全。提示会像解谜游戏一样逐层展开：先给方向，再给坐标，最后直接告诉你该点哪里。
+          经典扫雷加上一条规则——翻开 0 格变成虚空，上方未翻开格沿列垂直下落填补；数字格与插旗格成为平台钉住下落，而数字会按当前邻居实时重算。利用下落让数字变化，反推未知格里的雷分布，是这一版独有的策略层。
         </p>
       </div>
       <div class="mine-timer" aria-label="计时">
@@ -952,7 +952,7 @@
         </header>
 
         <div class="mine-board-wrap">
-          <div class="mine-board" data-mine-board aria-label="扫雷棋盘" tabindex="0"></div>
+          <div class="mine-board" data-mine-board aria-label="重力扫雷棋盘" tabindex="0"></div>
           <div class="mine-result" data-mine-result hidden>
             <div class="mine-result__card">
               <span class="section-kicker" data-mine-result-kicker>Result</span>
@@ -967,12 +967,30 @@
         </div>
 
         <div class="mine-actions">
-          <button class="btn btn-primary" data-mine-hint type="button">提示</button>
-          <button class="btn btn-ghost" data-mine-new type="button">新开一局</button>
-          <button class="btn btn-ghost" data-mine-reveal-answer type="button">直接给答案</button>
+          <button class="mine-action mine-action--hint" data-mine-hint type="button">
+            <span class="mine-action__icon" aria-hidden="true">💡</span>
+            <span class="mine-action__body">
+              <span class="mine-action__label">提示</span>
+              <span class="mine-action__sub">越点越具体</span>
+            </span>
+          </button>
+          <button class="mine-action mine-action--new" data-mine-new type="button">
+            <span class="mine-action__icon" aria-hidden="true">↻</span>
+            <span class="mine-action__body">
+              <span class="mine-action__label">新开一局</span>
+              <span class="mine-action__sub">重置棋盘与计时</span>
+            </span>
+          </button>
+          <button class="mine-action mine-action--reveal" data-mine-reveal-answer type="button">
+            <span class="mine-action__icon" aria-hidden="true">⚡</span>
+            <span class="mine-action__body">
+              <span class="mine-action__label">直接给答案</span>
+              <span class="mine-action__sub">跳过推理</span>
+            </span>
+          </button>
         </div>
         <div class="mine-status" data-mine-status>
-          左键翻开格子，右键或长按标旗。第一下不会踩雷。
+          左键翻开格子，右键或长按标旗。第一下不会踩雷。翻开 0 格会让上方下落。
         </div>
       </div>
 
@@ -1011,11 +1029,20 @@
           <span class="section-kicker">Rules</span>
           <h2>规则简述</h2>
           <ul class="mine-rules">
-            <li>数字表示周围 8 格里有多少颗雷。</li>
-            <li>确定是雷的格子可以标旗，标旗后不会被误翻开。</li>
-            <li>翻开所有非雷格子即胜利；踩到炸弹即失败。</li>
-            <li>提示按次数逐渐变清晰，最后会给出明确操作。</li>
+            <li><strong>虚空</strong>：翻开周围 0 颗雷的格子后，该位置变透明，整列上方的未翻开格会下落。</li>
+            <li><strong>平台</strong>：带数字的已翻开格、以及插旗格会钉在原位，但<em>不阻挡</em>下落——未翻开格"穿过"平台落到列底。</li>
+            <li><strong>下落</strong>：每次操作后，未翻开格沿同一列垂直降落，落到最底部的空位。</li>
+            <li><strong>实时数字 + 链式消解</strong>：所有平台的数字按当前 8 邻居重算（红光升 / 绿光降）；任何重算后变 0 的平台会立刻溶解为新虚空，引发再一轮下落，连锁直到棋盘稳定。</li>
+            <li><strong>胜负</strong>：翻开所有非雷格即胜利；点到雷即失败。雷会跟着格子一起下落，但身份不变。</li>
           </ul>
+        </section>
+
+        <section class="card mine-panel">
+          <span class="section-kicker">Tip</span>
+          <h2>小贴士</h2>
+          <p class="mine-rules" style="margin: 0;">
+            想知道某列藏了几颗雷？故意翻开它下方的 0 区，让这一列整体下落穿过你已有的数字平台——平台数字的红绿闪烁会告诉你恰好滑过几颗雷。错误地标旗会"凭空"创造一个平台，扭曲整张棋盘的下落，谨慎使用。
+          </p>
         </section>
 
         <section class="card mine-panel">
@@ -1971,6 +1998,196 @@
           </section>
         </aside>
       </section>
+  </template>
+
+  <template id="page-snake">
+    <section class="snake-hero page-chunk" data-reveal-order="2">
+      <div>
+        <span class="pill pill--accent">Arcade</span>
+        <h1>贪吃蛇 · 竞技场</h1>
+        <p>
+          大战场多人混战！操控你的蛇吃掉食物成长，收集能力道具获得优势。
+          3 个 AI 对手会跟你抢食物、抢道具，还会围堵你。地图上有障碍物，小心撞墙。
+          收集 10 种能力道具：时停、掠食、护盾、加速、减速、磁铁、炸弹、幽灵、双倍分数、混乱。
+        </p>
+      </div>
+      <div class="snake-scoreboard" aria-label="计分板">
+        <div class="snake-scoreboard__row">
+          <span class="snake-scoreboard__label">SCORE</span>
+          <strong data-snake-score>0</strong>
+        </div>
+        <div class="snake-scoreboard__row">
+          <span class="snake-scoreboard__label">LENGTH</span>
+          <strong data-snake-length>3</strong>
+        </div>
+        <div class="snake-scoreboard__row">
+          <span class="snake-scoreboard__label">KILLS</span>
+          <strong data-snake-kills>0</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="snake-layout page-chunk" data-reveal-order="3">
+      <div class="snake-stage card">
+        <header class="snake-hud">
+          <div>
+            <span class="card-eyebrow" data-snake-mode>经典模式</span>
+            <h2 data-snake-title>40 × 30 · 3 AI 对手</h2>
+          </div>
+          <div class="snake-stats">
+            <span><strong data-snake-ai-alive>3</strong> AI 存活</span>
+            <span><strong data-snake-food-count>0</strong> 食物</span>
+            <span data-snake-state>按方向键开始</span>
+          </div>
+        </header>
+
+        <div class="snake-canvas-wrap">
+          <canvas class="snake-canvas" data-snake-canvas aria-label="贪吃蛇游戏画布" tabindex="0"></canvas>
+          <div class="snake-overlay" data-snake-overlay hidden>
+            <div class="snake-overlay__card">
+              <span class="section-kicker" data-snake-overlay-kicker>Game Over</span>
+              <h2 data-snake-overlay-title>游戏结束</h2>
+              <p data-snake-overlay-text></p>
+              <div class="modal-actions">
+                <button class="btn btn-primary" data-snake-restart type="button">再来一局</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="snake-active-buffs" data-snake-buffs>
+          <!-- Active buffs appear here as pills -->
+        </div>
+
+        <div class="snake-actions">
+          <button class="snake-action snake-action--start" data-snake-new type="button">
+            <span class="snake-action__icon" aria-hidden="true">↻</span>
+            <span class="snake-action__body">
+              <span class="snake-action__label">新开一局</span>
+              <span class="snake-action__sub">重置棋盘</span>
+            </span>
+          </button>
+          <button class="snake-action snake-action--pause" data-snake-pause type="button">
+            <span class="snake-action__icon" aria-hidden="true">⏯</span>
+            <span class="snake-action__body">
+              <span class="snake-action__label">暂停</span>
+              <span class="snake-action__sub">Space 切换</span>
+            </span>
+          </button>
+          <div class="snake-speed" data-snake-speed-wrap>
+            <span class="snake-speed__label">倍速</span>
+            <div class="snake-speed__seg" data-snake-speed-group role="radiogroup" aria-label="游戏倍速">
+              <button class="snake-speed__btn" data-speed="0.5" type="button">0.5×</button>
+              <button class="snake-speed__btn" data-speed="0.75" type="button">0.75×</button>
+              <button class="snake-speed__btn snake-speed__btn--active" data-speed="1.0" type="button">1.0×</button>
+              <button class="snake-speed__btn" data-speed="1.25" type="button">1.25×</button>
+              <button class="snake-speed__btn" data-speed="1.5" type="button">1.5×</button>
+            </div>
+          </div>
+        </div>
+        <div class="snake-status" data-snake-status>
+          方向键 / WASD 控制移动。空格暂停。吃彩色圆点得分变长，收集 ⭐ 道具获得能力。AI 也会抢道具！
+        </div>
+      </div>
+
+      <aside class="snake-control">
+        <section class="card snake-panel">
+          <span class="section-kicker">Controls</span>
+          <h2>操作说明</h2>
+          <ul class="snake-rules">
+            <li><strong>↑↓←→ / WASD</strong>：控制蛇的移动方向</li>
+            <li><strong>空格</strong>：暂停 / 继续</li>
+            <li><strong>蛇头不能撞到</strong>：墙壁、障碍物、自己的身体、其他蛇的身体（除非有掠食者或护盾）</li>
+          </ul>
+        </section>
+
+        <section class="card snake-panel">
+          <span class="section-kicker">Power-ups</span>
+          <h2>10 种能力道具</h2>
+          <div class="snake-power-list" data-snake-power-list>
+            <div class="snake-power-item">
+              <span class="snake-power-item__icon">⏱️</span>
+              <div>
+                <strong>时停</strong>
+                <span>所有 AI 静止 5 秒</span>
+              </div>
+            </div>
+            <div class="snake-power-item">
+              <span class="snake-power-item__icon">⚔️</span>
+              <div>
+                <strong>掠食者</strong>
+                <span>触碰 AI 蛇即可杀死，持续 8 秒</span>
+              </div>
+            </div>
+            <div class="snake-power-item">
+              <span class="snake-power-item__icon">🛡️</span>
+              <div>
+                <strong>护盾</strong>
+                <span>无敌 10 秒，穿越一切</span>
+              </div>
+            </div>
+            <div class="snake-power-item">
+              <span class="snake-power-item__icon">💨</span>
+              <div>
+                <strong>加速</strong>
+                <span>自身速度翻倍，持续 6 秒</span>
+              </div>
+            </div>
+            <div class="snake-power-item">
+              <span class="snake-power-item__icon">🐌</span>
+              <div>
+                <strong>减速光环</strong>
+                <span>所有 AI 减速 50%，持续 8 秒</span>
+              </div>
+            </div>
+            <div class="snake-power-item">
+              <span class="snake-power-item__icon">🧲</span>
+              <div>
+                <strong>磁铁</strong>
+                <span>附近食物被吸向玩家，持续 10 秒</span>
+              </div>
+            </div>
+            <div class="snake-power-item">
+              <span class="snake-power-item__icon">💣</span>
+              <div>
+                <strong>炸弹</strong>
+                <span>清除全图障碍物并击晕 AI 3 秒</span>
+              </div>
+            </div>
+            <div class="snake-power-item">
+              <span class="snake-power-item__icon">👻</span>
+              <div>
+                <strong>幽灵</strong>
+                <span>穿越墙壁和障碍物，持续 7 秒</span>
+              </div>
+            </div>
+            <div class="snake-power-item">
+              <span class="snake-power-item__icon">✨</span>
+              <div>
+                <strong>双倍分数</strong>
+                <span>所有得分翻倍，持续 12 秒</span>
+              </div>
+            </div>
+            <div class="snake-power-item">
+              <span class="snake-power-item__icon">🌀</span>
+              <div>
+                <strong>混乱</strong>
+                <span>AI 方向随机反转，持续 6 秒</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card snake-panel">
+          <span class="section-kicker">AI</span>
+          <h2>AI 对手</h2>
+          <p class="snake-rules" style="margin:0">
+            3 个 AI 蛇会主动吃食物变长、抢走能力道具（自身不获得能力，但阻止玩家获取）。
+            AI 会避开障碍物和其他蛇的身体，有一定概率主动围堵玩家。
+          </p>
+        </section>
+      </aside>
+    </section>
   </template>
 
 </body>

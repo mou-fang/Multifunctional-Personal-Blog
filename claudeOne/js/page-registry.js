@@ -44,12 +44,20 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     lifecycle: "__page_sokoban"
   },
   minesweeper: {
-    title: "claudeOne · 扫雷",
-    description: "claudeOne 扫雷 — 可调棋盘、雷数、计时和渐进提示的经典扫雷",
+    title: "claudeOne · 重力扫雷",
+    description: "claudeOne 重力扫雷 — 翻开 0 格让上方下落、数字平台实时重算的扫雷重制",
     templateId: "page-minesweeper",
     css: ["css/minesweeper.css"],
     js: ["js/minesweeper.js"],
     lifecycle: "__page_minesweeper"
+  },
+  snake: {
+    title: "claudeOne · 贪吃蛇竞技场",
+    description: "claudeOne 贪吃蛇 — 大战场多人混战，10种能力道具，AI对手抢食围堵",
+    templateId: "page-snake",
+    css: ["css/snake.css"],
+    js: ["js/snake.js"],
+    lifecycle: "__page_snake"
   },
   lottery: {
     title: "claudeOne · 幸运抽奖",

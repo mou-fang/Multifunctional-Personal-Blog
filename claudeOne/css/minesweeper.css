@@ -102,8 +102,8 @@
   --mine-padding: 10px;
   --mine-cell: min(44px, calc((100cqw - (var(--mine-padding) * 2) - (var(--mine-gap) * (var(--mine-cols) - 1))) / var(--mine-cols)));
   display: grid;
-  grid-template-columns: repeat(var(--mine-cols), minmax(0, var(--mine-cell)));
-  grid-auto-rows: var(--mine-cell);
+  grid-template-columns: repeat(var(--mine-cols), var(--mine-cell));
+  grid-template-rows: repeat(var(--mine-rows), var(--mine-cell));
   gap: var(--mine-gap);
   width: fit-content;
   max-width: 100%;
@@ -118,7 +118,7 @@
 }
 
 .mine-cell {
-  position: relative;
+  /* 通过 grid-column / grid-row 由 JS 内联放置；FLIP 动画用 transform 实现下落效果。 */
   display: grid;
   place-items: center;
   min-width: 0;
@@ -136,9 +136,32 @@
   font-weight: 950;
   font-variant-numeric: tabular-nums;
   transition:
-    transform var(--dur) var(--ease-out),
+    transform 320ms cubic-bezier(.45, 0, .35, 1),
     box-shadow var(--dur) var(--ease-out),
-    background var(--dur) var(--ease-out);
+    background var(--dur) var(--ease-out),
+    opacity 200ms var(--ease-out);
+}
+
+/* FLIP 中的"立刻偏移"阶段：禁用 transform 过渡，瞬时回到旧位置 */
+.mine-cell.mine-cell--flip-prep {
+  transition:
+    box-shadow var(--dur) var(--ease-out),
+    background var(--dur) var(--ease-out),
+    opacity 200ms var(--ease-out);
+}
+
+.mine-cell--vanish {
+  opacity: 0;
+  transform: scale(0.6);
+  pointer-events: none;
+}
+
+.mine-cell[data-flash="up"] {
+  animation: gmineFlashUp 420ms var(--ease-out);
+}
+
+.mine-cell[data-flash="down"] {
+  animation: gmineFlashDown 420ms var(--ease-out);
 }
 
 .mine-cell:hover {
@@ -151,6 +174,15 @@
     inset 0 0 0 1px #c3cfdd,
     inset 0 2px 8px rgba(58, 75, 102, 0.10);
   transform: none;
+}
+
+/* 重力 0-平台：原本是数字格但因雷下落使邻居 0 颗雷，保留为空白平台 */
+.mine-cell[data-revealed="true"][data-number=""] {
+  background: #e6ecf3;
+  box-shadow:
+    inset 0 0 0 1px rgba(96, 116, 144, 0.32),
+    inset 0 2px 6px rgba(58, 75, 102, 0.08);
+  opacity: 0.78;
 }
 
 .mine-cell[data-flagged="true"] {
@@ -197,6 +229,259 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
+  align-items: stretch;
+}
+
+/* ===== 重力扫雷专属操作按钮 ===== *
+ * 三按钮（提示 / 新开一局 / 直接给答案）有自己的图标气泡 + 主副双行文字。
+ * 主体形状与基础律动在这里定义；neumorphism 与 liquid-glass 的视觉差异
+ * 在文件末尾的主题块里分别叠加。 */
+.mine-action {
+  position: relative;
+  isolation: isolate;
+  flex: 1 1 168px;
+  min-height: 60px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--ink);
+  background: var(--surface);
+  transition:
+    transform 220ms var(--ease-out),
+    box-shadow 220ms var(--ease-out),
+    background 220ms var(--ease-out),
+    filter 220ms var(--ease-out);
+  overflow: hidden;
+}
+
+.mine-action:hover {
+  transform: translateY(-2px);
+}
+
+.mine-action:active {
+  transform: translateY(1px) scale(0.985);
+  filter: brightness(0.97);
+}
+
+.mine-action[disabled],
+.mine-action[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.mine-action__icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1;
+  /* 每个变体单独覆盖 background / color / box-shadow */
+  background: var(--surface-sunken);
+  transition: transform 360ms var(--ease-out);
+}
+
+.mine-action:hover .mine-action__icon {
+  transform: rotate(-6deg) scale(1.04);
+}
+
+.mine-action__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.mine-action__label {
+  font-size: 0.95rem;
+  font-weight: 850;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mine-action__sub {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ----- 提示：暖黄琥珀，灯泡气泡 ----- */
+.mine-action--hint .mine-action__icon {
+  background: linear-gradient(140deg, #fff1c4 0%, #f7b955 60%, #d97706 100%);
+  color: #5a2a05;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(120, 53, 15, 0.22),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.7),
+    0 4px 9px rgba(217, 119, 6, 0.32);
+}
+.mine-action--hint:hover .mine-action__icon {
+  filter: brightness(1.05) drop-shadow(0 0 6px rgba(247, 185, 85, 0.45));
+}
+
+/* ----- 新开一局：靛蓝循环，旋转图标 ----- */
+.mine-action--new .mine-action__icon {
+  background: linear-gradient(140deg, #d8e1ff 0%, #6f9bff 60%, #4f68d4 100%);
+  color: #131e44;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(31, 41, 76, 0.20),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.6),
+    0 4px 9px rgba(79, 104, 212, 0.32);
+}
+.mine-action--new:hover .mine-action__icon {
+  transform: rotate(-180deg) scale(1.04);
+}
+
+/* ----- 直接给答案：警告红，闪电图标 ----- */
+.mine-action--reveal .mine-action__icon {
+  background: linear-gradient(140deg, #ffd7d7 0%, #ff7a86 55%, #c83a4a 100%);
+  color: #5a0a14;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(127, 29, 29, 0.22),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.55),
+    0 4px 9px rgba(200, 58, 74, 0.32);
+}
+.mine-action--reveal:hover .mine-action__icon {
+  animation: mineActionZap 540ms var(--ease-out);
+}
+
+@keyframes mineActionZap {
+  0%   { transform: rotate(-6deg) scale(1.04); }
+  35%  { transform: rotate(8deg)  scale(1.10); }
+  60%  { transform: rotate(-4deg) scale(1.06); }
+  100% { transform: rotate(-6deg) scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mine-action,
+  .mine-action__icon,
+  .mine-action--reveal:hover .mine-action__icon,
+  .mine-action--new:hover .mine-action__icon {
+    animation: none !important;
+    transition: background 200ms var(--ease-out), color 200ms var(--ease-out);
+    transform: none !important;
+  }
+}
+
+/* ===== Neumorphism 主题：软外凸 → 软内凹按下 ===== */
+body[data-theme="neumorphism"] .mine-action {
+  background: var(--surface);
+  border-color: transparent;
+  box-shadow: var(--shadow-out-sm);
+}
+body[data-theme="neumorphism"] .mine-action:hover {
+  box-shadow: var(--shadow-out);
+}
+body[data-theme="neumorphism"] .mine-action:active {
+  box-shadow: var(--shadow-in-sm);
+}
+
+/* 提示：浅黄底吸引注意 */
+body[data-theme="neumorphism"] .mine-action--hint {
+  background: linear-gradient(140deg, #fffaeb 0%, var(--surface) 70%);
+}
+/* 新开一局：保持 surface，靠图标气泡发声 */
+body[data-theme="neumorphism"] .mine-action--new {
+  background: var(--surface);
+}
+/* 直接给答案：极淡红底，提示"慎用" */
+body[data-theme="neumorphism"] .mine-action--reveal {
+  background: linear-gradient(140deg, #ffeef0 0%, var(--surface) 70%);
+}
+
+body[data-theme="neumorphism"] .mine-action__sub {
+  color: var(--ink-muted);
+}
+
+/* ===== Liquid Glass 主题：玻璃质感 + 镜面高光 ===== */
+body[data-theme="liquid-glass"] .mine-action {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  border: 1px solid var(--border);
+  box-shadow: var(--glass-shadow-sm);
+}
+
+/* 玻璃内边的暗色边圈 */
+body[data-theme="liquid-glass"] .mine-action::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 6px;
+  border-radius: inherit;
+  border: 1px solid rgba(0, 0, 0, 0.85);
+  filter: blur(8px);
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+/* 玻璃斜向高光 */
+body[data-theme="liquid-glass"] .mine-action::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  filter: blur(3px);
+  pointer-events: none;
+  background: var(--glass-overlay);
+  opacity: 0.7;
+  transition: opacity var(--dur) var(--ease-out);
+}
+
+body[data-theme="liquid-glass"] .mine-action > * {
+  position: relative;
+  z-index: 3;
+}
+
+body[data-theme="liquid-glass"] .mine-action:hover {
+  filter: brightness(1.04);
+  box-shadow: var(--glass-shadow);
+}
+body[data-theme="liquid-glass"] .mine-action:hover::after {
+  opacity: 0.95;
+}
+
+body[data-theme="liquid-glass"] .mine-action:active {
+  filter: brightness(0.92);
+}
+
+/* 在玻璃主题下，图标气泡也叠一层柔光，看起来像贴在玻璃后面 */
+body[data-theme="liquid-glass"] .mine-action__icon {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.7),
+    0 3px 8px rgba(0, 0, 0, 0.18);
+}
+
+body[data-theme="liquid-glass"] .mine-action--hint {
+  background: linear-gradient(140deg, rgba(255, 245, 200, 0.55) 0%, rgba(255, 255, 255, 0.06) 75%);
+}
+body[data-theme="liquid-glass"] .mine-action--new {
+  background: rgba(255, 255, 255, 0.08);
+}
+body[data-theme="liquid-glass"] .mine-action--reveal {
+  background: linear-gradient(140deg, rgba(255, 215, 215, 0.55) 0%, rgba(255, 255, 255, 0.06) 75%);
+}
+
+body[data-theme="liquid-glass"] .mine-action__sub {
+  color: var(--ink-soft);
 }
 
 .mine-status {
@@ -409,6 +694,18 @@ body[data-theme="liquid-glass"] .mine-hint-text[data-hint-level="4"] {
   50% { transform: scale(1.08); }
 }
 
+@keyframes gmineFlashUp {
+  0%   { box-shadow: inset 0 0 0 1px #c3cfdd; transform: translateY(0); }
+  35%  { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.32), inset 0 0 0 2px #b91c1c; transform: translateY(-1px); }
+  100% { box-shadow: inset 0 0 0 1px #c3cfdd; transform: translateY(0); }
+}
+
+@keyframes gmineFlashDown {
+  0%   { box-shadow: inset 0 0 0 1px #c3cfdd; transform: translateY(0); }
+  35%  { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.32), inset 0 0 0 2px #047857; transform: translateY(1px); }
+  100% { box-shadow: inset 0 0 0 1px #c3cfdd; transform: translateY(0); }
+}
+
 @media (max-width: 1100px) {
   .minesweeper-layout {
     grid-template-columns: 1fr;
@@ -447,8 +744,21 @@ body[data-theme="liquid-glass"] .mine-hint-text[data-hint-level="4"] {
     border-radius: 18px;
   }
 
-  .mine-actions .btn {
-    flex: 1 1 130px;
+  .mine-actions .mine-action {
+    flex: 1 1 140px;
+    padding: 8px 14px 8px 10px;
+    min-height: 56px;
+  }
+  .mine-actions .mine-action__icon {
+    width: 34px;
+    height: 34px;
+    font-size: 1.1rem;
+  }
+  .mine-actions .mine-action__label {
+    font-size: 0.88rem;
+  }
+  .mine-actions .mine-action__sub {
+    font-size: 0.68rem;
   }
 
   .minesweeper-control {
@@ -462,6 +772,16 @@ body[data-theme="liquid-glass"] .mine-hint-text[data-hint-level="4"] {
 
 @media (prefers-reduced-motion: reduce) {
   .mine-cell[data-hit="true"] {
+    animation: none !important;
+  }
+  .mine-cell {
+    transition:
+      box-shadow var(--dur) var(--ease-out),
+      background var(--dur) var(--ease-out),
+      opacity 200ms var(--ease-out);
+  }
+  .mine-cell[data-flash="up"],
+  .mine-cell[data-flash="down"] {
     animation: none !important;
   }
 }
