@@ -1,0 +1,620 @@
+/* ===== claudeOne :: billiards.css =====
+ * Chinese 8-ball pool — page styles. Mirrors snake.css token usage.
+ */
+
+.billiards-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.billiards-hero p {
+  max-width: 70ch;
+  margin-top: var(--space-3);
+}
+
+/* ===== Scoreboard ===== */
+.billiards-scoreboard {
+  flex: none;
+  display: grid;
+  gap: 4px;
+  min-width: 168px;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-out-sm);
+  text-align: right;
+}
+
+.billiards-scoreboard__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.billiards-scoreboard__label {
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.18em;
+}
+
+.billiards-scoreboard strong {
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== Layout ===== */
+.billiards-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.billiards-stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+/* ===== HUD ===== */
+.billiards-hud {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.billiards-hud h2 {
+  margin: 4px 0 0;
+  font-size: 1.1rem;
+}
+
+.billiards-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.billiards-stats span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.billiards-stats strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  margin-right: 4px;
+}
+
+/* ===== Canvas wrap (felt area) ===== */
+.billiards-canvas-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 420px;
+  overflow: hidden;
+  padding: clamp(6px, 1vw, 14px);
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(135deg, rgba(36, 110, 70, 0.18), transparent 50%),
+    linear-gradient(315deg, rgba(20, 80, 50, 0.20), transparent 45%),
+    var(--surface-sunken);
+}
+
+.billiards-canvas {
+  display: block;
+  border-radius: 14px;
+  max-width: 100%;
+  height: auto;
+  outline: none;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+body[data-theme="neumorphism"] .billiards-canvas {
+  box-shadow:
+    inset 0 0 0 2px rgba(45, 60, 86, 0.20),
+    0 18px 38px rgba(20, 36, 60, 0.18);
+}
+
+body[data-theme="liquid-glass"] .billiards-canvas {
+  box-shadow:
+    inset 0 0 0 2px rgba(54, 70, 96, 0.40),
+    0 20px 42px rgba(15, 22, 36, 0.22);
+}
+
+/* ===== Power bar overlay ===== */
+.billiards-power {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(15, 25, 38, 0.55);
+  color: #f5f9ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  z-index: 10;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.billiards-power[hidden] {
+  display: none;
+}
+
+.billiards-power__track {
+  width: 180px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.billiards-power__fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #4ade80 0%, #fbbf24 55%, #ef4444 100%);
+  transition: width 80ms linear;
+}
+
+/* ===== AI thinking badge ===== */
+.billiards-thinking {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(15, 25, 38, 0.65);
+  color: #f5f9ff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.billiards-thinking[hidden] {
+  display: none;
+}
+
+.billiards-thinking__dot {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.85);
+  animation: billiards-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes billiards-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50%      { opacity: 1;   transform: scale(1.15); }
+}
+
+/* ===== Overlay (start / win / lose) ===== */
+.billiards-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5);
+  background: rgba(20, 32, 56, 0.30);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.billiards-overlay[hidden] {
+  display: none;
+}
+
+.billiards-overlay__card {
+  width: min(440px, 100%);
+  padding: var(--space-8);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-out);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+body[data-theme="neumorphism"] .billiards-overlay__card {
+  box-shadow: var(--shadow-out);
+  border: none;
+}
+
+body[data-theme="liquid-glass"] .billiards-overlay__card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  border: 1px solid var(--border);
+  box-shadow: var(--glass-shadow);
+}
+
+.billiards-overlay__card .modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* ===== Action buttons ===== */
+.billiards-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: stretch;
+}
+
+.billiards-action {
+  position: relative;
+  isolation: isolate;
+  flex: 1 1 168px;
+  min-height: 60px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--ink);
+  background: var(--surface);
+  font-family: inherit;
+  transition:
+    transform 220ms var(--ease-out),
+    box-shadow 220ms var(--ease-out),
+    background 220ms var(--ease-out),
+    filter 220ms var(--ease-out);
+  overflow: hidden;
+}
+
+.billiards-action[hidden] {
+  display: none;
+}
+
+.billiards-action:hover { transform: translateY(-2px); }
+.billiards-action:active { transform: translateY(1px) scale(0.985); filter: brightness(0.97); }
+
+.billiards-action[disabled],
+.billiards-action[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.billiards-action__icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1;
+  background: var(--surface-sunken);
+  transition: transform 360ms var(--ease-out);
+}
+
+.billiards-action:hover .billiards-action__icon {
+  transform: rotate(-6deg) scale(1.04);
+}
+
+.billiards-action__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.billiards-action__label {
+  font-size: 0.95rem;
+  font-weight: 850;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+
+.billiards-action__sub {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+}
+
+/* Variant: start (green) */
+.billiards-action--start .billiards-action__icon {
+  background: linear-gradient(140deg, #d4f5e4 0%, #4fc7a5 60%, #2f9c6c 100%);
+  color: #064e3b;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(4, 78, 52, 0.22),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.7),
+    0 4px 9px rgba(47, 156, 108, 0.32);
+}
+
+.billiards-action--reset .billiards-action__icon {
+  background: linear-gradient(140deg, #d8e1ff 0%, #6f9bff 60%, #4f68d4 100%);
+  color: #131e44;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(31, 41, 76, 0.20),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.6),
+    0 4px 9px rgba(79, 104, 212, 0.32);
+}
+
+.billiards-action--reset:hover .billiards-action__icon {
+  transform: rotate(-180deg) scale(1.04);
+}
+
+.billiards-action--switch .billiards-action__icon {
+  background: linear-gradient(140deg, #fff1c4 0%, #f7b955 60%, #d97706 100%);
+  color: #5a2a05;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(120, 53, 15, 0.22),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.7),
+    0 4px 9px rgba(217, 119, 6, 0.32);
+}
+
+.billiards-action--concede .billiards-action__icon {
+  background: linear-gradient(140deg, #ffe1e1 0%, #f87171 60%, #b91c1c 100%);
+  color: #4a0a0a;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(120, 20, 20, 0.22),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.6),
+    0 4px 9px rgba(220, 38, 38, 0.32);
+}
+
+.billiards-action--full .billiards-action__icon {
+  background: linear-gradient(140deg, #e8e3ff 0%, #8b7af0 60%, #5a47c4 100%);
+  color: #1a1342;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(40, 32, 100, 0.22),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.6),
+    0 4px 9px rgba(90, 71, 196, 0.32);
+}
+
+.billiards-action--full[aria-pressed="true"] {
+  background: linear-gradient(140deg, rgba(139, 122, 240, 0.22) 0%, var(--surface) 70%);
+}
+
+.billiards-action--full[aria-pressed="true"] .billiards-action__icon {
+  background: linear-gradient(140deg, #5a47c4 0%, #8b7af0 100%);
+  color: #fff;
+}
+
+/* ===== Full-board mode ===== */
+.billiards-layout--full {
+  grid-template-columns: 1fr;
+}
+
+.billiards-layout--full .billiards-control {
+  display: none;
+}
+
+.billiards-layout--full .billiards-canvas-wrap {
+  min-height: min(720px, 80vh);
+  padding: clamp(8px, 1vw, 16px);
+}
+
+body[data-theme="neumorphism"] .billiards-action {
+  background: var(--surface);
+  border-color: transparent;
+  box-shadow: var(--shadow-out-sm);
+}
+
+body[data-theme="neumorphism"] .billiards-action:hover { box-shadow: var(--shadow-out); }
+body[data-theme="neumorphism"] .billiards-action:active { box-shadow: var(--shadow-in-sm); }
+
+body[data-theme="liquid-glass"] .billiards-action {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  border: 1px solid var(--border);
+  box-shadow: var(--glass-shadow-sm);
+}
+
+/* ===== Status line ===== */
+.billiards-status-line {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.billiards-status-line[data-tone="ok"]   { color: var(--success, #16a34a); }
+.billiards-status-line[data-tone="warn"] { color: var(--warning, #d97706); }
+.billiards-status-line[data-tone="err"]  { color: var(--danger,  #dc2626); }
+
+/* ===== Right sidebar ===== */
+.billiards-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.billiards-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.billiards-panel p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+/* ===== Rules list ===== */
+.billiards-rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.65;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.billiards-rules li {
+  position: relative;
+  padding-left: 1.4em;
+}
+
+.billiards-rules li::before {
+  content: "\2022";
+  position: absolute;
+  left: 0.2em;
+  color: var(--ink-muted);
+  font-weight: 700;
+}
+
+.billiards-rules strong {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+/* ===== Rule accordion ===== */
+.billiards-rule {
+  border-top: 1px solid var(--border, rgba(125, 138, 162, 0.22));
+  padding: var(--space-3) 0;
+}
+
+.billiards-rule:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.billiards-rule summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--ink);
+  user-select: none;
+}
+
+.billiards-rule summary::-webkit-details-marker { display: none; }
+
+.billiards-rule summary::before {
+  content: "▸";
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  transition: transform 220ms var(--ease-out);
+  display: inline-block;
+}
+
+.billiards-rule[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.billiards-rule[open] > .billiards-rules {
+  margin-top: var(--space-3);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1100px) {
+  .billiards-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .billiards-control {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .billiards-hero,
+  .billiards-hud {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .billiards-scoreboard {
+    text-align: left;
+  }
+
+  .billiards-stats {
+    justify-content: flex-start;
+  }
+
+  .billiards-canvas-wrap {
+    min-height: 240px;
+    padding: 6px;
+  }
+
+  .billiards-canvas {
+    border-radius: 10px;
+  }
+
+  .billiards-actions .billiards-action {
+    flex: 1 1 140px;
+    padding: 8px 14px 8px 10px;
+    min-height: 56px;
+  }
+
+  .billiards-actions .billiards-action__icon {
+    width: 34px;
+    height: 34px;
+    font-size: 1.1rem;
+  }
+
+  .billiards-actions .billiards-action__label {
+    font-size: 0.88rem;
+  }
+
+  .billiards-control {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .billiards-action,
+  .billiards-action__icon,
+  .billiards-thinking__dot {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}

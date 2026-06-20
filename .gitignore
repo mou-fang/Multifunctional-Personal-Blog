@@ -11,6 +11,12 @@ claudeOne/server/uploads/*
 !claudeOne/server/uploads/.gitkeep
 claudeOne/server/.music-key-cache/
 
+# Browser/automation user-data dirs from local debugging
+# (Chrome --user-data-dir, puppeteer/playwright temp profiles, etc.)
+.chrome-diag-*/
+.chrome-profile/
+.puppeteer-cache/
+
 # User-provided media. Keep the generated playlist artifact tracked.
 claudeOne/music/*
 !claudeOne/music/.gitkeep

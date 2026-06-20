@@ -6,6 +6,7 @@
  */
 
 const express = require("express");
+const compression = require("compression");
 const cors = require("cors");
 const multer = require("multer");
 const { spawn } = require("child_process");
@@ -76,6 +77,22 @@ if (process.env.TRUST_PROXY === "1" || process.env.TRUST_PROXY === "true") {
 app.use(cors());
 app.use(express.json());
 
+// ---- Compression: gzip 全站静态/JSON,DOOM wasm/data 也走压缩 ----
+// 客户端 Accept-Encoding 含 gzip 时,Express 自动压缩响应(对 .wasm/.data
+// 这种二进制压缩率很高,28MB 的 .data 可压到约 14MB)。开销极小。
+// 注意: compression 默认 filter 会跳过 application/octet-stream(emscripten
+// 的 .data),所以自定义 filter 显式放行它。
+app.use(compression({
+  threshold: 1024,
+  filter: (req, res) => {
+    if (req.headers["x-no-compression"]) return false;
+    const url = req.url || "";
+    // emscripten preloaded .data:大块未压缩 WAD 数据,压缩率高
+    if (url.endsWith(".data")) return true;
+    return compression.filter(req, res);
+  },
+}));
+
 // ---- Serve frontend static files (claudeOne/ root) ----
 app.use(express.static(STATIC_DIR, {
   setHeaders(res, filePath) {
@@ -89,11 +106,26 @@ app.use(express.static(STATIC_DIR, {
     if (filePath.endsWith(".ogg")) res.setHeader("Content-Type", "audio/ogg");
     if (filePath.endsWith(".wav")) res.setHeader("Content-Type", "audio/wav");
     if (filePath.endsWith(".m4a")) res.setHeader("Content-Type", "audio/mp4");
+
+    // WebAssembly: 必须用 application/wasm 否则浏览器拒绝 streaming compile
+    if (filePath.endsWith(".wasm")) {
+      res.setHeader("Content-Type", "application/wasm");
+    }
+    // Emscripten preloaded data 包(任意二进制)
+    if (filePath.endsWith(".data")) {
+      res.setHeader("Content-Type", "application/octet-stream");
+    }
+
+    // 长缓存:libs/ 目录下的第三方库与 DOOM 产物哈希不变,1 年 immutable
+    // 注意:Express path 在 Linux 用 /,Windows 用 \,两种都判断
+    if (filePath.includes(`${path.sep}libs${path.sep}`) || filePath.includes("/libs/")) {
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    }
   }
 }));
 
 // SPA fallback — serve index.html for any unmatched GET (hash routes)
-app.get(/^\/(home|games|tools|game|sokoban|minesweeper|lottery|music|playlist|ai|ascii|pixel|compress|qr)/, (_req, res) => {
+app.get(/^\/(home|games|tools|game|sokoban|minesweeper|snake|billiards|doom|lottery|music|playlist|ai|ascii|pixel|compress|qr|videogif)/, (_req, res) => {
   res.sendFile(path.join(STATIC_DIR, "index.html"));
 });
 

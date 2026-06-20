@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark" />
   <meta name="description" content="claudeOne — quiet personal workspace" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self' https:; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self'; base-uri 'self'; form-action 'none'">
+        content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self' https:; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <link rel="icon" type="image/png" href="./logo/e1703e10-52d1-4402-bc11-083e5565afc1.png" />
   <title>claudeOne · 魔方工作台</title>
@@ -2187,6 +2187,504 @@
           </p>
         </section>
       </aside>
+    </section>
+  </template>
+
+  <template id="page-videogif">
+    <!-- Hero -->
+    <section class="vg-hero page-chunk" data-reveal-order="2">
+      <span class="pill pill--accent">Video Tool</span>
+      <h1 style="margin-top:12px">视频转 GIF</h1>
+      <p class="muted" style="max-width:62ch; margin-top:8px">
+        导入视频后预览、裁剪画面、选取片段，本地浏览器内生成 GIF。可调帧率、输出尺寸、颜色数与循环次数。所有处理在你的设备上完成，不上传任何服务器。
+      </p>
+    </section>
+
+    <!-- 主布局：左文件列表 + 右编辑器 -->
+    <section class="vg-layout page-chunk" data-reveal-order="3">
+      <!-- 左栏 -->
+      <div class="vg-left">
+        <div class="vg-upload" data-vg-upload data-dragover="false">
+          <div class="vg-upload__inner">
+            <div class="vg-upload__icon">&#9660;</div>
+            <div class="vg-upload__title">拖拽视频到此处，或点击选择</div>
+            <div class="vg-upload__hint">支持 MP4 / WebM / MOV / MKV，可多选</div>
+          </div>
+          <input type="file" class="vg-upload__input" data-vg-file-input
+                 accept="video/mp4,video/webm,video/quicktime,video/x-matroska,video/*"
+                 multiple aria-label="选择视频文件" />
+        </div>
+
+        <div class="vg-filelist" data-vg-file-list></div>
+
+        <div class="vg-left-actions">
+          <button class="btn btn-primary" data-vg-batch type="button">批量生成全部</button>
+          <button class="btn btn-ghost" data-vg-clear type="button">清空列表</button>
+        </div>
+      </div>
+
+      <!-- 右栏：编辑器 -->
+      <div class="vg-editor card" data-vg-editor>
+        <!-- 空状态 -->
+        <div class="vg-empty" data-vg-empty>
+          <div class="vg-empty__icon">&#127916;</div>
+          <div>从左侧上传或选择视频开始</div>
+        </div>
+
+        <!-- 编辑器主体 -->
+        <div data-vg-editor-body hidden>
+          <div class="vg-editor-head">
+            <h3 data-vg-cur-name>视频</h3>
+            <span class="muted" data-vg-cur-meta></span>
+          </div>
+
+          <!-- 预览舞台 + 裁剪 -->
+          <div class="vg-stage-wrap">
+            <div class="vg-stage" data-vg-stage>
+              <video data-vg-video playsinline preload="metadata"></video>
+              <div class="vg-crop-layer" data-vg-crop-layer>
+                <div class="vg-crop-rect" data-vg-crop-rect>
+                  <div class="vg-crop-handles" data-vg-crop-handles>
+                    <div data-vg-handle="nw"></div>
+                    <div data-vg-handle="n"></div>
+                    <div data-vg-handle="ne"></div>
+                    <div data-vg-handle="e"></div>
+                    <div data-vg-handle="se"></div>
+                    <div data-vg-handle="s"></div>
+                    <div data-vg-handle="sw"></div>
+                    <div data-vg-handle="w"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="vg-field" style="flex-direction:row; align-items:center; justify-content:space-between; gap:var(--space-3)">
+              <span class="vg-crop-info" data-vg-crop-info>裁剪区域</span>
+              <button class="btn btn-ghost btn-sm" data-vg-reset-crop type="button">重置裁剪</button>
+            </div>
+          </div>
+
+          <!-- 时间轴 -->
+          <div class="vg-timeline-wrap" style="margin-top:var(--space-4)">
+            <div class="vg-timeline" data-vg-timeline>
+              <div class="vg-range-handle" data-vg-range-start></div>
+              <div class="vg-range-handle" data-vg-range-end style="left:100%"></div>
+              <div class="vg-playhead" data-vg-playhead></div>
+            </div>
+            <div class="vg-timeline-inputs">
+              <div class="vg-time-field">
+                <span>开始</span>
+                <input class="input" type="number" data-vg-start-input min="0" step="0.1" value="0" aria-label="开始时间(秒)" />
+                <span>s</span>
+              </div>
+              <div class="vg-time-field">
+                <span>结束</span>
+                <input class="input" type="number" data-vg-end-input min="0" step="0.1" value="0" aria-label="结束时间(秒)" />
+                <span>s</span>
+              </div>
+              <button class="btn btn-sm" data-vg-play-sel type="button">播放所选片段</button>
+            </div>
+          </div>
+
+          <!-- 设置面板 -->
+          <div class="vg-params">
+            <!-- 一键预设 -->
+            <div class="vg-params__section">
+              <div class="vg-params__head">一键预设</div>
+              <div class="vg-seg" data-vg-preset-group>
+                <span class="pill" data-vg-preset="smooth">流畅（24fps·256色）</span>
+                <span class="pill" data-vg-preset="standard" data-active="true">标准（15fps·128色·480）</span>
+                <span class="pill" data-vg-preset="small">小文件（10fps·64色·360）</span>
+                <span class="pill" data-vg-preset="sticker">表情包（8fps·32色·240）</span>
+              </div>
+            </div>
+
+            <!-- 帧率 -->
+            <div class="vg-params__section">
+              <div class="vg-params__head">帧率</div>
+              <div class="vg-field">
+                <div class="vg-range-row">
+                  <input type="range" data-vg-fps min="3" max="30" value="15" step="1" aria-label="帧率" />
+                  <span class="vg-slider-val"><span data-vg-fps-val>15</span> fps</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 输出尺寸 -->
+            <div class="vg-params__section">
+              <div class="vg-params__head">输出尺寸</div>
+              <div class="vg-field">
+                <div class="vg-seg" data-vg-size-group>
+                  <span class="pill" data-vg-size="0" data-active="true">原始</span>
+                  <span class="pill" data-vg-size="480">480</span>
+                  <span class="pill" data-vg-size="360">360</span>
+                  <span class="pill" data-vg-size="240">240</span>
+                  <span class="pill" data-vg-size="200">200</span>
+                  <span class="pill" data-vg-size="custom">自定义</span>
+                </div>
+                <div class="vg-size-manual">
+                  <div>
+                    <span class="vg-field__label">宽度</span>
+                    <input class="input" type="number" data-vg-manual-width min="1" max="1920" placeholder="自动" aria-label="输出宽度" disabled />
+                  </div>
+                  <div>
+                    <span class="vg-field__label">高度</span>
+                    <input class="input" type="number" data-vg-manual-height min="1" max="1920" placeholder="自动" aria-label="输出高度" disabled />
+                  </div>
+                </div>
+                <label class="switch" data-vg-switch-keepratio>
+                  <input type="checkbox" checked />
+                  <span class="switch__track"></span>
+                  <span class="switch__label">保持宽高比</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 颜色与质量 -->
+            <div class="vg-params__section">
+              <div class="vg-params__head">颜色与质量</div>
+              <div class="vg-field">
+                <span class="vg-field__label">调色板颜色数</span>
+                <div class="vg-seg" data-vg-color-group>
+                  <span class="pill" data-vg-color="32">32</span>
+                  <span class="pill" data-vg-color="64">64</span>
+                  <span class="pill" data-vg-color="128" data-active="true">128</span>
+                  <span class="pill" data-vg-color="256">256（最佳）</span>
+                </div>
+              </div>
+              <div class="vg-field">
+                <span class="vg-field__label">颜色量化格式</span>
+                <div class="vg-seg" data-vg-format-group>
+                  <span class="pill" data-vg-format="rgb565" data-active="true">rgb565（高质量）</span>
+                  <span class="pill" data-vg-format="rgba4444">rgba4444</span>
+                  <span class="pill" data-vg-format="rgba5">rgba5（紧凑）</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 循环 -->
+            <div class="vg-params__section">
+              <div class="vg-params__head">循环播放</div>
+              <div class="vg-field">
+                <div class="vg-seg" data-vg-loop-group>
+                  <span class="pill" data-vg-loop="0" data-active="true">无限循环</span>
+                  <span class="pill" data-vg-loop="1">1 次</span>
+                  <span class="pill" data-vg-loop="3">3 次</span>
+                  <span class="pill" data-vg-loop="5">5 次</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 生成区 -->
+          <div class="vg-gen-area">
+            <div class="vg-gen-actions">
+              <button class="btn btn-primary" data-vg-generate type="button">生成 GIF</button>
+              <button class="btn" data-vg-cancel type="button" hidden>取消</button>
+            </div>
+            <div class="vg-progress" data-vg-extract-wrap hidden>
+              <div class="vg-progress__label">
+                <span data-vg-extract-text>抽帧中...</span>
+              </div>
+              <div class="vg-progress__bar">
+                <div class="vg-progress__fill" data-vg-extract-fill></div>
+              </div>
+            </div>
+            <div class="vg-progress" data-vg-encode-wrap hidden>
+              <div class="vg-progress__label">
+                <span data-vg-encode-text>编码中...</span>
+              </div>
+              <div class="vg-progress__bar">
+                <div class="vg-progress__fill" data-vg-encode-fill></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 结果 -->
+          <div class="vg-result" data-vg-result-wrap hidden>
+            <img class="vg-result__img" data-vg-result-img alt="GIF 预览" />
+            <div class="vg-result__info">
+              <div class="vg-result__meta" data-vg-result-info></div>
+              <div class="vg-result__actions">
+                <button class="btn btn-primary btn-sm" data-vg-download type="button">下载 GIF</button>
+                <button class="btn btn-ghost btn-sm" data-vg-regenerate type="button">重新生成</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </template>
+
+  <template id="page-billiards">
+    <section class="billiards-hero page-chunk" data-reveal-order="2">
+      <div>
+        <span class="pill pill--accent">Sports</span>
+        <h1>中式八球 · 桌球房</h1>
+        <p>
+          中式八球的桌面对战。两种模式：单人自由练习，或与 AI 进行完整规则的人机对战。
+          鼠标按住白球向反方向拖动模拟拉杆，松开击球。配套规则讲解从零讲起，没玩过台球也能上手。
+        </p>
+      </div>
+      <div class="billiards-scoreboard" aria-label="计分板">
+        <div class="billiards-scoreboard__row">
+          <span class="billiards-scoreboard__label">玩家</span>
+          <strong data-billiards-p1-group>—</strong>
+        </div>
+        <div class="billiards-scoreboard__row">
+          <span class="billiards-scoreboard__label">对手</span>
+          <strong data-billiards-p2-group>—</strong>
+        </div>
+        <div class="billiards-scoreboard__row">
+          <span class="billiards-scoreboard__label">回合</span>
+          <strong data-billiards-turn>玩家</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="billiards-layout page-chunk" data-reveal-order="3">
+      <div class="billiards-stage card">
+        <header class="billiards-hud">
+          <div>
+            <span class="card-eyebrow" data-billiards-mode-label>请选择模式</span>
+            <h2 data-billiards-status>摆好球，开始击球</h2>
+          </div>
+          <div class="billiards-stats">
+            <span><strong data-billiards-p1-remaining>7</strong> 玩家剩余</span>
+            <span><strong data-billiards-p2-remaining>7</strong> 对手剩余</span>
+            <span data-billiards-phase>开放台</span>
+          </div>
+        </header>
+
+        <div class="billiards-canvas-wrap">
+          <canvas class="billiards-canvas" data-billiards-canvas
+                  aria-label="中式八球桌面" tabindex="0"></canvas>
+
+          <div class="billiards-power" data-billiards-power-wrap hidden>
+            <div class="billiards-power__track">
+              <div class="billiards-power__fill" data-billiards-power-fill></div>
+            </div>
+            <span class="billiards-power__label" data-billiards-power-label>力度 0%</span>
+          </div>
+
+          <div class="billiards-thinking" data-billiards-thinking hidden>
+            <span class="billiards-thinking__dot" aria-hidden="true"></span>
+            AI 正在瞄准…
+          </div>
+
+          <div class="billiards-overlay" data-billiards-overlay>
+            <div class="billiards-overlay__card">
+              <span class="section-kicker" data-billiards-overlay-kicker>选择模式</span>
+              <h2 data-billiards-overlay-title>开始游戏</h2>
+              <p data-billiards-overlay-text>选择一个模式开始。规则不熟悉？右侧有详细讲解。</p>
+              <div class="modal-actions">
+                <button class="btn btn-primary" data-billiards-mode-practice type="button">单人练习</button>
+                <button class="btn btn-primary" data-billiards-mode-ai type="button">人机对战</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="billiards-actions">
+          <button class="billiards-action billiards-action--start" data-billiards-new type="button">
+            <span class="billiards-action__icon" aria-hidden="true">↻</span>
+            <span class="billiards-action__body">
+              <span class="billiards-action__label">新一局</span>
+              <span class="billiards-action__sub">重摆球阵</span>
+            </span>
+          </button>
+          <button class="billiards-action billiards-action--reset" data-billiards-rerack type="button">
+            <span class="billiards-action__icon" aria-hidden="true">▲</span>
+            <span class="billiards-action__body">
+              <span class="billiards-action__label">重新摆球</span>
+              <span class="billiards-action__sub">练习模式可用</span>
+            </span>
+          </button>
+          <button class="billiards-action billiards-action--switch" data-billiards-switch-mode type="button">
+            <span class="billiards-action__icon" aria-hidden="true">⇄</span>
+            <span class="billiards-action__body">
+              <span class="billiards-action__label">切换模式</span>
+              <span class="billiards-action__sub">练习 / 人机</span>
+            </span>
+          </button>
+          <button class="billiards-action billiards-action--full" data-billiards-fullboard type="button" aria-pressed="false">
+            <span class="billiards-action__icon" aria-hidden="true">⛶</span>
+            <span class="billiards-action__body">
+              <span class="billiards-action__label">全屏台桌</span>
+              <span class="billiards-action__sub">隐藏右侧</span>
+            </span>
+          </button>
+          <button class="billiards-action billiards-action--concede" data-billiards-concede type="button" hidden>
+            <span class="billiards-action__icon" aria-hidden="true">⚑</span>
+            <span class="billiards-action__body">
+              <span class="billiards-action__label">认输</span>
+              <span class="billiards-action__sub">本局结束</span>
+            </span>
+          </button>
+        </div>
+
+        <div class="billiards-status-line" data-billiards-message>
+          按住白球后向反方向拖动模拟拉杆，松开击球。
+        </div>
+      </div>
+
+      <aside class="billiards-control">
+        <section class="card billiards-panel">
+          <span class="section-kicker">Mode</span>
+          <h2>当前模式</h2>
+          <p data-billiards-mode-desc>
+            还没选择模式。点击桌面上的"单人练习"或"人机对战"开始。
+          </p>
+        </section>
+
+        <section class="card billiards-panel">
+          <span class="section-kicker">Score</span>
+          <h2>计分板</h2>
+          <ul class="billiards-rules">
+            <li><strong>玩家：</strong><span data-billiards-p1-detail>未分组</span></li>
+            <li><strong>对手：</strong><span data-billiards-p2-detail>未分组</span></li>
+            <li><strong>当前回合：</strong><span data-billiards-turn-detail>玩家</span></li>
+          </ul>
+        </section>
+
+        <section class="card billiards-panel">
+          <span class="section-kicker">Controls</span>
+          <h2>操作提示</h2>
+          <ul class="billiards-rules">
+            <li><strong>瞄准：</strong>鼠标移动决定方向</li>
+            <li><strong>力度：</strong>从白球向反方向按住拖动，距离越远力度越大</li>
+            <li><strong>击球：</strong>松开鼠标 / 抬起手指</li>
+            <li><strong>白球摆放：</strong>对方犯规后，鼠标点击桌面任意空位放置白球</li>
+            <li><strong>触屏：</strong>拖动手势同样支持</li>
+          </ul>
+        </section>
+
+        <section class="card billiards-panel">
+          <span class="section-kicker">Rules</span>
+          <h2>中式八球规则详解</h2>
+
+          <details class="billiards-rule" open>
+            <summary>开局 · 摆球与开球</summary>
+            <ul class="billiards-rules">
+              <li>桌上一共 16 颗球：1 颗白色<strong>母球</strong>，加 15 颗目标球。</li>
+              <li>15 颗目标球摆成三角形，<strong>8 号黑球放在三角形正中心</strong>。</li>
+              <li>白球（母球）放在桌子的开球区，由先手向球堆击打，这一杆叫"开球"。</li>
+              <li>开球时白球必须先击中目标球，并且至少要有一颗目标球进袋或贴库（碰到桌边）。</li>
+            </ul>
+          </details>
+
+          <details class="billiards-rule">
+            <summary>选组 · 花色与全色</summary>
+            <ul class="billiards-rules">
+              <li>1–7 号是<strong>全色球（实心）</strong>，9–15 号是<strong>花色球（条纹）</strong>，8 号是黑球。</li>
+              <li>开球后桌面是<strong>"开放台"</strong>状态，谁先合法地把某一组球打进，那一组就归他。</li>
+              <li>"合法进球"的意思：白球先撞到的是自己组的球，并且没有犯规。</li>
+            </ul>
+          </details>
+
+          <details class="billiards-rule">
+            <summary>进球 · 继续 vs. 换手</summary>
+            <ul class="billiards-rules">
+              <li>合法地把<strong>自己组的球</strong>打进袋，<strong>继续击球</strong>。</li>
+              <li>没有进球或没碰到自己组的球，但没犯规，<strong>换对方击球</strong>。</li>
+              <li>把对方的球打进，不算自己得分，但只要没犯规，仍要看是否还有自己组的球进袋来决定是否继续。</li>
+            </ul>
+          </details>
+
+          <details class="billiards-rule">
+            <summary>犯规 · 常见情形</summary>
+            <ul class="billiards-rules">
+              <li><strong>白球进袋（"刮卡"）</strong>：白球自己滚进了袋。</li>
+              <li><strong>白球先碰错组</strong>：例如你打全色，却让白球先撞到了花色或 8 号。</li>
+              <li><strong>没碰到任何球</strong>：白球完全空杆。</li>
+              <li><strong>不进球、也不贴库</strong>：白球碰到目标球后，整桌没有任何球进袋，也没有任何一颗碰到桌边。</li>
+              <li><strong>犯规惩罚</strong>：对方获得"自由摆球"——可以把白球放到桌面任意空位再开始击球。</li>
+            </ul>
+          </details>
+
+          <details class="billiards-rule">
+            <summary>获胜 · 黑球阶段</summary>
+            <ul class="billiards-rules">
+              <li>把自己一组 7 颗球全部打进后，进入<strong>"打 8 号球"</strong>阶段。</li>
+              <li>合法地把 8 号球打进任意袋，<strong>本局获胜</strong>。</li>
+              <li>但若提前把 8 号打进、或在打 8 号那一杆白球同时进袋，<strong>直接判负</strong>。</li>
+            </ul>
+          </details>
+        </section>
+      </aside>
+    </section>
+  </template>
+
+  <template id="page-doom">
+    <section class="doom-hero page-chunk" data-reveal-order="2">
+      <div>
+        <span class="pill pill--accent">FPS · 经典</span>
+        <h1 style="margin-top:12px">DOOM · 浏览器版</h1>
+        <p class="muted" style="max-width:62ch; margin-top:8px">
+          1993 年的传奇 FPS，由 doomgeneric 引擎经 WebAssembly 编译，在你浏览器里原生运行。
+          游戏数据使用 BSD 许可、可自由分发的 Freedoom Phase 1。整个游戏完全在你的设备上运行，不上传任何服务器。
+          首次进入需下载约 30MB 资源，之后浏览器会缓存。
+        </p>
+      </div>
+      <div class="doom-hud" aria-label="信息">
+        <div><span>引擎</span><br><strong>doomgeneric</strong></div>
+        <div><span>数据</span><br><strong>Freedoom</strong></div>
+        <div><span>渲染</span><br><strong>WebAssembly</strong></div>
+      </div>
+    </section>
+
+    <section class="doom-stage page-chunk" data-reveal-order="3">
+      <div class="doom-canvas-wrap" data-doom-stage>
+        <canvas class="doom-canvas" data-doom-canvas
+                aria-label="DOOM 游戏画面" tabindex="0"></canvas>
+
+        <!-- 启动遮罩：点击后才加载，节省流量、符合浏览器自动播放策略 -->
+        <div class="doom-overlay" data-doom-overlay>
+          <h2>DOOM</h2>
+          <p>点击下方按钮开始。游戏加载约 30MB，首次需数秒，请耐心等待。</p>
+          <button class="btn btn-primary" data-doom-start type="button">开始游戏</button>
+          <p style="font-size:.78rem;color:#737373;margin-top:8px">加载后点击画面以捕获键盘</p>
+        </div>
+
+        <!-- 加载状态（点开始后才显示） -->
+        <div class="doom-loading" data-doom-loading>
+          <div class="doom-loading__status" data-doom-status>准备中…</div>
+          <div class="doom-loading__track">
+            <div class="doom-loading__bar" data-doom-bar></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="doom-controls">
+        <div class="doom-control-card">
+          <h3>移动与战斗</h3>
+          <div class="doom-key-list">
+            <div><b>↑ ↓</b>前进 / 后退</div>
+            <div><b>← →</b>左转 / 右转</div>
+            <div><b>Ctrl</b>开火</div>
+            <div><b>空格</b>使用（开门）</div>
+            <div><b>Shift</b>加速跑</div>
+            <div><b>Alt</b>左右平移</div>
+          </div>
+        </div>
+        <div class="doom-control-card">
+          <h3>菜单与功能</h3>
+          <div class="doom-key-list">
+            <div><b>Esc</b>菜单</div>
+            <div><b>Enter</b>确认</div>
+            <div><b>F2/F3</b>存档 / 读档</div>
+            <div><b>F4</b>音量调节</div>
+            <div><b>F5</b>显示选项</div>
+            <div><b>F6</b>快速存档</div>
+            <div><b>+/-</b>画面放大缩小</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="doom-note">
+        <b>关于这个版本：</b>引擎基于开源的 doomgeneric（GPL 许可），由 Emscripten 编译为 WebAssembly 在浏览器运行；
+        游戏关卡、美术、音乐来自 Freedoom 项目（BSD 许可，可自由分发），与 id Software 的原版 DOOM 玩法一致但素材完全自由。
+        游戏菜单为英文（引擎内置），其余界面已汉化。存档保存在你浏览器本地。
+      </div>
     </section>
   </template>
 

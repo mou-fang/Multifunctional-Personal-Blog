@@ -59,6 +59,14 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     js: ["js/snake.js"],
     lifecycle: "__page_snake"
   },
+  billiards: {
+    title: "claudeOne · 中式八球",
+    description: "claudeOne 中式八球 — 单人练习与AI对战，含完整规则讲解",
+    templateId: "page-billiards",
+    css: ["css/billiards.css"],
+    js: ["js/billiards.js"],
+    lifecycle: "__page_billiards"
+  },
   lottery: {
     title: "claudeOne · 幸运抽奖",
     description: "claudeOne 幸运抽奖 — 大屏互动抽奖工具",
@@ -122,5 +130,21 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     css: ["css/qr.css"],
     js: ["libs/qr-code-styling/qr-code-styling.js", "js/qr.js"],
     lifecycle: "__page_qr"
+  },
+  videogif: {
+    title: "claudeOne · 视频转 GIF",
+    description: "claudeOne 视频转 GIF — 本地裁剪、选段、调帧率与画质，浏览器内生成 GIF",
+    templateId: "page-videogif",
+    css: ["css/videogif.css"],
+    js: ["js/videogif.js"],
+    lifecycle: "__page_videogif"
+  },
+  doom: {
+    title: "claudeOne · DOOM",
+    description: "claudeOne DOOM — 1993 经典 FPS，doomgeneric 引擎 WebAssembly 浏览器版，Freedoom 自由数据",
+    templateId: "page-doom",
+    css: ["css/doom.css"],
+    js: ["js/doom.js"],
+    lifecycle: "__page_doom"
   }
 });

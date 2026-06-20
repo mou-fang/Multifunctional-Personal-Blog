@@ -9,11 +9,11 @@
 
   var GAME_CARDS = [
     {
-      icon: "\u{1F3AF}",
-      title: "俄罗斯转盘",
-      desc: "适合聚会整活的随机转盘小游戏，可设置玩家、弹巢和结束规则。",
-      tags: ["娱乐", "聚会", "随机"],
-      href: "#/game",
+      icon: "\u{1F480}",
+      title: "DOOM",
+      desc: "1993 经典 FPS，WebAssembly 浏览器版。doomgeneric 引擎 + Freedoom 自由数据，完全本地运行。",
+      tags: ["FPS", "经典", "WebAssembly"],
+      href: "#/doom",
     },
     {
       icon: "\u{1F4E6}",
@@ -49,10 +49,18 @@
       href: "#/snake",
     },
     {
-      icon: "\u{1F3B3}",
+      icon: "\u{1F3B1}",
       title: "台球",
-      desc: "在线台球游戏，拟真物理引擎带来真实体验。",
+      desc: "中式八球：单人练习、人机对战、规则学习一应俱全。",
       tags: ["体育", "休闲", "对战"],
+      href: "#/billiards",
+    },
+    {
+      icon: "\u{1F3AF}",
+      title: "俄罗斯转盘",
+      desc: "适合聚会整活的随机转盘小游戏，可设置玩家、弹巢和结束规则。",
+      tags: ["娱乐", "聚会", "随机"],
+      href: "#/game",
     },
     {
       icon: "\u{1F3C6}",
@@ -104,6 +112,13 @@
       desc: "生成带 Logo、渐变色、圆点样式和自定义角标的二维码。",
       tags: ["二维码", "设计", "导出"],
       href: "#/qr",
+    },
+    {
+      icon: "\u{1F39E}",
+      title: "视频转 GIF",
+      desc: "导入视频后裁剪画面、选取片段，本地生成 GIF，可调帧率、尺寸与画质。",
+      tags: ["视频", "GIF", "本地处理"],
+      href: "#/videogif",
     },
     {
       icon: "\u{1F916}",

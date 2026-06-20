@@ -1,0 +1,206 @@
+/* ===== claudeOne :: doom.css ===== */
+
+.doom-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.doom-hero p {
+  max-width: 70ch;
+  margin-top: var(--space-3);
+}
+
+.doom-hud {
+  flex: none;
+  display: grid;
+  gap: 2px;
+  min-width: 140px;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-out-sm);
+  text-align: right;
+}
+
+.doom-hud span {
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+}
+
+.doom-hud strong {
+  color: var(--ink);
+  font-size: 1.05rem;
+}
+
+/* ===== 舞台 ===== */
+.doom-stage {
+  position: relative;
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-out-sm);
+}
+
+.doom-canvas-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  display: block;
+  background: #000;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  /* DOOM 原生分辨率 320×200(8:5)。容器按 8:5,canvas 撑满。 */
+  aspect-ratio: 8 / 5;
+}
+
+.doom-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #000;
+  outline: none;
+  cursor: default;
+}
+
+.doom-canvas:focus-visible {
+  box-shadow: 0 0 0 3px var(--accent) inset;
+}
+
+/* ===== 启动遮罩 ===== */
+.doom-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  background: radial-gradient(circle at 50% 40%, #1a0a0a, #000 75%);
+  color: #fff;
+  text-align: center;
+  padding: var(--space-6);
+}
+
+.doom-overlay h2 {
+  color: #b91c1c;
+  font-family: var(--font-display, "Sora", sans-serif);
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  letter-spacing: 0.06em;
+  margin: 0;
+  text-shadow: 0 0 18px rgba(185, 28, 28, 0.55);
+}
+
+.doom-overlay p {
+  color: #d4d4d4;
+  max-width: 48ch;
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+.doom-overlay .btn {
+  margin-top: var(--space-2);
+}
+
+/* ===== 加载状态 ===== */
+.doom-loading {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  background: #000;
+  color: #e5e5e5;
+  padding: var(--space-6);
+}
+
+.doom-loading[data-active] {
+  display: flex;
+}
+
+.doom-loading__status {
+  font-size: 0.9rem;
+  color: #a3a3a3;
+  text-align: center;
+}
+
+.doom-loading__track {
+  width: min(360px, 80%);
+  height: 8px;
+  border-radius: 999px;
+  background: #262626;
+  overflow: hidden;
+}
+
+.doom-loading__bar {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #b91c1c, #ef4444);
+  transition: width 0.25s ease;
+}
+
+/* ===== 说明区 ===== */
+.doom-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.doom-control-card {
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-out-sm);
+}
+
+.doom-control-card h3 {
+  font-size: 0.95rem;
+  margin: 0 0 var(--space-3);
+  color: var(--ink);
+}
+
+.doom-key-list {
+  display: grid;
+  gap: var(--space-2);
+  font-size: 0.86rem;
+  color: var(--ink-muted);
+}
+
+.doom-key-list b {
+  display: inline-block;
+  min-width: 4.5em;
+  padding: 2px 8px;
+  margin-right: var(--space-2);
+  border-radius: 6px;
+  background: var(--surface-inset, #eef3ff);
+  box-shadow: var(--shadow-in-sm);
+  color: var(--ink);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.doom-note {
+  margin-top: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-out-sm);
+  font-size: 0.86rem;
+  color: var(--ink-muted);
+  line-height: 1.7;
+}
+
+.doom-note b {
+  color: var(--ink);
+}

@@ -22,8 +22,8 @@
   // --- Navigation config ----------------------------------------------------
   const NAV_ITEMS = [
     { label: "首页",   href: "#/home",   matches: ["home"] },
-    { label: "游戏",   href: "#/games",  matches: ["games", "game", "sokoban"] },
-    { label: "工具箱", href: "#/tools",  matches: ["tools", "lottery", "music", "playlist", "ascii", "pixel", "compress", "qr", "ai"] },
+    { label: "游戏",   href: "#/games",  matches: ["games", "game", "sokoban", "minesweeper", "snake", "billiards", "doom"] },
+    { label: "工具箱", href: "#/tools",  matches: ["tools", "lottery", "music", "playlist", "ascii", "pixel", "compress", "qr", "ai", "videogif"] },
   ];
 
   function resolveCurrentRoute() {
