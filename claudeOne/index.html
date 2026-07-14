@@ -47,6 +47,15 @@
       <nav class="site-nav" aria-label="Main"></nav>
 
       <div class="header-actions">
+        <a class="github-link"
+           href="https://github.com/mou-fang/Multifunctional-Personal-Blog"
+           target="_blank"
+           rel="noopener noreferrer"
+           aria-label="在 GitHub 查看 Multifunctional Personal Blog 项目（新窗口）">
+          <span class="github-link__mark" aria-hidden="true">GH</span>
+          <span class="github-link__label">GitHub</span>
+          <span class="github-link__arrow" aria-hidden="true">↗</span>
+        </a>
         <label class="theme-toggle" aria-label="切换主题">
           <span class="theme-toggle__label" data-theme-label>Soft UI</span>
           <input type="checkbox" data-theme-toggle class="theme-toggle__input" />
@@ -152,6 +161,30 @@
           <span class="pill">No build step</span>
         </div>
         <p class="cube-hero__hint">拖动魔方 · 切换风格 · 选一个工具开始</p>
+      </div>
+    </section>
+    <section class="visitor-pulse page-chunk" data-reveal-order="3" aria-labelledby="visitor-pulse-title">
+      <div class="visitor-pulse__intro">
+        <span class="visitor-pulse__eyebrow">
+          <span class="visitor-pulse__dot" aria-hidden="true"></span>
+          Site pulse
+        </span>
+        <h2 id="visitor-pulse-title">此刻，有人在这里。</h2>
+        <p>仅在浏览器产生真实操作后计入，常见爬虫与自动化访问不会增加数字。</p>
+      </div>
+      <div class="visitor-pulse__metrics" aria-live="polite" aria-atomic="true">
+        <div class="visitor-metric">
+          <strong class="visitor-metric__value" data-visitor-total>—</strong>
+          <span class="visitor-metric__label">累计真人访客</span>
+        </div>
+        <div class="visitor-metric">
+          <strong class="visitor-metric__value" data-visitor-online>—</strong>
+          <span class="visitor-metric__label">当前在线</span>
+        </div>
+      </div>
+      <div class="visitor-pulse__privacy">
+        <span aria-hidden="true">✓</span>
+        <span data-visitor-status>正在连接统计服务</span>
       </div>
     </section>
     <section class="home-cta page-chunk" data-reveal-order="3">
@@ -291,6 +324,7 @@
   <script src="./music/playlist.js"></script>
 
   <script src="./js/player.js"></script>
+  <script src="./js/visitor-stats.js"></script>
   <script src="./js/page-registry.js"></script>
   <script src="./js/router.js"></script>
   <script src="./js/assistant.js"></script>

@@ -371,6 +371,184 @@ body[data-theme="liquid-glass"] .cube-turn-btn {
   }
 }
 
+/* ===== Human visitor pulse ===== */
+.visitor-pulse {
+  display: grid;
+  grid-template-columns: minmax(250px, 1.35fr) minmax(260px, 1fr) auto;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-6) var(--space-8);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+
+.visitor-pulse__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.visitor-pulse__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.visitor-pulse__dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--success) 15%, transparent);
+}
+
+.visitor-pulse__dot::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border: 1px solid var(--success);
+  border-radius: inherit;
+  animation: visitorPulse 2.2s var(--ease-out) infinite;
+}
+
+.visitor-pulse h2 {
+  font-size: clamp(1.35rem, 1.5vw + 0.8rem, 1.9rem);
+}
+
+.visitor-pulse__intro p {
+  max-width: 48ch;
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+}
+
+.visitor-pulse__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(110px, 1fr));
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+}
+
+.visitor-metric {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-4) var(--space-5);
+}
+
+.visitor-metric + .visitor-metric::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 18%;
+  width: 1px;
+  height: 64%;
+  background: color-mix(in srgb, var(--ink-muted) 22%, transparent);
+}
+
+.visitor-metric__value {
+  color: var(--ink);
+  font-family: "Sora", "Manrope", sans-serif;
+  font-size: clamp(1.8rem, 2.6vw, 2.5rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.visitor-metric__label {
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.visitor-pulse__privacy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  max-width: 150px;
+  padding: 9px 12px;
+  border-radius: var(--radius-pill);
+  color: var(--ink-muted);
+  background: var(--surface-sunken);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.visitor-pulse__privacy > span:first-child {
+  color: var(--success);
+  font-size: 0.9rem;
+}
+
+body[data-theme="neumorphism"] .visitor-pulse {
+  box-shadow: var(--shadow-out);
+}
+
+body[data-theme="neumorphism"] .visitor-pulse__metrics,
+body[data-theme="neumorphism"] .visitor-pulse__privacy {
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="liquid-glass"] .visitor-pulse {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+}
+
+body[data-theme="liquid-glass"] .visitor-pulse__metrics,
+body[data-theme="liquid-glass"] .visitor-pulse__privacy {
+  border: 1px solid var(--border-soft);
+  background: rgba(255, 255, 255, 0.13);
+  box-shadow: var(--glass-shadow-sm);
+}
+
+@keyframes visitorPulse {
+  0% { opacity: 0.65; transform: scale(0.75); }
+  75%, 100% { opacity: 0; transform: scale(1.7); }
+}
+
+@media (max-width: 980px) {
+  .visitor-pulse {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .visitor-pulse__privacy {
+    grid-column: 1 / -1;
+    justify-self: start;
+    max-width: none;
+  }
+}
+
+@media (max-width: 680px) {
+  .visitor-pulse {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+    padding: var(--space-6);
+  }
+
+  .visitor-pulse__privacy {
+    grid-column: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .visitor-pulse__dot::after {
+    animation: none;
+  }
+}
+
 /* ===== Scatter mode: cubelets float across viewport ===== */
 .scatter-stage {
   position: fixed;

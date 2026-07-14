@@ -229,6 +229,80 @@ body[data-theme="liquid-glass"] .theme-toggle__thumb::after {
   box-shadow: 0 0 0 3px var(--ring);
 }
 
+/* ===== GitHub project link ===== */
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 8px 14px 8px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition: color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    background var(--dur) var(--ease-out);
+}
+
+.github-link:hover {
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.github-link:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.github-link__mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: var(--accent-ink);
+  background: var(--ink);
+  font-family: "Sora", "Manrope", sans-serif;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.github-link__arrow {
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.github-link:hover .github-link__arrow {
+  transform: translate(2px, -2px);
+}
+
+@media (max-width: 640px) {
+  .github-link {
+    padding-right: 9px;
+  }
+
+  .github-link__label,
+  .github-link__arrow,
+  .theme-toggle__label {
+    display: none;
+  }
+
+  .theme-toggle {
+    padding: 8px;
+  }
+}
+
+@media (max-width: 360px) {
+  .brand-text {
+    display: none;
+  }
+}
+
 /* ===== Form controls ===== */
 .field {
   display: flex;

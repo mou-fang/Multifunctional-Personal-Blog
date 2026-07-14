@@ -13,6 +13,7 @@ const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
+const { createVisitorStatsRouter } = require("./visitor-stats");
 const {
   QQMusicUnlockError,
   QQMusicAuthError,
@@ -29,6 +30,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_CONCURRENT = 3;
 const UPLOADS_DIR = path.join(__dirname, "uploads");
 const STATIC_DIR = path.join(__dirname, "..");  // claudeOne/ root
+const VISITOR_DATA_FILE = process.env.VISITOR_DATA_FILE || path.join(__dirname, "data", "visitor-stats.json");
 
 // Resolve ascii-image-converter binary — try full path first (Go bin)
 const HOME = os.homedir();
@@ -213,6 +215,14 @@ function createRateLimiter({ windowMs, max, message }) {
 
 const musicEkeyLimiter = createRateLimiter(RATE_LIMITS.musicEkey);
 const musicMetadataLimiter = createRateLimiter(RATE_LIMITS.musicMetadata);
+const visitorStatsLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_VISITOR_STATS || 120),
+  message: "访问统计请求过于频繁，请稍后再试",
+});
+const visitorStats = createVisitorStatsRouter({ dataFile: VISITOR_DATA_FILE });
+
+app.use("/api/visitors", visitorStatsLimiter, visitorStats.router);
 
 // ---- Validation ----
 const VALID_MODES = new Set(["ascii", "braille"]);
@@ -540,6 +550,7 @@ app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
     activeJobs,
+    visitors: visitorStats.store.snapshot(),
     musicLimits: {
       ekeyPerHour: RATE_LIMITS.musicEkey.max,
       metadataPerHour: RATE_LIMITS.musicMetadata.max,
