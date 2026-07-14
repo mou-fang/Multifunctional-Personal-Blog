@@ -159,7 +159,8 @@
     }
     if (added) {
       renderFileList()
-      if (state.selectedId === null) selectFile(state.files[0].id)
+      /* 拖入文件后直接默认开启编辑第一个文件，无需用户手动点编辑 */
+      selectFile(state.files[0].id)
     } else {
       toast('未添加视频文件（仅支持视频格式）', 'err')
     }
@@ -259,6 +260,7 @@
       if (dom.editorBody) dom.editorBody.hidden = true
       if (dom.emptyHint) dom.emptyHint.hidden = false
       if (dom.video) { dom.video.removeAttribute('src'); dom.video.load() }
+      if (dom.stage) dom.stage.style.aspectRatio = ''
       hideResult()
       return
     }
@@ -302,6 +304,17 @@
     dom.video.src = item.videoUrl
     dom.video.muted = true
     dom.video.load()
+    /* 若元数据已知，立即适配舞台宽高比；否则等 loadedmetadata 事件 */
+    if (item.vw && item.vh) applyStageAspect()
+  }
+
+  /* 舞台按视频真实宽高比自适应，避免固定 16:9 导致不同尺寸视频 letterbox 错位 */
+  function applyStageAspect () {
+    if (!dom.stage || !dom.video) return
+    var vw = dom.video.videoWidth, vh = dom.video.videoHeight
+    if (vw && vh) {
+      dom.stage.style.aspectRatio = vw + ' / ' + vh
+    }
   }
 
   /* ---- 尺寸计算 ---- */
@@ -431,14 +444,20 @@
     if (!editorState || !dom.video) return
     if (editorState.playing) { stopPlayback(); return }
     var v = dom.video
+    editorState.playing = true
+    if (dom.playSelBtn) dom.playSelBtn.textContent = '停止预览'
     try {
       v.currentTime = editorState.start
-      v.play().then(function () {
-        editorState.playing = true
-        if (dom.playSelBtn) dom.playSelBtn.textContent = '停止预览'
-        tickPlay()
-      }).catch(function () {})
     } catch (e) {}
+    /* 先启动播放头循环，避免 play() promise 延迟/拒绝导致进度条不动 */
+    tickPlay()
+    var p = v.play()
+    if (p && typeof p.then === 'function') {
+      p.catch(function () {
+        /* 播放被阻止：回滚状态 */
+        if (editorState && editorState.playing) stopPlayback()
+      })
+    }
   }
 
   function tickPlay () {
@@ -468,10 +487,22 @@
     var vw = editorState.vw, vh = editorState.vh
     if (!vw || !vh) return
     var lp = (cx / vw) * 100, tp = (cy / vh) * 100, wp = (cw / vw) * 100, hp = (ch / vh) * 100
+    var rp = lp + wp, bp = tp + hp
     dom.cropRect.style.left = lp + '%'
     dom.cropRect.style.top = tp + '%'
     dom.cropRect.style.width = wp + '%'
     dom.cropRect.style.height = hp + '%'
+    /* 裁剪层遮罩镂空：外圈顺时针绕整层，内圈逆时针绕裁剪框，
+     * 借 evenodd 规则挖空裁剪框区域，遮罩只盖在裁剪框之外。 */
+    if (dom.cropLayer) {
+      var pts = [
+        '0% 0%', '100% 0%', '100% 100%', '0% 100%', '0% 0%',      /* 外圈（顺时针） */
+        lp + '% ' + tp + '%', lp + '% ' + bp + '%',                /* 内圈（逆时针） */
+        rp + '% ' + bp + '%', rp + '% ' + tp + '%', lp + '% ' + tp + '%'
+      ].join(', ')
+      dom.cropLayer.style.clipPath = 'polygon(' + pts + ')'
+      dom.cropLayer.style.webkitClipPath = 'polygon(' + pts + ')'
+    }
     if (dom.cropInfo) dom.cropInfo.textContent = Math.round(cw) + ' × ' + Math.round(ch) + ' px（原始坐标）'
   }
 
@@ -861,15 +892,42 @@
       if (!dom.video) return
       /* 与文件元数据对齐 */
       var item = curItem()
-      if (item && (!item.vw || !item.vh)) {
-        item.vw = dom.video.videoWidth
-        item.vh = dom.video.videoHeight
-        item.duration = dom.video.duration
-        if (editorState) {
-          editorState.vw = item.vw; editorState.vh = item.vh; editorState.duration = item.duration
-          renderCropRect(); renderTimeline()
+      if (item) {
+        item.vw = dom.video.videoWidth || item.vw
+        item.vh = dom.video.videoHeight || item.vh
+        item.duration = dom.video.duration || item.duration
+      }
+      if (editorState) {
+        editorState.vw = dom.video.videoWidth || editorState.vw
+        editorState.vh = dom.video.videoHeight || editorState.vh
+        editorState.duration = dom.video.duration || editorState.duration
+        /* 裁剪矩形适配真实视频尺寸（首次加载时 vw/vh 此前为 0） */
+        if (editorState.vw && editorState.vh) {
+          editorState.crop = { x: 0, y: 0, w: editorState.vw, h: editorState.vh }
         }
-        renderFileList()
+        /* 舞台按视频真实宽高比自适应，避免 letterbox 导致裁剪框错位 */
+        applyStageAspect()
+        renderCropRect()
+        renderTimeline()
+        /* 元数据就绪后同步播放头到当前时间，避免卡在 0 */
+        movePlayhead(dom.video.currentTime || 0)
+      }
+      if (item) renderFileList()
+    })
+    /* durationchange 兜底：某些视频 loadedmetadata 时 duration 尚为 Infinity，
+     * 待 durationchange 才得到真实时长，此时再刷新时间轴与播放头 */
+    on(dom.video, 'durationchange', function () {
+      if (!editorState || !dom.video) return
+      var d = dom.video.duration
+      if (isFinite(d) && d > 0) {
+        editorState.duration = d
+        var item = curItem()
+        if (item) { item.duration = d; renderFileList() }
+        /* 若选段越界则收拢到有效范围 */
+        if (editorState.end > d) editorState.end = d
+        if (editorState.start > editorState.end - 0.05) editorState.start = 0
+        renderTimeline()
+        movePlayhead(dom.video.currentTime || 0)
       }
     })
   }

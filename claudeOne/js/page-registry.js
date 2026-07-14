@@ -67,6 +67,22 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     js: ["js/billiards.js"],
     lifecycle: "__page_billiards"
   },
+  onlyup: {
+    title: "claudeOne · Only Up",
+    description: "claudeOne Only Up — 像素风垂直攀爬地狱，8 个奇幻场景，无存档无安全网",
+    templateId: "page-onlyup",
+    css: ["css/onlyup.css"],
+    js: ["js/onlyup.js"],
+    lifecycle: "__page_onlyup"
+  },
+  abyss: {
+    title: "claudeOne · 深渊协议",
+    description: "claudeOne 深渊协议 — 类吸血鬼幸存者，自动攻击、升级三选一、武器进化、遗物、逻辑模块编程流",
+    templateId: "page-abyss",
+    css: ["css/abyss.css"],
+    js: ["js/abyss-data.js", "js/abyss-sfx.js", "js/abyss.js"],
+    lifecycle: "__page_abyss"
+  },
   lottery: {
     title: "claudeOne · 幸运抽奖",
     description: "claudeOne 幸运抽奖 — 大屏互动抽奖工具",

@@ -239,30 +239,40 @@
 .vg-stage {
   position: relative;
   width: 100%;
-  max-height: 360px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: #000;
-  display: grid;
-  place-items: center;
-  aspect-ratio: 16 / 9;
+  /* aspect-ratio 由 JS 按视频真实比例设置；overflow visible 让裁剪把手不被裁切 */
+  overflow: visible;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+/* 内层容器承载视频与裁剪层；overflow visible 让裁剪把手可超出边缘 */
+.vg-stage__inner {
+  position: relative;
+  width: 100%;
+  max-height: 420px;
+  line-height: 0;
 }
 .vg-stage video {
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-height: 420px;
   object-fit: contain;
   display: block;
+  border-radius: var(--radius-md);
 }
-/* 裁剪遮罩：四块半透明黑 */
+/* 裁剪遮罩：裁剪层整体半透明黑，通过 clip-path 镂空出裁剪框区域。
+ * 用 clip-path 而非 box-shadow 9999px，避免舞台 overflow:visible 时遮罩溢出盖灰整个界面。 */
 .vg-crop-layer {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  background: rgba(0, 0, 0, 0.5);
+  /* 默认完全镂空（不显示遮罩）；renderCropRect 会按裁剪框重设 clip-path */
+  clip-path: polygon(0% 0%, 0% 0%);
 }
 .vg-crop-rect {
   position: absolute;
   border: 2px solid var(--accent);
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
   cursor: move;
   pointer-events: auto;
   box-sizing: border-box;
@@ -295,13 +305,33 @@
   flex-direction: column;
   gap: var(--space-2);
 }
-.vg-timeline {
+/* 外层 shell：留出把手空间并承载药丸外观；本身不裁切 */
+.vg-timeline-shell {
   position: relative;
+  padding: 0 7px;
   height: 36px;
+  display: flex;
+  align-items: stretch;
+}
+.vg-timeline-shell::before {
+  /* 药丸背景轨道 */
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 7px;
+  right: 7px;
   border-radius: var(--radius-pill);
   background: var(--surface-sunken);
+  z-index: 0;
+}
+.vg-timeline {
+  position: relative;
+  flex: 1;
+  height: 36px;
   cursor: pointer;
-  overflow: hidden;
+  overflow: visible;
+  z-index: 1;
 }
 .vg-timeline::before {
   /* 选中区间高亮 */
@@ -312,6 +342,7 @@
   left: var(--vg-sel-start, 0%);
   right: calc(100% - var(--vg-sel-end, 100%));
   background: var(--accent-soft);
+  border-radius: var(--radius-pill);
 }
 .vg-range-handle {
   position: absolute;
@@ -569,7 +600,7 @@ body[data-theme="neumorphism"] .vg-editor {
   box-shadow: var(--shadow-out);
   border-radius: var(--radius-lg);
 }
-body[data-theme="neumorphism"] .vg-timeline,
+body[data-theme="neumorphism"] .vg-timeline-shell::before,
 body[data-theme="neumorphism"] .vg-progress__bar {
   box-shadow: var(--shadow-in-sm);
 }
@@ -592,7 +623,11 @@ body[data-theme="liquid-glass"] .vg-editor {
   box-shadow: var(--glass-shadow);
   border-radius: var(--radius-lg);
 }
-body[data-theme="liquid-glass"] .vg-timeline,
+body[data-theme="liquid-glass"] .vg-timeline-shell::before {
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.08),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.9);
+}
 body[data-theme="liquid-glass"] .vg-progress__bar {
   background: rgba(255, 255, 255, 0.35);
   box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.08),

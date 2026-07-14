@@ -2241,8 +2241,9 @@
           <!-- 预览舞台 + 裁剪 -->
           <div class="vg-stage-wrap">
             <div class="vg-stage" data-vg-stage>
-              <video data-vg-video playsinline preload="metadata"></video>
-              <div class="vg-crop-layer" data-vg-crop-layer>
+              <div class="vg-stage__inner">
+                <video data-vg-video playsinline preload="metadata"></video>
+                <div class="vg-crop-layer" data-vg-crop-layer></div>
                 <div class="vg-crop-rect" data-vg-crop-rect>
                   <div class="vg-crop-handles" data-vg-crop-handles>
                     <div data-vg-handle="nw"></div>
@@ -2265,10 +2266,12 @@
 
           <!-- 时间轴 -->
           <div class="vg-timeline-wrap" style="margin-top:var(--space-4)">
-            <div class="vg-timeline" data-vg-timeline>
-              <div class="vg-range-handle" data-vg-range-start></div>
-              <div class="vg-range-handle" data-vg-range-end style="left:100%"></div>
-              <div class="vg-playhead" data-vg-playhead></div>
+            <div class="vg-timeline-shell">
+              <div class="vg-timeline" data-vg-timeline>
+                <div class="vg-range-handle" data-vg-range-start></div>
+                <div class="vg-range-handle" data-vg-range-end style="left:100%"></div>
+                <div class="vg-playhead" data-vg-playhead"></div>
+              </div>
             </div>
             <div class="vg-timeline-inputs">
               <div class="vg-time-field">
@@ -2685,6 +2688,310 @@
         游戏关卡、美术、音乐来自 Freedoom 项目（BSD 许可，可自由分发），与 id Software 的原版 DOOM 玩法一致但素材完全自由。
         游戏菜单为英文（引擎内置），其余界面已汉化。存档保存在你浏览器本地。
       </div>
+    </section>
+  </template>
+
+  <template id="page-onlyup">
+    <section class="ou-hero page-chunk" data-reveal-order="2">
+      <div>
+        <span class="pill pill--accent">Pixel Platformer</span>
+        <h1>Only Up · 像素攀爬地狱</h1>
+        <p>
+          从贫民窟卧室的破床垫起跳，一路向上穿越都市楼宇、云端塔楼、火山熔岩、冰川峰顶、古希腊神庙、宇宙太空，
+          最终抵达顶点的胜利旗帜。8 个奇幻场景、每个有独特机制：移动平台、侧风、崩塌平台、滑冰、弹簧雕像、低重力。
+          <strong>无存档、无安全网</strong>——一脚踩空，可能直接坠回起点。
+        </p>
+      </div>
+      <div class="ou-scoreboard" aria-label="计分板">
+        <div class="ou-scoreboard__row">
+          <span class="ou-scoreboard__label">TIME</span>
+          <strong data-ou-score-time>00:00</strong>
+        </div>
+        <div class="ou-scoreboard__row">
+          <span class="ou-scoreboard__label">FALLS</span>
+          <strong data-ou-score-falls>0</strong>
+        </div>
+        <div class="ou-scoreboard__row">
+          <span class="ou-scoreboard__label">BEST</span>
+          <strong data-ou-score-best>--:--</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="ou-layout page-chunk" data-reveal-order="3">
+      <div class="ou-stage card">
+        <header class="ou-hud">
+          <div>
+            <span class="card-eyebrow">Vertical Climber</span>
+            <h2>8 区域 · 像素风 · 原版受苦</h2>
+          </div>
+          <div class="ou-stats">
+            <span>键盘 <strong>← →</strong> 移动</span>
+            <span><strong>Space</strong> 跳跃</span>
+            <span><strong>Esc</strong> 暂停</span>
+          </div>
+        </header>
+
+        <div class="ou-canvas-wrap">
+          <canvas class="ou-canvas" data-ou-canvas aria-label="Only Up 像素攀爬游戏画布" tabindex="0" width="360" height="540"></canvas>
+          <div class="ou-overlay" data-ou-overlay>
+            <div class="ou-overlay__card">
+              <span class="section-kicker" data-ou-overlay-kicker>像素攀爬地狱</span>
+              <h2 data-ou-overlay-title>Only Up</h2>
+              <p data-ou-overlay-text></p>
+              <div class="ou-overlay__keys" data-ou-overlay-keys></div>
+              <div class="modal-actions">
+                <button class="btn btn-primary" data-ou-overlay-action type="button">开始攀爬</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ou-actions">
+          <button class="btn btn-primary" data-ou-new type="button">
+            <span aria-hidden="true">↻ </span>新开一局
+          </button>
+          <button class="btn btn-ghost" data-ou-pause type="button">
+            <span aria-hidden="true">⏯ </span>暂停 / 继续
+          </button>
+        </div>
+
+        <div class="ou-status" data-ou-status>
+          ← / → 或 A / D 横向移动，Space / ↑ / W 跳跃（按住跳得更高）。
+          Esc 暂停，R 重新开始当前局（带二次确认）。手机端使用画面下方的虚拟按键。
+        </div>
+      </div>
+
+      <aside class="ou-control">
+        <section class="card ou-panel">
+          <span class="section-kicker">Zones</span>
+          <h2>8 个主题区域</h2>
+          <ul class="ou-zone-list">
+            <li><span class="ou-zone-num">01</span><span class="ou-zone-emoji">🛏️</span>贫民窟卧室 · 基础跳跃</li>
+            <li><span class="ou-zone-num">02</span><span class="ou-zone-emoji">🏙️</span>都市楼宇 · 移动平台</li>
+            <li><span class="ou-zone-num">03</span><span class="ou-zone-emoji">☁️</span>云端塔楼 · 持续侧风</li>
+            <li><span class="ou-zone-num">04</span><span class="ou-zone-emoji">🌋</span>火山熔岩 · 崩塌平台</li>
+            <li><span class="ou-zone-num">05</span><span class="ou-zone-emoji">❄️</span>冰川峰顶 · 低摩擦滑冰</li>
+            <li><span class="ou-zone-num">06</span><span class="ou-zone-emoji">🏛️</span>古希腊神庙 · 弹簧雕像</li>
+            <li><span class="ou-zone-num">07</span><span class="ou-zone-emoji">🌌</span>宇宙太空 · 低重力</li>
+            <li><span class="ou-zone-num">08</span><span class="ou-zone-emoji">🏆</span>顶点 · 终点旗帜</li>
+          </ul>
+        </section>
+
+        <section class="card ou-panel">
+          <span class="section-kicker">Controls</span>
+          <h2>操作说明</h2>
+          <ul class="ou-rules">
+            <li><strong>← →</strong> / <strong>A D</strong>：横向移动</li>
+            <li><strong>Space</strong> / <strong>↑</strong> / <strong>W</strong>：跳跃（按住跳更高）</li>
+            <li><strong>Esc</strong>：暂停 / 继续</li>
+            <li><strong>R</strong>：重新开始本局（带确认）</li>
+            <li>左右屏边可穿越：从屏幕一侧出去会从另一侧出现</li>
+            <li>掉下屏幕底 = <strong>坠落到下方最近的平台</strong>，最坏情况直接回到起点</li>
+          </ul>
+        </section>
+
+        <section class="card ou-panel">
+          <span class="section-kicker">Tips</span>
+          <h2>受苦建议</h2>
+          <p class="ou-rules" style="margin:0">
+            想一秒清醒：每跳一次先想好落点，不要为了快就乱跳。橙色平台会左右移动、红色平台踩 0.6 秒就崩、
+            浅蓝平台像冰一样会滑、黄色平台是弹簧（能弹很高）。云端区有侧风，神庙后的太空区是低重力。
+            历史最佳用时会保存在浏览器本地。
+          </p>
+        </section>
+      </aside>
+    </section>
+  </template>
+
+  <template id="page-abyss">
+    <section class="abyss-root">
+      <header class="page-hero page-chunk" data-reveal-order="2">
+        <p class="page-hero__kicker">PROTOCOL : ABYSS</p>
+        <h1 class="page-hero__title">深渊协议</h1>
+        <p class="page-hero__sub">公元 2189 年，虚渊吞噬了所有探索员。作为最后一批实验体，你的协议核心将在无尽敌人中无限成长——活下去，找到深渊最深处的真相。</p>
+      </header>
+
+      <!-- ============ 预备菜单：角色 / 流派 / 地图 / 难度 / 成长树 / 成就 ============ -->
+      <section class="abyss-meta page-chunk" data-reveal-order="3" data-abyss-meta>
+        <div class="abyss-meta__frag">
+          <span class="abyss-meta__frag-label">协议碎片</span>
+          <span class="abyss-meta__frag-val" data-abyss-frag>0</span>
+        </div>
+
+        <div class="abyss-config">
+          <div class="abyss-config__col">
+            <h3 class="abyss-config__h">选择角色</h3>
+            <div class="abyss-picklist" data-abyss-char-list></div>
+          </div>
+          <div class="abyss-config__col">
+            <h3 class="abyss-config__h">初始协议（流派）</h3>
+            <div class="abyss-picklist" data-abyss-weapon-list></div>
+          </div>
+          <div class="abyss-config__col">
+            <h3 class="abyss-config__h">地图</h3>
+            <div class="abyss-picklist" data-abyss-map-list></div>
+          </div>
+          <div class="abyss-config__col">
+            <h3 class="abyss-config__h">难度</h3>
+            <div class="abyss-picklist" data-abyss-diff-list></div>
+          </div>
+        </div>
+
+        <div class="abyss-config__detail" data-abyss-detail hidden>
+          <button class="abyss-closebtn" type="button" data-abyss-detail-close aria-label="关闭">×</button>
+          <div data-abyss-detail-body></div>
+        </div>
+
+        <div class="abyss-launch">
+          <button class="btn abyss-launch__btn" type="button" data-abyss-start>进入虚渊</button>
+          <span class="abyss-launch__hint" data-abyss-start-hint>选择角色与初始协议后开始</span>
+        </div>
+
+        <div class="abyss-tabs">
+          <button class="abyss-tab is-active" type="button" data-abyss-tab="grow">永久成长</button>
+          <button class="abyss-tab" type="button" data-abyss-tab="achv">成就</button>
+          <button class="abyss-tab" type="button" data-abyss-tab="help">玩法说明</button>
+        </div>
+
+        <div class="abyss-tabpane is-active" data-abyss-pane="grow">
+          <p class="abyss-tabpane__note">消耗协议碎片永久强化。每项可多次升级。</p>
+          <div class="abyss-growgrid" data-abyss-grow></div>
+        </div>
+        <div class="abyss-tabpane" data-abyss-pane="achv" hidden>
+          <div class="abyss-achvgrid" data-abyss-achv></div>
+        </div>
+        <div class="abyss-tabpane" data-abyss-pane="help" hidden>
+          <div class="abyss-help" data-abyss-help></div>
+        </div>
+      </section>
+
+      <!-- ============ 战斗舞台 ============ -->
+      <section class="abyss-stage page-chunk" data-reveal-order="3" data-abyss-stage hidden>
+        <div class="abyss-stage__main">
+          <div class="abyss-canvas-wrap" data-abyss-canvas-wrap>
+            <canvas class="abyss-canvas" data-abyss-canvas width="960" height="540"></canvas>
+
+            <!-- HUD -->
+            <div class="abyss-hud">
+              <div class="abyss-hud__topleft">
+                <div class="abyss-bar abyss-bar--hp">
+                  <div class="abyss-bar__fill" data-abyss-hp-fill></div>
+                  <span class="abyss-bar__txt" data-abyss-hp-txt>100 / 100</span>
+                </div>
+                <div class="abyss-bar abyss-bar--xp">
+                  <div class="abyss-bar__fill" data-abyss-xp-fill></div>
+                  <span class="abyss-bar__txt" data-abyss-xp-txt>Lv.1</span>
+                </div>
+                <div class="abyss-hud__chips">
+                  <span class="abyss-chip" data-abyss-shield-chip hidden>护盾 <b data-abyss-shield>0</b></span>
+                </div>
+              </div>
+              <div class="abyss-hud__topright">
+                <span class="abyss-chip abyss-chip--time"><b data-abyss-time>00:00</b></span>
+                <span class="abyss-chip"><b data-abyss-gold>0</b> 金</span>
+                <span class="abyss-chip"><b data-abyss-kills>0</b> 杀</span>
+              </div>
+            </div>
+
+            <!-- Boss 血条 -->
+            <div class="abyss-bossbar" data-abyss-bossbar hidden>
+              <span class="abyss-bossbar__name" data-abyss-boss-name></span>
+              <div class="abyss-bar abyss-bar--boss">
+                <div class="abyss-bar__fill" data-abyss-boss-fill></div>
+              </div>
+            </div>
+
+            <!-- 升级三选一 -->
+            <div class="abyss-levelup" data-abyss-levelup hidden>
+              <div class="abyss-levelup__head">
+                <span class="abyss-levelup__lv" data-abyss-level-lv>升级！</span>
+                <span class="abyss-levelup__reroll">
+                  <button class="abyss-mini" type="button" data-abyss-reroll>重抽 (<b data-abyss-reroll-n>0</b>)</button>
+                </span>
+              </div>
+              <div class="abyss-levelup__cards" data-abyss-cards></div>
+            </div>
+
+            <!-- 暂停 -->
+            <div class="abyss-pause" data-abyss-pause hidden>
+              <div class="abyss-pause__card">
+                <h2>已暂停</h2>
+                <div class="abyss-pause__btns">
+                  <button class="btn" type="button" data-abyss-resume>继续</button>
+                  <button class="btn" type="button" data-abyss-restart>重新开始</button>
+                  <button class="btn" type="button" data-abyss-quit>返回菜单</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 结算 -->
+            <div class="abyss-result" data-abyss-result hidden>
+              <div class="abyss-result__card">
+                <h2 class="abyss-result__title" data-abyss-result-title></h2>
+                <div class="abyss-result__stats" data-abyss-result-stats></div>
+                <div class="abyss-result__reward">获得协议碎片 <b data-abyss-result-frag>0</b></div>
+                <div class="abyss-result__btns">
+                  <button class="btn" type="button" data-abyss-result-again>再来一局</button>
+                  <button class="btn" type="button" data-abyss-result-menu>返回菜单</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 开场覆盖层 -->
+            <div class="abyss-ready" data-abyss-ready>
+              <div class="abyss-ready__card">
+                <h2 data-abyss-ready-title>准备就绪</h2>
+                <p data-abyss-ready-sub>WASD / 方向键移动 · 自动攻击 · 击杀升级</p>
+                <button class="btn" type="button" data-abyss-ready-go>开始</button>
+              </div>
+            </div>
+
+            <!-- 触摸控制 -->
+            <div class="abyss-touch" data-abyss-touch>
+              <div class="abyss-touch__stick" data-abyss-stick>
+                <div class="abyss-touch__knob" data-abyss-knob></div>
+              </div>
+              <div class="abyss-touch__btns">
+                <button class="abyss-touch__btn" type="button" data-abyss-touch-pause>‖</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="abyss-actions">
+            <button class="abyss-mini" type="button" data-abyss-pause-btn>暂停 (P)</button>
+            <button class="abyss-mini" type="button" data-abyss-restart-btn>重开 (R)</button>
+            <button class="abyss-mini" type="button" data-abyss-mute>音效 (M)</button>
+            <button class="abyss-mini" type="button" data-abyss-fullscreen>全屏 (F)</button>
+            <button class="abyss-mini" type="button" data-abyss-menu-btn>菜单</button>
+          </div>
+        </div>
+
+        <!-- 侧栏：当前构筑 -->
+        <aside class="abyss-side" data-abyss-side>
+          <div class="abyss-side__char" data-abyss-side-char></div>
+          <div class="abyss-side__block">
+            <h4>武器</h4>
+            <div class="abyss-side__list" data-abyss-side-weapons></div>
+          </div>
+          <div class="abyss-side__block">
+            <h4>被动</h4>
+            <div class="abyss-side__list" data-abyss-side-passives></div>
+          </div>
+          <div class="abyss-side__block">
+            <h4>遗物</h4>
+            <div class="abyss-side__list" data-abyss-side-relics></div>
+          </div>
+          <div class="abyss-side__block">
+            <h4>逻辑模块</h4>
+            <div class="abyss-side__list" data-abyss-side-logic></div>
+          </div>
+          <div class="abyss-side__block">
+            <h4>属性</h4>
+            <div class="abyss-side__stats" data-abyss-side-stats></div>
+          </div>
+        </aside>
+      </section>
     </section>
   </template>
 

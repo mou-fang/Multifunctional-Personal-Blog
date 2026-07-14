@@ -905,6 +905,9 @@
   document.addEventListener("keydown", function (e) {
     var tag = document.activeElement ? document.activeElement.tagName : "";
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    /* Skip if a game page is active — those own their own Space handling */
+    var curPage = document.body.getAttribute("data-page") || "";
+    if (curPage === "onlyup" || curPage === "snake" || curPage === "doom" || curPage === "abyss") return;
     if (e.code === "Space" && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
       API.toggle();
