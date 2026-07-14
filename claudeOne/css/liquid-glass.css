@@ -51,6 +51,7 @@ body[data-theme="liquid-glass"] .ambient {
    Then each adds a ::before (dark inner ring) and ::after (diagonal gleam). */
 body[data-theme="liquid-glass"] .brand-mark,
 body[data-theme="liquid-glass"] .site-nav,
+body[data-theme="liquid-glass"] .github-link,
 body[data-theme="liquid-glass"] .theme-toggle,
 body[data-theme="liquid-glass"] .card,
 body[data-theme="liquid-glass"] .btn,
@@ -93,6 +94,7 @@ body[data-theme="liquid-glass"] .music-upload {
 
 /* ::before — blurred dark inner ring, gives the lens-edge thickness */
 body[data-theme="liquid-glass"] .brand-mark::before,
+body[data-theme="liquid-glass"] .github-link::before,
 body[data-theme="liquid-glass"] .theme-toggle::before,
 body[data-theme="liquid-glass"] .card::before,
 body[data-theme="liquid-glass"] .btn::before,
@@ -122,6 +124,7 @@ body[data-theme="liquid-glass"] .pixel-upload::before {
 
 /* ::after — diagonal specular gleam, blurred so it reads as soft reflection */
 body[data-theme="liquid-glass"] .brand-mark::after,
+body[data-theme="liquid-glass"] .github-link::after,
 body[data-theme="liquid-glass"] .theme-toggle::after,
 body[data-theme="liquid-glass"] .card::after,
 body[data-theme="liquid-glass"] .btn::after,
@@ -149,6 +152,7 @@ body[data-theme="liquid-glass"] .pixel-upload::after {
 
 /* Make sure actual content sits ABOVE the pseudo overlays */
 body[data-theme="liquid-glass"] .brand-mark > *,
+body[data-theme="liquid-glass"] .github-link > *,
 body[data-theme="liquid-glass"] .theme-toggle > *,
 body[data-theme="liquid-glass"] .card > *,
 body[data-theme="liquid-glass"] .btn > *,

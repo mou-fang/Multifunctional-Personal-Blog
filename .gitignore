@@ -10,6 +10,8 @@ claudeOne/.playwright-cli/
 claudeOne/server/uploads/*
 !claudeOne/server/uploads/.gitkeep
 claudeOne/server/.music-key-cache/
+claudeOne/server/data/*
+!claudeOne/server/data/.gitkeep
 
 # Browser/automation user-data dirs from local debugging
 # (Chrome --user-data-dir, puppeteer/playwright temp profiles, etc.)

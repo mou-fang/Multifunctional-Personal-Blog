@@ -19,6 +19,14 @@ body[data-theme="neumorphism"] .theme-toggle {
   box-shadow: var(--shadow-out-sm);
 }
 
+body[data-theme="neumorphism"] .github-link {
+  box-shadow: var(--shadow-out-sm);
+}
+
+body[data-theme="neumorphism"] .github-link:active {
+  box-shadow: var(--shadow-in-sm);
+}
+
 body[data-theme="neumorphism"] .theme-toggle__track {
   box-shadow: var(--shadow-in-sm);
 }

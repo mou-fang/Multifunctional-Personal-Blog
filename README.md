@@ -109,13 +109,24 @@ SPA 单页应用（Hash 路由）
 
 切换时从开关位置播放涟漪动画，掩盖元素重排。
 
+## 真人访问统计
+
+首页展示“累计真人访客”和“当前在线”。前端只有在页面可见且出现真实鼠标、触控、滚动或键盘操作后才发送匿名心跳；服务端还会过滤常见爬虫 User-Agent、自动化浏览器、跨站请求和异常浏览器信号。
+
+- 每个浏览器只计为一个累计访客，匿名标识在服务端经过带盐哈希后保存，不记录访问内容，也不持久化原始 IP。
+- 在线人数按最近 70 秒内仍有心跳的匿名访客计算，同一浏览器的多个标签页不会重复计数。
+- 累计数据默认保存在 `claudeOne/server/data/visitor-stats.json`（已忽略 Git）。生产部署需为该目录提供持久化磁盘，也可通过 `VISITOR_DATA_FILE` 指定其他持久化路径。
+- 可通过 `RATE_LIMIT_VISITOR_STATS` 调整每个 IP 每分钟的统计接口请求上限，默认 120。
+
+这套机制会排除常见搜索爬虫和自动化扫描；若要对高级伪装机器人做强验证，仍需接入验证码或登录体系。
+
 ## 部署到本地
 
 ### 1. 下载项目
 
 ```bash
-git clone https://github.com/mou-fang/eluosizhuanpan.git
-cd eluosizhuanpan
+git clone https://github.com/mou-fang/Multifunctional-Personal-Blog.git
+cd Multifunctional-Personal-Blog
 ```
 
 或直接在 GitHub 页面点击 **Code → Download ZIP** 下载解压。
@@ -161,7 +172,7 @@ PORT=3017 node server.js
 ## 目录结构
 
 ```
-eluosizhuanpan/
+Multifunctional-Personal-Blog/
 ├── README.md
 ├── .gitignore
 ├── claudeOne/
@@ -192,6 +203,7 @@ eluosizhuanpan/
 │   │   ├── router.js           SPA Hash 路由器
 │   │   ├── page-registry.js    页面注册表
 │   │   ├── player.js           全局播放引擎
+│   │   ├── visitor-stats.js    真人访问验证与在线心跳
 │   │   ├── tool-cards.js       游戏/工具卡片渲染
 │   │   ├── cube.js             魔方 3D（Three.js）
 │   │   ├── roulette.js         俄罗斯转盘
@@ -212,6 +224,8 @@ eluosizhuanpan/
 │   └── server/
 │       ├── package.json
 │       ├── server.js           Express 服务（前端静态 + ASCII API）
+│       ├── visitor-stats.js    匿名访客去重、持久化与爬虫过滤
+│       ├── data/               访问统计运行时数据
 │       └── uploads/            上传临时目录
 ```
 
