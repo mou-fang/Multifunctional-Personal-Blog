@@ -392,32 +392,6 @@
   height: 100%;
 }
 
-.scramble-empty {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 7px;
-  padding: 15px 20px;
-  border-radius: var(--radius-md);
-  color: var(--ink);
-  background: color-mix(in srgb, var(--surface) 76%, transparent);
-  backdrop-filter: blur(10px);
-  pointer-events: none;
-  text-align: center;
-}
-
-.scramble-empty strong {
-  font-family: "Sora", "Manrope", sans-serif;
-  font-size: 0.9rem;
-}
-
-.scramble-empty span {
-  color: var(--ink-muted);
-  font-size: 0.72rem;
-}
-
 .scramble-preview {
   position: relative;
   z-index: 1;
@@ -501,8 +475,13 @@
   line-height: 1.55;
 }
 
+.scramble-viewer figcaption [data-viewer-caption]:empty {
+  display: none;
+}
+
 .scramble-viewer__warning {
   max-width: 58ch;
+  margin-left: auto;
   text-align: right;
 }
 
@@ -607,6 +586,7 @@ body[data-theme="liquid-glass"] .scramble-action--encrypt {
   }
 
   .scramble-viewer__warning {
+    margin-left: 0;
     text-align: left;
   }
 }

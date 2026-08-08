@@ -39,7 +39,6 @@
   var viewerCaption;
   var downloadLink;
   var previewImage;
-  var emptyCopy;
   var placeholderCanvas;
   var processingOverlay;
   var processingLabel;
@@ -77,7 +76,6 @@
     viewerCaption = container.querySelector("[data-viewer-caption]");
     downloadLink = container.querySelector("[data-download]");
     previewImage = container.querySelector("[data-preview-image]");
-    emptyCopy = container.querySelector("[data-empty-copy]");
     placeholderCanvas = container.querySelector("[data-placeholder-canvas]");
     processingOverlay = container.querySelector("[data-processing]");
     processingLabel = container.querySelector("[data-processing-label]");
@@ -161,12 +159,11 @@
     viewer.dataset.mode = "empty";
     previewImage.hidden = true;
     previewImage.removeAttribute("src");
-    emptyCopy.hidden = false;
     placeholderCanvas.hidden = false;
     processingOverlay.hidden = true;
     viewerStatus.textContent = "等待图片";
     viewerMeta.textContent = "PIXEL FIELD / IDLE";
-    viewerCaption.textContent = "未导入图片时，这里会持续演算一片可交互的像素场。";
+    viewerCaption.textContent = "";
     downloadLink.hidden = true;
     downloadLink.removeAttribute("href");
     downloadLink.removeAttribute("download");
@@ -177,7 +174,6 @@
     viewer.dataset.mode = state.processing ? "processing" : "image";
     previewImage.src = url;
     previewImage.hidden = false;
-    emptyCopy.hidden = true;
     placeholderCanvas.hidden = true;
     if (pixelField) pixelField.hide();
   }
