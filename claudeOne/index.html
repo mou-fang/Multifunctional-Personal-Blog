@@ -214,6 +214,99 @@
     <div class="feature-grid" data-card-grid="tools"></div>
   </template>
 
+  <template id="page-scramble">
+    <section class="scramble-hero page-chunk" data-reveal-order="2">
+      <div class="scramble-hero__copy">
+        <span class="pill pill--accent">PixelFlux / Local</span>
+        <h1>图片加密<span>（混淆）</span></h1>
+        <p>
+          随机交换每一个像素的位置与颜色，生成肉眼不可辨认、但可以完整还原的 PNG。
+          图片全程只在当前浏览器中处理，不会上传服务器。
+        </p>
+      </div>
+      <div class="scramble-hero__protocol" aria-label="PixelFlux 算法流程">
+        <span><b>01</b> 像素置换</span>
+        <i aria-hidden="true"></i>
+        <span><b>02</b> 颜色掩码</span>
+        <i aria-hidden="true"></i>
+        <span><b>03</b> 完整校验</span>
+      </div>
+    </section>
+
+    <section class="scramble-workbench page-chunk" data-reveal-order="3">
+      <div class="scramble-upload-wrap">
+        <label class="scramble-upload" data-upload-zone data-dragover="false">
+          <input
+            class="scramble-upload__input"
+            data-file-input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/bmp"
+            aria-label="导入要混淆或还原的图片"
+          />
+          <span class="scramble-upload__glyph" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </span>
+          <span class="scramble-upload__copy">
+            <strong data-upload-title>导入一张图片</strong>
+            <small data-upload-subtitle>拖拽到这里，或点击选择 JPG / PNG / WebP / BMP</small>
+          </span>
+          <span class="scramble-upload__badge" data-upload-badge>选择文件</span>
+        </label>
+        <button class="scramble-upload__clear" data-clear-file type="button" aria-label="移除当前图片" hidden>×</button>
+      </div>
+
+      <div class="scramble-actions" role="group" aria-label="图片混淆操作">
+        <button class="scramble-action scramble-action--encrypt" data-scramble-action type="button" disabled>
+          <span class="scramble-action__index">01</span>
+          <span class="scramble-action__copy">
+            <strong>加密（混淆）</strong>
+            <small>打散位置并改变颜色</small>
+          </span>
+          <span class="scramble-action__arrow" aria-hidden="true">↗</span>
+        </button>
+        <button class="scramble-action scramble-action--restore" data-restore-action type="button" disabled>
+          <span class="scramble-action__index">02</span>
+          <span class="scramble-action__copy">
+            <strong>解密（解混淆）</strong>
+            <small>读取标记并完整还原</small>
+          </span>
+          <span class="scramble-action__arrow" aria-hidden="true">↙</span>
+        </button>
+      </div>
+
+      <figure class="scramble-viewer card" data-viewer data-mode="empty">
+        <div class="scramble-viewer__bar">
+          <div class="scramble-viewer__state">
+            <span class="scramble-viewer__dot" aria-hidden="true"></span>
+            <span data-viewer-status>等待图片</span>
+          </div>
+          <span class="scramble-viewer__meta" data-viewer-meta>PIXEL FIELD / IDLE</span>
+          <a class="scramble-download" data-download download hidden>
+            <span aria-hidden="true">↓</span> 下载当前 PNG
+          </a>
+        </div>
+        <div class="scramble-viewer__stage" data-viewer-stage>
+          <canvas class="scramble-placeholder" data-placeholder-canvas aria-hidden="true"></canvas>
+          <div class="scramble-empty" data-empty-copy>
+            <strong>像素正在自行重排</strong>
+            <span>移动鼠标，扰动经过的像素轨迹</span>
+          </div>
+          <img class="scramble-preview" data-preview-image src="" alt="导入图片预览" hidden />
+          <div class="scramble-processing" data-processing hidden>
+            <div class="scramble-processing__mark" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            <strong data-processing-label>正在处理</strong>
+            <div class="scramble-processing__track"><span data-progress-bar></span></div>
+            <small data-progress-text>0%</small>
+          </div>
+        </div>
+        <figcaption>
+          <span data-viewer-caption>未导入图片时，这里会持续演算一片可交互的像素场。</span>
+          <span class="scramble-viewer__warning">视觉混淆不等同密码学加密；请保留导出的原始 PNG，截图或二次压缩后将无法还原。</span>
+        </figcaption>
+      </figure>
+    </section>
+  </template>
+
   <template id="page-game">
     <section class="page-chunk" data-reveal-order="2">
       <span class="section-kicker">Party Game</span>

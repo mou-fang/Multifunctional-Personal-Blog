@@ -85,6 +85,7 @@ SPA 单页应用（Hash 路由）
 | **音乐解锁** | `#/music` | 纯浏览器端解密网易云/QQ 音乐加密文件（.ncm .qmc* .mflac .mgg 等），解密后自动加入全局播放器 |
 | **ASCII 艺术** | `#/ascii` | 上传图片转为 ASCII 字符画，后端调用 Go 工具完成转换，支持彩色/灰度/盲文模式 |
 | **图片像素化** | `#/pixel` | 上传图片生成复古像素风、8-bit 风、Game Boy 风或自定义调色板像素画，支持导出 PNG |
+| **图片加密（混淆）** | `#/scramble` | PixelFlux 可逆像素置换与颜色混淆，浏览器本地导出带完整性校验的可还原 PNG |
 | **图片压缩** | `#/compress` | 浏览器本地压缩图片、调整尺寸、转换 JPG/PNG/WebP，支持批量处理和 ZIP 打包下载 |
 | **二维码美化** | `#/qr` | 生成带 Logo、渐变色、圆点样式和自定义角标的高级二维码，支持 PNG/SVG 导出 |
 | **DeepSeek 聊天** | `#/ai` | 对接 DeepSeek API，流式回复，思维链显示，推理强度调节，多轮对话 + 话题管理。Key 仅存 localStorage |
@@ -213,6 +214,9 @@ Multifunctional-Personal-Blog/
 │   │   ├── decrypt-worker.js   解密 Web Worker
 │   │   ├── ascii.js            ASCII 艺术
 │   │   ├── pixel.js            图片像素化
+│   │   ├── image-scramble-core.js  PixelFlux 可逆算法与 PNG 编解码
+│   │   ├── image-scramble-worker.js 图片混淆处理 Web Worker
+│   │   ├── image-scramble.js   图片混淆页面交互
 │   │   ├── compress.js         图片压缩
 │   │   ├── qr.js               二维码美化
 │   │   └── ai.js               DeepSeek 聊天
@@ -246,4 +250,5 @@ Multifunctional-Personal-Blog/
 - 魔方需要 WebGL 支持
 - 抽奖需要 `crypto.getRandomValues()`
 - 音乐解锁需要 Web Worker + ES Module
+- 图片混淆需要 Web Worker；恢复信息必须保留在导出的原始 PNG 中
 - 主题动画需要 CSS `clip-path` 和 `backdrop-filter`

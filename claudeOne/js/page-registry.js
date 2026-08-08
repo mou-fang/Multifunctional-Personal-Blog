@@ -27,6 +27,14 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     js: ["js/tool-cards.js"],
     lifecycle: "__page_tools"
   },
+  scramble: {
+    title: "claudeOne · 图片加密（混淆）",
+    description: "claudeOne PixelFlux — 可逆图片像素混淆与还原工具",
+    templateId: "page-scramble",
+    css: ["css/image-scramble.css"],
+    js: ["js/image-scramble-core.js", "js/image-scramble.js"],
+    lifecycle: "__page_scramble"
+  },
   game: {
     title: "claudeOne · 俄罗斯转盘",
     description: "claudeOne 俄罗斯转盘 — 聚会整活随机转盘游戏",

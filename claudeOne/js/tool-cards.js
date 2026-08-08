@@ -108,6 +108,13 @@
       href: "#/pixel",
     },
     {
+      icon: "\u{1F510}",
+      title: "图片加密（混淆）",
+      desc: "用 PixelFlux 打散像素位置与颜色，导出可完整还原的混淆 PNG。",
+      tags: ["图片", "可逆混淆", "本地处理"],
+      href: "#/scramble",
+    },
+    {
       icon: "\u{1F4E6}",
       title: "图片压缩",
       desc: "在浏览器本地压缩图片，并支持 JPG、PNG、WebP 格式转换。",
