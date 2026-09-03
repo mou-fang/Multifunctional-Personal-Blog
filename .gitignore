@@ -2,6 +2,9 @@
 node_modules/
 claudeOne/server/node_modules/
 
+# Local Claude Code settings
+.claude/
+
 # Runtime files
 *.log
 output/

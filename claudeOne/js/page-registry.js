@@ -19,6 +19,30 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     js: ["js/tool-cards.js"],
     lifecycle: "__page_games"
   },
+  "city-shuttle": {
+    title: "claudeOne · 无界穿梭：天际城",
+    description: "无界穿梭：天际城 — 驾驶穿梭机高速飞越无限生成的彩色 ASCII 近未来城市",
+    templateId: "page-city-shuttle",
+    css: ["css/city-shuttle.css"],
+    js: ["js/city-shuttle-core.js", "js/city-shuttle.js"],
+    lifecycle: "__page_city_shuttle"
+  },
+  "anomaly-bureau": {
+    title: "claudeOne · 无界穿梭：天际城",
+    description: "无界穿梭：天际城 — 旧游戏地址兼容入口",
+    templateId: "page-city-shuttle",
+    css: ["css/city-shuttle.css"],
+    js: ["js/city-shuttle-core.js", "js/city-shuttle.js"],
+    lifecycle: "__page_city_shuttle"
+  },
+  "ascii-void": {
+    title: "claudeOne · 无界穿梭：天际城",
+    description: "无界穿梭：天际城 — 字符禁区旧地址兼容入口",
+    templateId: "page-city-shuttle",
+    css: ["css/city-shuttle.css"],
+    js: ["js/city-shuttle-core.js", "js/city-shuttle.js"],
+    lifecycle: "__page_city_shuttle"
+  },
   tools: {
     title: "claudeOne · 工具箱",
     description: "claudeOne 工具箱 — 实用在线工具合集",
@@ -26,6 +50,14 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     css: ["css/tools.css"],
     js: ["js/tool-cards.js"],
     lifecycle: "__page_tools"
+  },
+  beads: {
+    title: "claudeOne · 拼豆工坊",
+    description: "claudeOne 拼豆工坊 — 图片转拼豆图纸、逐格精修、材质预览与摆豆引导",
+    templateId: "page-beads",
+    css: ["css/bead-studio.css"],
+    js: ["js/bead-studio-core.js", "js/bead-studio.js"],
+    lifecycle: "__page_beads"
   },
   scramble: {
     title: "claudeOne · 图片加密（混淆）",

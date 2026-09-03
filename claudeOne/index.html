@@ -214,6 +214,197 @@
     <div class="feature-grid" data-card-grid="tools"></div>
   </template>
 
+  <template id="page-beads">
+    <section class="beads-hero page-chunk" data-reveal-order="2">
+      <div>
+        <span class="pill pill--accent">Bead Studio / Local</span>
+        <h1>拼豆图纸工作台</h1>
+        <p>从照片生成真实色号图纸，继续精修、预览成品并按颜色一步步摆豆。图片和项目数据都只在当前浏览器中处理。</p>
+      </div>
+      <div class="beads-hero__flow" aria-label="拼豆工作流程">
+        <span><b>01</b> 优化</span><i></i><span><b>02</b> 编辑</span><i></i><span><b>03</b> 预览</span><i></i><span><b>04</b> 拼豆</span>
+      </div>
+    </section>
+
+    <section class="beads-studio page-chunk" data-reveal-order="3" data-beads-studio>
+      <header class="beads-commandbar card">
+        <label class="beads-project-name">
+          <span>项目</span>
+          <input class="input" data-beads-project-name value="未命名拼豆" maxlength="80" aria-label="项目名称" />
+        </label>
+        <span class="beads-save-state" data-beads-save-state>本地草稿已开启</span>
+        <div class="beads-commandbar__actions">
+          <button class="btn btn-ghost" data-beads-new type="button">新建</button>
+          <button class="btn btn-ghost" data-beads-import-project type="button">导入项目</button>
+          <button class="btn btn-ghost" data-beads-export-project type="button">保存项目</button>
+          <button class="btn" data-beads-export-csv type="button">用量 CSV</button>
+          <button class="btn" data-beads-print type="button">打印 / PDF</button>
+          <button class="btn btn-primary" data-beads-export-pattern type="button">下载图纸</button>
+        </div>
+        <input data-beads-project-file type="file" accept="application/json,.json" hidden />
+      </header>
+
+      <nav class="beads-stage-tabs" role="tablist" aria-label="拼豆工作阶段">
+        <button data-beads-stage="optimize" role="tab" aria-selected="true" type="button"><b>01</b><span>优化<small>图片转图纸</small></span></button>
+        <button data-beads-stage="edit" role="tab" aria-selected="false" type="button"><b>02</b><span>编辑<small>精修与图层</small></span></button>
+        <button data-beads-stage="preview" role="tab" aria-selected="false" type="button"><b>03</b><span>预览<small>材质效果</small></span></button>
+        <button data-beads-stage="make" role="tab" aria-selected="false" type="button"><b>04</b><span>拼豆<small>逐色摆放</small></span></button>
+      </nav>
+
+      <div class="beads-workspace">
+        <main class="beads-canvas-panel card">
+          <div class="beads-canvas-toolbar">
+            <div>
+              <strong data-beads-canvas-title>图纸画布</strong>
+              <span data-beads-canvas-meta>29 × 29 · 0 颗</span>
+            </div>
+            <div class="beads-zoom-controls" role="group" aria-label="画布缩放">
+              <button type="button" data-beads-undo title="撤销">↶</button>
+              <button type="button" data-beads-redo title="重做">↷</button>
+              <i></i>
+              <button type="button" data-beads-zoom-out aria-label="缩小">−</button>
+              <span data-beads-zoom-value>100%</span>
+              <button type="button" data-beads-zoom-in aria-label="放大">＋</button>
+              <button type="button" data-beads-fit>适应</button>
+            </div>
+          </div>
+          <div class="beads-canvas-wrap" data-beads-canvas-wrap>
+            <canvas data-beads-canvas tabindex="0" aria-label="拼豆图纸编辑画布"></canvas>
+            <div class="beads-empty" data-beads-empty>
+              <span class="beads-empty__icon" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              <strong>导入图片，或从空白拼豆板开始</strong>
+              <small>支持 JPG、PNG、WebP 与本地 JSON 项目</small>
+              <div>
+                <button class="btn btn-primary" data-beads-pick-image type="button">上传图片</button>
+                <button class="btn" data-beads-blank type="button">空白画布</button>
+              </div>
+            </div>
+          </div>
+          <footer class="beads-canvas-status">
+            <span data-beads-pointer-status>坐标 —</span>
+            <span data-beads-selection-status>未选择区域</span>
+            <span class="beads-local"><i></i> 本地处理</span>
+          </footer>
+        </main>
+
+        <aside class="beads-inspector card">
+          <section class="beads-panel" data-beads-panel="optimize">
+            <div class="beads-panel__head"><div><small>STEP 01</small><h2>生成与优化</h2></div><button class="btn btn-primary btn-sm" data-beads-pick-image type="button">选择图片</button></div>
+            <input data-beads-image-file type="file" accept="image/jpeg,image/png,image/webp,image/bmp,image/gif" hidden />
+            <div class="beads-source" data-beads-source>
+              <div class="beads-source__thumb"><img data-beads-source-image alt="导入图片预览" hidden /><span data-beads-source-placeholder>尚未导入图片</span></div>
+              <div><strong data-beads-source-name>等待图片</strong><small data-beads-source-dims>也可以直接创建空白画布</small></div>
+            </div>
+            <div class="beads-field-grid">
+              <label class="beads-field"><span>宽度（颗）</span><input class="input" data-beads-width type="number" min="4" max="200" value="29" /></label>
+              <label class="beads-field"><span>高度（颗）</span><input class="input" data-beads-height type="number" min="4" max="200" value="29" /></label>
+            </div>
+            <label class="beads-check"><input data-beads-lock-ratio type="checkbox" checked /><span>锁定图片比例</span></label>
+            <div class="beads-presets" data-beads-size-presets>
+              <button type="button" data-size="29">29</button><button type="button" data-size="58">58</button><button type="button" data-size="87">87</button><button type="button" data-size="116">116</button>
+            </div>
+            <div class="beads-field-grid">
+              <label class="beads-field"><span>品牌色号</span><select class="input" data-beads-brand><option>MARD</option><option>COCO</option><option>漫漫</option><option>盼盼</option><option>咪小窝</option></select></label>
+              <label class="beads-field"><span>色卡范围</span><select class="input" data-beads-palette-mode><option value="221">基础 221 色</option><option value="291" selected>完整 291 色</option></select></label>
+            </div>
+            <label class="beads-field"><span>最多使用颜色 <b data-beads-max-colors-value>32</b></span><input data-beads-max-colors type="range" min="4" max="80" value="32" /></label>
+            <div class="beads-field-grid">
+              <label class="beads-field"><span>生成风格</span><select class="input" data-beads-style><option value="cartoon">卡通 · 保留色块</option><option value="realistic">真实 · 平滑采样</option></select></label>
+              <label class="beads-field"><span>构图方式</span><select class="input" data-beads-fit-mode><option value="contain">完整图片</option><option value="cover">填满画布</option></select></label>
+            </div>
+            <label class="beads-field"><span>构图缩放 <b data-beads-source-scale-value>100%</b></span><input data-beads-source-scale type="range" min="100" max="220" value="100" /></label>
+            <div class="beads-field-grid">
+              <label class="beads-field"><span>水平位置</span><input data-beads-source-x type="range" min="-100" max="100" value="0" /></label>
+              <label class="beads-field"><span>垂直位置</span><input data-beads-source-y type="range" min="-100" max="100" value="0" /></label>
+            </div>
+            <label class="beads-field"><span>颜色合并 <b data-beads-merge-value>25%</b></span><input data-beads-merge type="range" min="0" max="100" value="25" /></label>
+            <div class="beads-field-grid beads-field-grid--three">
+              <label class="beads-field"><span>亮度</span><input data-beads-brightness type="range" min="-60" max="60" value="0" /></label>
+              <label class="beads-field"><span>对比度</span><input data-beads-contrast type="range" min="-60" max="60" value="0" /></label>
+              <label class="beads-field"><span>饱和度</span><input data-beads-saturation type="range" min="-60" max="80" value="0" /></label>
+            </div>
+            <div class="beads-check-row">
+              <label class="beads-check"><input data-beads-remove-bg type="checkbox" /><span>移除外部背景</span></label>
+              <label class="beads-check"><input data-beads-dither type="checkbox" /><span>渐变抖动</span></label>
+            </div>
+            <label class="beads-field" data-beads-bg-tolerance-wrap hidden><span>背景容差 <b data-beads-bg-tolerance-value>16</b></span><input data-beads-bg-tolerance type="range" min="3" max="45" value="16" /></label>
+            <div class="beads-generate-row">
+              <button class="btn" data-beads-create-blank type="button">创建空白画布</button>
+              <button class="btn btn-primary" data-beads-generate type="button" disabled>生成拼豆图纸</button>
+            </div>
+            <div class="beads-used" data-beads-used-wrap hidden>
+              <div class="beads-subhead"><strong>已用颜色</strong><small>点击排除并重新映射</small></div>
+              <div class="beads-used-list" data-beads-used-list></div>
+            </div>
+          </section>
+
+          <section class="beads-panel" data-beads-panel="edit" hidden>
+            <div class="beads-panel__head"><div><small>STEP 02</small><h2>精修与图层</h2></div><span class="pill" data-beads-active-tool>画笔</span></div>
+            <div class="beads-tool-grid" role="toolbar" aria-label="绘图工具">
+              <button data-tool="pan" type="button" title="拖动画布 (V)">拖动</button><button data-tool="pencil" data-active="true" type="button" title="画笔 (B)">画笔</button><button data-tool="eraser" type="button" title="橡皮 (E)">橡皮</button><button data-tool="fill" type="button" title="填充 (G)">填充</button><button data-tool="eyedropper" type="button" title="吸管 (I)">吸管</button><button data-tool="select" type="button" title="选择 (S)">选择</button><button data-tool="line" type="button" title="直线 (L)">直线</button><button data-tool="rect" type="button" title="矩形 (R)">矩形</button><button data-tool="ellipse" type="button" title="椭圆 (O)">椭圆</button><button data-tool="text" type="button" title="文字 (T)">文字</button>
+            </div>
+            <label class="beads-check"><input data-beads-shape-filled type="checkbox" /><span>形状使用实心填充</span></label>
+            <div class="beads-edit-actions">
+              <button type="button" data-beads-copy>复制</button><button type="button" data-beads-paste>粘贴</button><button type="button" data-beads-mirror-h>水平镜像</button><button type="button" data-beads-mirror-v>垂直镜像</button><button type="button" data-beads-clear-selection>清空选区</button>
+            </div>
+            <div class="beads-text-tools" data-beads-text-tools hidden>
+              <label class="beads-field"><span>文字内容</span><input class="input" data-beads-text value="拼豆" maxlength="20" /></label>
+              <div class="beads-field-grid">
+                <label class="beads-field"><span>字号（格）</span><input class="input" data-beads-text-size type="number" min="5" max="32" value="10" /></label>
+                <label class="beads-field"><span>排列</span><select class="input" data-beads-text-direction><option value="horizontal">横排</option><option value="vertical">竖排</option></select></label>
+              </div>
+              <small>设置后在画布上点击文字起点。</small>
+            </div>
+            <div class="beads-selected-color">
+              <span data-beads-selected-swatch></span><div><small>当前颜色</small><strong data-beads-selected-code>MARD H07</strong></div>
+            </div>
+            <label class="beads-field"><span>搜索色号</span><input class="input" data-beads-palette-search placeholder="例如 A01、红色系列" /></label>
+            <div class="beads-palette-groups" data-beads-palette-groups></div>
+            <div class="beads-palette" data-beads-palette></div>
+            <div class="beads-divider"></div>
+            <div class="beads-subhead"><strong>图层</strong><div><button data-beads-layer-add type="button">＋</button><button data-beads-layer-duplicate type="button">复制</button></div></div>
+            <div class="beads-layers" data-beads-layers></div>
+            <div class="beads-layer-actions"><button data-beads-layer-up type="button">上移</button><button data-beads-layer-down type="button">下移</button><button data-beads-layer-rename type="button">重命名</button><button data-beads-layer-delete type="button">删除</button></div>
+            <div class="beads-divider"></div>
+            <div class="beads-subhead"><strong>参考图</strong><button data-beads-reference-pick type="button">导入</button></div>
+            <input data-beads-reference-file type="file" accept="image/jpeg,image/png,image/webp,image/bmp" hidden />
+            <div class="beads-check-row"><label class="beads-check"><input data-beads-reference-show type="checkbox" /><span>显示参考图</span></label><label class="beads-field beads-field--grow"><span>透明度</span><input data-beads-reference-opacity type="range" min="5" max="90" value="35" /></label></div>
+            <div class="beads-divider"></div>
+            <div class="beads-subhead"><strong>画布尺寸</strong><small>内容居中保留</small></div>
+            <div class="beads-resize-row"><input class="input" data-beads-resize-width type="number" min="4" max="200" value="29" aria-label="新画布宽度" /><span>×</span><input class="input" data-beads-resize-height type="number" min="4" max="200" value="29" aria-label="新画布高度" /><button data-beads-resize type="button">应用</button></div>
+          </section>
+
+          <section class="beads-panel" data-beads-panel="preview" hidden>
+            <div class="beads-panel__head"><div><small>STEP 03</small><h2>成品效果</h2></div><button class="btn btn-primary btn-sm" data-beads-export-preview type="button">下载效果图</button></div>
+            <div class="beads-materials" data-beads-materials>
+              <button data-material="matte" data-active="true" type="button">哑光</button><button data-material="gloss" type="button">亮面</button><button data-material="glitter" type="button">亮片</button><button data-material="frosted" type="button">磨砂</button><button data-material="fused" type="button">熨烫</button>
+            </div>
+            <label class="beads-field"><span>熨烫圆边 <b data-beads-roundness-value>30%</b></span><input data-beads-roundness type="range" min="0" max="100" value="30" /></label>
+            <label class="beads-field"><span>背景</span><select class="input" data-beads-preview-bg><option value="warm">暖白</option><option value="white">纯白</option><option value="beige">米色</option><option value="dark">深色</option><option value="black">黑色</option><option value="wood">木纹</option><option value="transparent">透明</option></select></label>
+            <div class="beads-check-row"><label class="beads-check"><input data-beads-preview-shadow type="checkbox" checked /><span>显示投影</span></label><label class="beads-check"><input data-beads-preview-codes type="checkbox" /><span>显示色号</span></label></div>
+            <div class="beads-preview-card"><canvas data-beads-preview-canvas aria-label="拼豆成品效果预览"></canvas></div>
+            <p class="beads-note">这里模拟视觉效果；实际颜色和熨烫形状会受豆子批次、光线及温度影响。</p>
+          </section>
+
+          <section class="beads-panel" data-beads-panel="make" hidden>
+            <div class="beads-panel__head"><div><small>STEP 04</small><h2>摆豆引导</h2></div><strong data-beads-make-percent>0%</strong></div>
+            <div class="beads-progress"><span data-beads-progress-bar></span></div>
+            <div class="beads-make-stats"><div><b data-beads-placed>0</b><small>已完成</small></div><div><b data-beads-remaining>0</b><small>剩余</small></div><div><b data-beads-timer>00:00</b><small>用时</small></div></div>
+            <div class="beads-field-grid">
+              <label class="beads-field"><span>颜色顺序</span><select class="input" data-beads-strategy><option value="largest">大块优先</option><option value="edge">边缘优先</option><option value="recent">最近使用</option><option value="code">色号顺序</option></select></label>
+              <label class="beads-field"><span>分割线间隔</span><select class="input" data-beads-grid-interval><option value="5">5 格</option><option value="10" selected>10 格</option><option value="29">29 格底板</option></select></label>
+            </div>
+            <div class="beads-check-row"><label class="beads-check"><input data-beads-hide-placed type="checkbox" /><span>隐藏已摆豆子</span></label><label class="beads-check"><input data-beads-dim-others type="checkbox" checked /><span>淡化其他颜色</span></label></div>
+            <div class="beads-make-actions"><button data-beads-complete-color type="button">完成当前颜色</button><button data-beads-make-reset type="button">重置进度</button></div>
+            <div class="beads-guide-current" data-beads-guide-current><span></span><div><small>当前引导</small><strong>请选择一种颜色</strong></div></div>
+            <div class="beads-make-colors" data-beads-make-colors></div>
+            <p class="beads-note">点击画布中的豆子可标记完成；再次点击可以撤销。进度仅保存在本机。</p>
+          </section>
+        </aside>
+      </div>
+    </section>
+  </template>
+
   <template id="page-scramble">
     <section class="scramble-hero page-chunk" data-reveal-order="2">
       <div class="scramble-hero__copy">
@@ -2737,6 +2928,104 @@
           </details>
         </section>
       </aside>
+    </section>
+  </template>
+
+  <template id="page-city-shuttle">
+    <section class="cs-root" data-cs-root>
+      <header class="cs-hero page-chunk" data-reveal-order="2">
+        <div>
+          <p class="cs-kicker">INFINITE CITY SHUTTLE // PROCEDURAL SKYWAYS</p>
+          <h1>无界穿梭<span> // 天际城</span></h1>
+          <p>驾驶高速穿梭机越过永不结束的城市群。摩天楼、公园、游乐园、别墅区、高铁与机场全部由城市种子实时构建。</p>
+        </div>
+        <div class="cs-hero__telemetry" aria-label="游戏特性">
+          <div><small>WORLD</small><strong>无限区块</strong></div>
+          <div><small>VELOCITY</small><strong>45–210 m/s</strong></div>
+          <div><small>RENDER</small><strong>彩色 ASCII 3×</strong></div>
+        </div>
+      </header>
+
+      <section class="cs-shell page-chunk" data-reveal-order="3">
+        <div class="cs-stage" data-cs-stage data-crashing="false" role="application" aria-label="无界穿梭彩色 ASCII 飞行游戏">
+          <canvas class="cs-canvas" data-cs-canvas tabindex="0" aria-label="程序生成城市飞行画面"></canvas>
+          <div class="cs-speed-lines" aria-hidden="true"></div>
+          <div class="cs-scanlines" aria-hidden="true"></div>
+          <div class="cs-vignette" aria-hidden="true"></div>
+
+          <div class="cs-stage-actions" aria-label="画面控制">
+            <button type="button" data-cs-camera-button>切换视角 (C)</button>
+            <button type="button" data-cs-char>字符：标准</button>
+            <button type="button" data-cs-fullscreen aria-label="进入全屏">全屏 (F)</button>
+          </div>
+
+          <div class="cs-hud" aria-hidden="true">
+            <div class="cs-hud__location">
+              <small>CURRENT METROPOLIS</small>
+              <strong data-cs-city>--</strong>
+              <span data-cs-district>--</span>
+            </div>
+            <div class="cs-hud__flight">
+              <div><small>VELOCITY</small><strong data-cs-speed>92 m/s</strong></div>
+              <div><small>ALTITUDE</small><strong data-cs-altitude>118 m</strong></div>
+            </div>
+            <div class="cs-objective" data-cs-objective>飞入金色航线门开始任务</div>
+            <div class="cs-reticle"></div>
+            <div class="cs-heading" data-cs-heading>000°</div>
+            <div class="cs-mission">
+              <small>AIR ROUTE</small>
+              <strong data-cs-mission>自由飞行</strong>
+              <span data-cs-mission-progress>航线待命</span><span data-cs-mission-time>--</span>
+            </div>
+            <div class="cs-score"><small>SESSION SCORE</small><strong data-cs-score>0</strong><span data-cs-combo>×1.0</span></div>
+            <div class="cs-boost" data-cs-boost><small><span>THRUST RESERVE</span><span>SHIFT</span></small><div></div></div>
+            <span class="cs-seed">CITY SEED // <b data-cs-seed-hud>--</b></span>
+            <span class="cs-camera" data-cs-camera>尾随视角</span>
+          </div>
+
+          <div class="cs-toast" data-cs-toast data-visible="false" aria-live="polite"></div>
+
+          <div class="cs-overlay" data-cs-overlay>
+            <div class="cs-overlay__card">
+              <span class="cs-overlay__kicker">SKYWAY SYSTEM // READY</span>
+              <h2 data-cs-overlay-title>进入无界天际城</h2>
+              <p data-cs-overlay-text>穿梭机不会停下。飞入金色航线门接取任务，撞击后将从最近安全航线重新出发。</p>
+              <div class="cs-seed-form" aria-label="城市种子">
+                <input data-cs-seed maxlength="32" aria-label="城市种子" autocomplete="off" spellcheck="false">
+                <button type="button" data-cs-random>随机城市</button>
+                <button type="button" data-cs-copy>复制链接</button>
+              </div>
+              <div class="cs-controls" aria-label="操作说明">
+                <span>鼠标 · 俯仰 / 偏航</span><span>A / D · 横滚</span><span>W / S · 加速 / 减速</span><span>Shift · 高速推进</span>
+                <span>C · 切换视角</span><span>R · 重置航线</span><span>F · 全屏</span><span>Esc / P · 暂停</span>
+              </div>
+              <div class="cs-settings">
+                <label>操控灵敏度 <input data-cs-sensitivity type="range" min="0.5" max="1.8" step="0.1" value="1"></label>
+                <label>引擎音量 <input data-cs-volume type="range" min="0" max="1" step="0.05" value="0.6"></label>
+              </div>
+              <div class="cs-overlay__actions">
+                <button type="button" data-cs-start>启动穿梭机</button>
+                <button type="button" data-cs-start-full>全屏起飞</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cs-toolbar" aria-label="飞行设置">
+          <button type="button" data-cs-pause>暂停 / 继续 (P)</button>
+          <button type="button" data-cs-new-city>生成新城市</button>
+          <button type="button" data-cs-camera-button>切换视角 (C)</button>
+          <button type="button" data-cs-char>字符：标准</button>
+          <button type="button" data-cs-fullscreen aria-label="进入全屏">全屏 (F)</button>
+          <span>PC 键鼠 · WebGL2 · 本次分数不会保存</span>
+        </div>
+      </section>
+
+      <section class="cs-info page-chunk" data-reveal-order="4">
+        <article><span>01 / 无限都市</span><h3>每个种子都是一片完整城市群</h3><p>高楼核心、别墅外围、城市绿带、机场与交通走廊连续过渡，不会出现地图边界。</p></article>
+        <article><span>02 / 高速航线</span><h3>七类任务全部在飞行中完成</h3><p>竞速、穿楼、桥洞特技、高铁追随、机场尾流、地标扫描与游乐园穿越随时加入。</p></article>
+        <article><span>03 / 原创生成</span><h3>建筑、交通与声音全部本地生成</h3><p>不下载模型，不上传数据；分享城市种子即可让其他玩家进入相同世界。</p></article>
+      </section>
     </section>
   </template>
 

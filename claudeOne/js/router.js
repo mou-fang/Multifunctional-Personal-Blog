@@ -43,7 +43,10 @@
   }
 
   function updateHash(pageName) {
-    var hash = "#/" + pageName;
+    var currentHash = window.location.hash;
+    var currentRoute = currentHash && currentHash.indexOf("#/") === 0 ? currentHash.slice(2).split("?")[0] : "";
+    var query = currentRoute === pageName && currentHash.indexOf("?") >= 0 ? currentHash.slice(currentHash.indexOf("?")) : "";
+    var hash = "#/" + pageName + query;
     if (window.location.hash !== hash) {
       history.pushState(null, "", hash);
     }

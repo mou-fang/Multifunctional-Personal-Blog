@@ -9,6 +9,13 @@
 
   var GAME_CARDS = [
     {
+      icon: "\u{1F6F8}",
+      title: "无界穿梭：天际城",
+      desc: "驾驶高速穿梭机飞越无限生成的近未来城市，在摩天楼、高铁、机场和游乐园之间挑战空中航线。",
+      tags: ["无限城市", "彩色 ASCII", "高速飞行"],
+      href: "#/city-shuttle",
+    },
+    {
       icon: "\u{1F480}",
       title: "DOOM",
       desc: "1993 经典 FPS，WebAssembly 浏览器版。doomgeneric 引擎 + Freedoom 自由数据，完全本地运行。",
@@ -106,6 +113,13 @@
       desc: "把图片转换成复古像素风、8-bit 风或自定义调色板风格。",
       tags: ["图片", "像素", "设计"],
       href: "#/pixel",
+    },
+    {
+      icon: "\u{1F9E9}",
+      title: "拼豆工坊",
+      desc: "图片转拼豆图纸，支持 5 品牌 291 色、图层精修、文字形状、材质预览与逐色摆豆引导。",
+      tags: ["拼豆", "图纸", "本地处理"],
+      href: "#/beads",
     },
     {
       icon: "\u{1F510}",

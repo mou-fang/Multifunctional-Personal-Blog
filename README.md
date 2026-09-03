@@ -74,6 +74,7 @@ SPA 单页应用（Hash 路由）
 
 | 页面 | 路由 | 说明 |
 |------|------|------|
+| **无界穿梭：天际城** | `#/city-shuttle` | PC 专属高速飞行游戏；以城市种子实时生成无限近未来都市、高楼、别墅、公园、游乐园、立交桥、高铁、机场和动态交通。含七类空中任务、第一/第三人称视角、高分辨率彩色 ASCII 与全屏模式；旧 `#/anomaly-bureau` 和 `#/ascii-void` 地址保留为兼容入口 |
 | **俄罗斯转盘** | `#/game` | 设定玩家人数和名字，拖拽排序，选择弹巢与子弹数量，三种结束规则，支持暴露/隐藏弹巢位置 |
 | **推箱子** | `#/sokoban` | 10 个固定关卡从入门到地狱；随机模式内置 BFS 求解器验证可解性；深渊模式含唯一解验证 |
 
@@ -85,6 +86,7 @@ SPA 单页应用（Hash 路由）
 | **音乐解锁** | `#/music` | 纯浏览器端解密网易云/QQ 音乐加密文件（.ncm .qmc* .mflac .mgg 等），解密后自动加入全局播放器 |
 | **ASCII 艺术** | `#/ascii` | 上传图片转为 ASCII 字符画，后端调用 Go 工具完成转换，支持彩色/灰度/盲文模式 |
 | **图片像素化** | `#/pixel` | 上传图片生成复古像素风、8-bit 风、Game Boy 风或自定义调色板像素画，支持导出 PNG |
+| **拼豆工坊** | `#/beads` | 四阶段本地拼豆工作流：图片优化与 5 品牌 291 色映射、文字/形状/复制镜像/高级图层精修、五种材质预览、逐色摆豆计时与进度；支持 PNG、CSV、JSON 和打印/PDF |
 | **图片加密（混淆）** | `#/scramble` | PixelFlux 可逆像素置换与颜色混淆，浏览器本地导出带完整性校验的可还原 PNG |
 | **图片压缩** | `#/compress` | 浏览器本地压缩图片、调整尺寸、转换 JPG/PNG/WebP，支持批量处理和 ZIP 打包下载 |
 | **二维码美化** | `#/qr` | 生成带 Logo、渐变色、圆点样式和自定义角标的高级二维码，支持 PNG/SVG 导出 |
@@ -195,6 +197,8 @@ Multifunctional-Personal-Blog/
 │   │   ├── animations.css      页面过渡动画
 │   │   ├── player.css          全局播放器样式（双主题深度适配）
 │   │   ├── cube.css            魔方 3D 样式
+│   │   ├── city-shuttle.css    无界穿梭宽屏舞台、飞行 HUD 与全屏布局
+│   │   ├── bead-studio.css     拼豆四阶段工作台、画布与响应式布局
 │   │   ├── games.css / tools.css  卡片网格
 │   │   └── *.css               各页面独立样式
 │   ├── js/
@@ -207,6 +211,8 @@ Multifunctional-Personal-Blog/
 │   │   ├── visitor-stats.js    真人访问验证与在线心跳
 │   │   ├── tool-cards.js       游戏/工具卡片渲染
 │   │   ├── cube.js             魔方 3D（Three.js）
+│   │   ├── city-shuttle-core.js  无限城市、飞行、任务、计分与碰撞纯函数
+│   │   ├── city-shuttle.js     WebGL2 实例化彩色 ASCII 城市穿梭游戏
 │   │   ├── roulette.js         俄罗斯转盘
 │   │   ├── sokoban.js          推箱子
 │   │   ├── lottery.js          幸运抽奖
@@ -214,6 +220,8 @@ Multifunctional-Personal-Blog/
 │   │   ├── decrypt-worker.js   解密 Web Worker
 │   │   ├── ascii.js            ASCII 艺术
 │   │   ├── pixel.js            图片像素化
+│   │   ├── bead-studio-core.js 拼豆色卡、色差、转换与图层编辑纯函数
+│   │   ├── bead-studio.js      拼豆工作台交互、预览、制作引导与导出
 │   │   ├── image-scramble-core.js  PixelFlux 可逆算法与 PNG 编解码
 │   │   ├── image-scramble-worker.js 图片混淆处理 Web Worker
 │   │   ├── image-scramble.js   图片混淆页面交互
