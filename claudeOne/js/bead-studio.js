@@ -628,7 +628,7 @@
     } else if (preview.material === "matte") {
       ctx.strokeStyle = "rgba(" + rgb.join(",") + ",.7)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, radius - 0.5, 0, Math.PI * 2); ctx.stroke();
     }
-    if (preview.codes && size >= 17) {
+    if (preview.codes && size >= 8) {
       ctx.fillStyle = (rgb[0] * 0.299 + rgb[1] * 0.587 + rgb[2] * 0.114) > 150 ? "rgba(0,0,0,.78)" : "rgba(255,255,255,.88)";
       ctx.font = "600 " + Math.max(5, size * 0.24) + "px ui-monospace, monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(currentCode(id), cx, cy + size * 0.02, size * 0.82);
@@ -639,8 +639,9 @@
   function drawPreviewCanvas(canvas, maxPixels) {
     if (!canvas) return;
     if (!project) { canvas.width = 1; canvas.height = 1; return; }
-    var padding = 42;
-    var size = Math.max(3, Math.min(24, Math.floor((maxPixels - padding * 2) / Math.max(project.width, project.height))));
+    var highResolution = maxPixels > 1000;
+    var padding = highResolution ? 72 : 42;
+    var size = Math.max(3, Math.min(highResolution ? 64 : 24, Math.floor((maxPixels - padding * 2) / Math.max(project.width, project.height))));
     var width = project.width * size + padding * 2;
     var height = project.height * size + padding * 2;
     canvas.width = width; canvas.height = height;
@@ -887,31 +888,37 @@
     if (!project) return null;
     var cells = Core.composeProject(project);
     var summary = Core.summarizeCells(cells);
-    var margin = 48, header = 92;
-    var size = Math.max(5, Math.min(28, Math.floor((1700 - margin * 2) / project.width)));
+    var margin = 72, header = 126;
+    var longestSide = Math.max(project.width, project.height);
+    var size = longestSide <= 29 ? 56 : longestSide <= 58 ? 44 : longestSide <= 87 ? 36 : longestSide <= 116 ? 30 : 24;
     var gridWidth = project.width * size, gridHeight = project.height * size;
-    var columns = gridWidth > 900 ? 4 : gridWidth > 560 ? 3 : 2;
-    var legendWidth = Math.max(720, gridWidth);
+    var legendWidth = Math.max(960, gridWidth);
+    var columns = Math.max(2, Math.min(8, Math.floor(legendWidth / 260)));
     var itemWidth = legendWidth / columns;
     var legendRows = Math.ceil(summary.rows.length / columns);
-    var legendHeight = summary.rows.length ? 58 + legendRows * 30 : 34;
+    var legendHeight = summary.rows.length ? 78 + legendRows * 38 : 50;
     var canvas = document.createElement("canvas");
     canvas.width = margin * 2 + legendWidth;
-    canvas.height = header + gridHeight + legendHeight + 42;
+    canvas.height = header + gridHeight + legendHeight + 58;
     var ctx = canvas.getContext("2d");
     ctx.fillStyle = "#fbfaf7"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#171820"; ctx.font = "700 26px 'Microsoft YaHei',sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic"; ctx.fillText(project.name, margin, 38);
-    ctx.fillStyle = "#666a74"; ctx.font = "14px 'Microsoft YaHei',sans-serif";
-    ctx.fillText(project.width + " × " + project.height + " · " + summary.total + " 颗 · " + summary.colors + " 色 · " + project.brand + " 色号", margin, 65);
+    ctx.fillStyle = "#171820"; ctx.font = "700 34px 'Microsoft YaHei',sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic"; ctx.fillText(project.name, margin, 49);
+    ctx.fillStyle = "#666a74"; ctx.font = "18px 'Microsoft YaHei',sans-serif";
+    ctx.fillText(project.width + " × " + project.height + " · " + summary.total + " 颗 · " + summary.colors + " 色 · " + project.brand + " 色号", margin, 84);
     var offsetX = margin + (legendWidth - gridWidth) / 2, offsetY = header;
     cells.forEach(function (id, index) {
       var x = index % project.width, y = Math.floor(index / project.width);
       ctx.fillStyle = id ? safeColor(id).hex : "#ffffff"; ctx.fillRect(offsetX + x * size, offsetY + y * size, size, size);
-      if (id && size >= 17) {
+      if (id) {
         var color = safeColor(id), light = color.rgb[0] * .299 + color.rgb[1] * .587 + color.rgb[2] * .114;
-        ctx.fillStyle = light > 155 ? "rgba(0,0,0,.78)" : "rgba(255,255,255,.9)";
-        ctx.font = "600 " + Math.max(6, Math.floor(size * .28)) + "px ui-monospace,monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.fillText(currentCode(id), offsetX + x * size + size / 2, offsetY + y * size + size / 2, size - 2);
+        var code = currentCode(id);
+        var centerX = offsetX + x * size + size / 2, centerY = offsetY + y * size + size / 2;
+        ctx.font = "800 " + Math.max(9, Math.floor(size * .32)) + "px ui-monospace,monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.lineJoin = "round"; ctx.lineWidth = Math.max(1.5, size * .055);
+        ctx.strokeStyle = light > 155 ? "rgba(255,255,255,.88)" : "rgba(0,0,0,.72)";
+        ctx.fillStyle = light > 155 ? "rgba(12,14,18,.96)" : "rgba(255,255,255,.98)";
+        ctx.strokeText(code, centerX, centerY, size - 6);
+        ctx.fillText(code, centerX, centerY, size - 6);
       }
     });
     ctx.beginPath();
@@ -921,17 +928,17 @@
     ctx.strokeStyle = "rgba(25,28,34,.7)"; ctx.lineWidth = 2;
     for (var bx = 0; bx <= project.width; bx += 29) { ctx.beginPath(); ctx.moveTo(offsetX + bx * size, offsetY); ctx.lineTo(offsetX + bx * size, offsetY + gridHeight); ctx.stroke(); }
     for (var by = 0; by <= project.height; by += 29) { ctx.beginPath(); ctx.moveTo(offsetX, offsetY + by * size); ctx.lineTo(offsetX + gridWidth, offsetY + by * size); ctx.stroke(); }
-    var legendY = offsetY + gridHeight + 40;
-    ctx.fillStyle = "#171820"; ctx.font = "700 18px 'Microsoft YaHei',sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText("材料清单", margin, legendY);
+    var legendY = offsetY + gridHeight + 54;
+    ctx.fillStyle = "#171820"; ctx.font = "700 24px 'Microsoft YaHei',sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText("材料清单", margin, legendY);
     summary.rows.forEach(function (row, index) {
       var column = index % columns, line = Math.floor(index / columns);
-      var x = margin + column * itemWidth, y = legendY + 30 + line * 30;
-      ctx.fillStyle = row.color.hex; ctx.beginPath(); ctx.arc(x + 9, y, 8, 0, Math.PI * 2); ctx.fill();
+      var x = margin + column * itemWidth, y = legendY + 38 + line * 38;
+      ctx.fillStyle = row.color.hex; ctx.beginPath(); ctx.arc(x + 11, y, 10, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = "rgba(0,0,0,.18)"; ctx.lineWidth = 1; ctx.stroke();
-      ctx.fillStyle = "#252731"; ctx.font = "600 13px ui-monospace,monospace"; ctx.fillText(currentCode(row.id), x + 24, y);
-      ctx.fillStyle = "#737681"; ctx.font = "12px 'Microsoft YaHei',sans-serif"; ctx.fillText(row.count + " 颗", x + Math.min(itemWidth * .55, 115), y);
+      ctx.fillStyle = "#252731"; ctx.font = "700 16px ui-monospace,monospace"; ctx.fillText(currentCode(row.id), x + 30, y);
+      ctx.fillStyle = "#737681"; ctx.font = "15px 'Microsoft YaHei',sans-serif"; ctx.fillText(row.count + " 颗", x + Math.min(itemWidth * .58, 146), y);
     });
-    ctx.fillStyle = "#8a8d96"; ctx.font = "11px 'Microsoft YaHei',sans-serif"; ctx.fillText("由 claudeOne 拼豆工坊生成 · 图纸色号以所选品牌为准", margin, canvas.height - 16);
+    ctx.fillStyle = "#8a8d96"; ctx.font = "14px 'Microsoft YaHei',sans-serif"; ctx.fillText("由 claudeOne 拼豆工坊生成 · 图纸色号以所选品牌为准", margin, canvas.height - 22);
     return canvas;
   }
 
@@ -955,14 +962,14 @@
     var canvas = buildPatternCanvas();
     if (!canvas) { notify("没有可导出的图纸", true); return; }
     downloadCanvas(canvas, safeFileName(project.name) + "-图纸.png");
-    notify("正在生成高清图纸");
+    notify("正在生成 " + canvas.width + " × " + canvas.height + " 高清图纸 · 每颗豆子含色号");
   }
 
   function exportPreview() {
     if (!project) { notify("没有可导出的效果图", true); return; }
-    var canvas = document.createElement("canvas"); drawPreviewCanvas(canvas, 1500);
+    var canvas = document.createElement("canvas"); drawPreviewCanvas(canvas, 2400);
     downloadCanvas(canvas, safeFileName(project.name) + "-效果图.png");
-    notify("正在导出效果图");
+    notify("正在导出 " + canvas.width + " × " + canvas.height + " 高清效果图");
   }
 
   function printPattern() {

@@ -566,11 +566,69 @@
   font-size: .7rem;
 }
 
-.beads-field input[type="range"] {
+.beads-studio input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
   width: 100%;
-  height: 18px;
+  height: 6px;
   margin: 0;
-  accent-color: var(--beads-accent);
+  border: 0;
+  border-radius: var(--radius-pill);
+  outline: 0;
+  background: var(--surface-sunken);
+  cursor: pointer;
+}
+
+.beads-studio input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+}
+
+.beads-studio input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--beads-accent);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--ink) 22%, transparent);
+  clip-path: circle(50% at 50% 50%);
+  cursor: grab;
+}
+
+.beads-studio input[type="range"]::-moz-range-track {
+  height: 6px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+}
+
+.beads-studio input[type="range"]::-moz-range-progress {
+  height: 6px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--beads-accent);
+}
+
+.beads-studio input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--beads-accent);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--ink) 22%, transparent);
+  clip-path: circle(50% at 50% 50%);
+  cursor: grab;
+}
+
+.beads-studio input[type="range"]:active::-webkit-slider-thumb,
+.beads-studio input[type="range"]:active::-moz-range-thumb {
+  cursor: grabbing;
+  transform: scale(1.08);
 }
 
 .beads-field--grow { flex: 1; margin: 0; }
@@ -982,6 +1040,21 @@ body[data-theme="neumorphism"] .beads-guide-current {
 
 body[data-theme="neumorphism"] .beads-source__thumb { background: var(--surface); box-shadow: var(--shadow-in-sm); }
 
+body[data-theme="neumorphism"] .beads-studio input[type="range"] {
+  background: var(--surface-sunken);
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="neumorphism"] .beads-studio input[type="range"]::-webkit-slider-thumb {
+  background: #6f9bff;
+  box-shadow: 2px 2px 5px rgba(74, 102, 166, .42), -2px -2px 5px rgba(255, 255, 255, .9);
+}
+
+body[data-theme="neumorphism"] .beads-studio input[type="range"]::-moz-range-thumb {
+  background: #6f9bff;
+  box-shadow: 2px 2px 5px rgba(74, 102, 166, .42), -2px -2px 5px rgba(255, 255, 255, .9);
+}
+
 body[data-theme="neumorphism"] .beads-zoom-controls button,
 body[data-theme="neumorphism"] .beads-edit-actions button,
 body[data-theme="neumorphism"] .beads-layer-actions button,
@@ -1239,6 +1312,21 @@ body[data-theme="liquid-glass"] .beads-make-colors button[data-active="true"] {
 }
 
 body[data-theme="liquid-glass"] .beads-progress { box-shadow: inset 0 1px 3px rgba(45, 45, 45, .15); }
+
+body[data-theme="liquid-glass"] .beads-studio input[type="range"] {
+  background: rgba(255, 255, 255, .46);
+  box-shadow: inset 0 1px 3px rgba(42, 42, 42, .17), 0 1px 0 rgba(255, 255, 255, .8);
+}
+
+body[data-theme="liquid-glass"] .beads-studio input[type="range"]::-webkit-slider-thumb {
+  background: #3e3e3e;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, .76), 0 3px 8px rgba(0, 0, 0, .25);
+}
+
+body[data-theme="liquid-glass"] .beads-studio input[type="range"]::-moz-range-thumb {
+  background: #3e3e3e;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, .76), 0 3px 8px rgba(0, 0, 0, .25);
+}
 
 /* --- Responsive --------------------------------------------------------- */
 @media (max-width: 1180px) {

@@ -118,4 +118,9 @@ test("bead studio is fully wired into the SPA and tool card grid", () => {
   assert.match(styles, /body\[data-theme="liquid-glass"\] \.beads-commandbar/);
   assert.match(styles, /backdrop-filter:\s*blur\(22px\) saturate\(145%\)/);
   assert.doesNotMatch(styles, /body\[data-theme="liquid-glass"\] \.beads-canvas-wrap\s*\{[^}]*#101522/s);
+  assert.match(styles, /\.beads-studio input\[type="range"\]::\-webkit-slider-thumb\s*\{[^}]*border-radius:\s*50%/s);
+  assert.match(styles, /clip-path:\s*circle\(50% at 50% 50%\)/);
+  assert.doesNotMatch(controller, /if \(id && size >= 17\)/);
+  assert.match(controller, /ctx\.strokeText\(code, centerX, centerY, size - 6\)/);
+  assert.match(controller, /每颗豆子含色号/);
 });
