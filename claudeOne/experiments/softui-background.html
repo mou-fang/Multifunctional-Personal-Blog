@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <meta name="description" content="Soft UI 浅蓝混色背景实验：微紫、雾青与紫青柔光。" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; base-uri 'self'; form-action 'none'" />
+  <link rel="icon" href="../logo/e1703e10-52d1-4402-bc11-083e5565afc1.png" />
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="./softui-background.css" />
+  <script src="../js/softui-background-renderer.js" defer></script>
+  <script src="./softui-background.js" defer></script>
+  <title>Soft UI · 混色背景实验</title>
+</head>
+<body class="color-lab" data-theme="neumorphism" data-palette="violet">
+  <canvas id="wash-canvas" class="lab-wash-canvas" aria-hidden="true"></canvas>
+  <div class="lab-wash" aria-hidden="true">
+    <div class="lab-wash-layer lab-wash-layer--main"></div>
+    <div class="lab-wash-layer lab-wash-layer--cool"></div>
+    <div class="lab-wash-layer lab-wash-layer--warm"></div>
+  </div>
+  <div class="lab-shell">
+    <header class="lab-header">
+      <a class="lab-brand" href="../#/home" aria-label="返回魔方工作台">
+        <img src="../logo/e1703e10-52d1-4402-bc11-083e5565afc1.png" width="42" height="42" alt="" />
+        <span>妙妙工具<small>Soft UI / 背景实验</small></span>
+      </a>
+      <span class="lab-edition"><i></i> COLOR STUDY <span>001</span></span>
+    </header>
+
+    <main class="lab-layout">
+      <section class="lab-scene" aria-labelledby="lab-title">
+        <div class="lab-hero">
+          <div class="lab-copy">
+            <p class="lab-eyebrow">SAME BLUE. A LITTLE MORE.</p>
+            <h1 id="lab-title">还是那片蓝，<br />多一点<span>微妙。</span></h1>
+            <p class="lab-lead">让一点点邻近色，慢慢融进蓝色里。<br />保留柔软的浮起感，也留一些呼吸的空间。</p>
+            <div class="lab-base-note"><i></i><span>原来的蓝色 <strong>#E6EFFF</strong></span></div>
+          </div>
+          <div class="lab-material" aria-hidden="true">
+            <div class="lab-disc"><div class="lab-disc-inner"><span></span></div></div>
+            <span class="lab-material-label">柔软的光 · 轻轻的色</span>
+          </div>
+        </div>
+
+        <div class="lab-section-label"><span>放回熟悉的界面里</span><span>UI PREVIEW</span></div>
+        <div class="lab-cards">
+          <article class="lab-card">
+            <div class="lab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.5"/><path d="m5 17 5-5 3 3 3-4 4 6"/></svg></div>
+            <h2>图片工坊</h2>
+            <p>给日常的图片，<br />一点新的灵感。</p>
+            <span class="lab-card-tag">IMAGE <span>↗</span></span>
+          </article>
+          <article class="lab-card">
+            <div class="lab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 17V6l10-2v11M9 8l10-2"/><ellipse cx="6" cy="17" rx="3" ry="2.5"/><ellipse cx="16" cy="15" rx="3" ry="2.5"/></svg></div>
+            <h2>音乐角落</h2>
+            <p>留一首喜欢的歌，<br />陪你慢慢做事。</p>
+            <span class="lab-card-tag">MUSIC <span>↗</span></span>
+          </article>
+          <article class="lab-card">
+            <div class="lab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><path d="M14 14h6v6h-6z"/></svg></div>
+            <h2>灵感工具箱</h2>
+            <p>那些小小的想法，<br />在这里变成可能。</p>
+            <span class="lab-card-tag">EXPLORE <span>↗</span></span>
+          </article>
+        </div>
+        <p class="lab-scene-note">卡片与浮雕沿用原版蓝色，看看它们与新背景相处得怎么样。</p>
+      </section>
+
+      <aside class="lab-controls" aria-labelledby="controls-title">
+        <div class="lab-controls-heading"><span class="lab-eyebrow">THE PALETTE</span><span class="lab-mini-dot" aria-hidden="true"></span></div>
+        <h2 id="controls-title">调到刚刚好。</h2>
+        <p class="lab-controls-intro">一点混色，就够了。</p>
+        <fieldset class="lab-presets">
+          <legend class="sr-only">选择混色方案</legend>
+          <label class="lab-preset">
+            <input type="radio" name="palette" value="violet" checked />
+            <span class="lab-swatch lab-swatch--violet" aria-hidden="true"></span>
+            <span class="lab-preset-copy"><strong>01 · 蓝里微紫 <em>推荐</em></strong><small>只偏一点点紫，安静柔和</small></span>
+            <span class="lab-radio" aria-hidden="true"></span>
+          </label>
+          <label class="lab-preset">
+            <input type="radio" name="palette" value="cyan" />
+            <span class="lab-swatch lab-swatch--cyan" aria-hidden="true"></span>
+            <span class="lab-preset-copy"><strong>02 · 蓝里雾青</strong><small>一点冷青，像清晨的空气</small></span>
+            <span class="lab-radio" aria-hidden="true"></span>
+          </label>
+          <label class="lab-preset">
+            <input type="radio" name="palette" value="aurora" />
+            <span class="lab-swatch lab-swatch--aurora" aria-hidden="true"></span>
+            <span class="lab-preset-copy"><strong>03 · 紫青柔光</strong><small>微紫、淡青，再添一丝暖白</small></span>
+            <span class="lab-radio" aria-hidden="true"></span>
+          </label>
+        </fieldset>
+        <div class="lab-intensity">
+          <div class="lab-range-label"><label for="intensity">混色强度</label><output id="intensity-value" for="intensity">45%</output></div>
+          <input id="intensity" type="range" min="0" max="100" step="1" value="45" aria-describedby="intensity-hint" />
+          <div class="lab-range-ends" id="intensity-hint"><span>原蓝</span><span>轻轻的</span><span>更有层次</span></div>
+        </div>
+        <label class="lab-motion" for="motion">
+          <span>背景流动<small id="motion-hint">像云一样，缓慢游移</small></span>
+          <input id="motion" type="checkbox" role="switch" aria-describedby="motion-hint" checked />
+          <span class="lab-motion-track" aria-hidden="true"><span></span></span>
+        </label>
+        <div class="lab-actions">
+          <button id="compare" class="lab-button" type="button" aria-pressed="false"><span aria-hidden="true">◐</span><span data-compare-label>对比原版</span></button>
+          <button id="background-only" class="lab-button" type="button" aria-pressed="false"><span aria-hidden="true">⤢</span><span data-background-label>只看背景</span></button>
+        </div>
+        <p class="lab-status" id="lab-status" role="status">蓝里微紫 · 45% · 轻柔混色</p>
+        <button id="reset" class="lab-reset" type="button">恢复推荐设置 <span aria-hidden="true">↺</span></button>
+      </aside>
+    </main>
+
+    <footer class="lab-footer"><span>SOFT UI <span class="lab-footer-slash">/</span> BLUE, WITH A QUIET TWIST.</span><span>独立实验页 · 先看看感觉</span></footer>
+  </div>
+  <noscript><p class="lab-noscript">当前显示「蓝里微紫」默认效果。启用 JavaScript 可切换配色与强度。</p></noscript>
+</body>
+</html>

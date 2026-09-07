@@ -1,1077 +1,484 @@
-/* ===== claudeOne :: videogif.js =====
- * 视频转 GIF 工具 — 批量列表 + 逐个编辑
- * SPA lifecycle: window.__page_videogif
- *
- * 架构：
- *   - 主线程：视频解码 + 逐帧抽帧（<video> seek → canvas drawImage → getImageData）
- *   - Worker（videogif-worker.js）：gifenc 编码（quantize + LZW）
- *   - 取消/切换安全：AbortController + processRunId 代际计数
- */
+/* Video to GIF — per-file edits, abortable streaming conversion, SPA lifecycle. */
 ;(function () {
   'use strict'
+  var core = window.VideoGifCore
+  var common = window.ClaudeOne || {}
+  var esc = common.escapeHtml || function (s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] }) }
+  var container, lifecycle, dom = {}, files = [], selectedId = null, sequence = 0, task = null, playing = false, raf = 0
+  var clamp = core.clamp
+  function qs (s) { return container.querySelector(s) }
+  function on (el, type, fn) { if (el) el.addEventListener(type, fn, { signal: lifecycle.signal }) }
+  function current () { return files.find(function (f) { return f.id === selectedId }) }
+  function edit () { var f = current(); return f && f.edit }
+  function settingsKey (item) { try { return JSON.stringify(core.plan(item.edit, item)) } catch (e) { return '' } }
+  function fmt (n) { return n < 1048576 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(2) + ' MB' }
+  function time (s) { return Number(s).toFixed(2).replace(/0$/, '') }
+  function aborted () { return new DOMException('已取消', 'AbortError') }
+  function check (signal) { if (signal.aborted) throw aborted() }
+  function message (text, error) { if (!container) return; dom.notice.textContent = text; dom.notice.dataset.error = error ? 'true' : 'false'; dom.notice.hidden = !text }
+  function releaseVideo (v) { v.pause(); v.removeAttribute('src'); v.load() }
+  function releaseFile (f) { f.controller.abort(); URL.revokeObjectURL(f.url); if (f.gif) URL.revokeObjectURL(f.gif.url) }
 
-  var container = null
-  var ac = null
-
-  var C = window.ClaudeOne || {}
-  var qs = function (s) { return container ? container.querySelector(s) : null }
-  var qsa = function (s) { return container ? Array.prototype.slice.call(container.querySelectorAll(s)) : [] }
-  var esc = C.escapeHtml || function (s) { return String(s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] }) }
-  var clamp = C.clamp || function (v, lo, hi) { return Math.min(hi, Math.max(lo, v)) }
-  var toast = C.toast || function () {}
-  var fmt = function (n) {
-    if (n < 1024) return n + ' B'
-    if (n < 1048576) return (n / 1024).toFixed(1) + ' KB'
-    return (n / 1048576).toFixed(2) + ' MB'
+  // Every media wait has an error path, timeout and abort cleanup, including same-time seeks.
+  function waitMedia (video, event, ready, signal, action) {
+    return new Promise(function (resolve, reject) {
+      var timer
+      function cleanup () { clearTimeout(timer); video.removeEventListener(event, ok); video.removeEventListener('error', fail); signal.removeEventListener('abort', cancel) }
+      function ok () { if (!ready()) return; cleanup(); resolve() }
+      function fail () { cleanup(); reject(new Error('浏览器无法解码此视频，请换用 H.264 MP4 或 WebM 文件')) }
+      function cancel () { cleanup(); reject(aborted()) }
+      if (signal.aborted) { reject(aborted()); return }
+      video.addEventListener(event, ok)
+      video.addEventListener('error', fail)
+      signal.addEventListener('abort', cancel, { once: true })
+      timer = setTimeout(function () { cleanup(); reject(new Error('读取视频超时，请尝试更短的视频或其他格式')) }, 15000)
+      try { if (action) action(); ok() } catch (e) { cleanup(); reject(e) }
+    })
   }
-  function fmtTime (s) {
-    if (!isFinite(s) || s < 0) s = 0
-    var m = Math.floor(s / 60)
-    var sec = Math.floor(s % 60)
-    var ms = Math.floor((s - Math.floor(s)) * 10)
-    return m + ':' + (sec < 10 ? '0' : '') + sec + '.' + ms
+  function seek (video, t, signal) {
+    if (!video.seeking && video.readyState >= 2 && Math.abs(video.currentTime - t) < 0.00001) { check(signal); return Promise.resolve() }
+    return waitMedia(video, 'seeked', function () { return !video.seeking && video.readyState >= 2 }, signal, function () { video.currentTime = t })
   }
-
-  /* ---- State ---- */
-  var state = {
-    files: [],            // [{id, file, name, size, type, duration, vw, vh, thumb, videoUrl, status, gif, error}]
-    selectedId: null,
-    processing: false,
-    aborted: false,
-    abortCtrl: null
-  }
-  var idSeq = 0
-  var processRunId = 0
-  var worker = null
-
-  /* 编辑器状态（按选中文件）——抽帧/编码运行期变量 */
-  var run = {
-    runId: 0,
-    cancel: false
-  }
-
-  /* DOM refs */
-  var dom = {}
-
-  /* ---- Worker ---- */
-  function ensureWorker () {
-    if (worker) return worker
+  async function readMeta (item) {
+    var v = document.createElement('video'), signal = item.controller.signal
+    v.preload = 'auto'; v.muted = true; v.playsInline = true
     try {
-      worker = new Worker('./js/videogif-worker.js')
-      worker.onmessage = onWorkerMessage
-      worker.onerror = function (e) {
-        toast('编码 Worker 出错: ' + (e.message || '未知错误'), 'err')
-      }
+      await waitMedia(v, 'loadeddata', function () { return v.readyState >= 2 }, signal, function () { v.src = item.url; v.load() })
+      check(signal)
+      if (!Number.isFinite(v.duration) || v.duration <= 0 || !v.videoWidth || !v.videoHeight) throw new Error('此视频缺少有效时长或画面信息，请重新导出为 MP4 / WebM')
+      item.vw = v.videoWidth; item.vh = v.videoHeight; item.duration = v.duration
+      item.edit = core.defaults(item.vw, item.vh, item.duration)
+      var canvas = document.createElement('canvas')
+      var scale = 96 / Math.max(item.vw, item.vh)
+      canvas.width = Math.max(1, Math.round(item.vw * scale)); canvas.height = Math.max(1, Math.round(item.vh * scale))
+      canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height)
+      item.thumb = canvas.toDataURL('image/jpeg', 0.65)
+      item.status = 'pending'
     } catch (e) {
-      worker = null
-      toast('无法启动编码 Worker', 'err')
-    }
-    return worker
-  }
-
-  function onWorkerMessage (e) {
-    var msg = e.data || {}
-    /* 启动期致命错误（无 id）：直接提示，不绑定具体运行 */
-    if (msg.type === 'error' && msg.id === undefined) {
-      toast('编码 Worker 不可用: ' + (msg.message || '未知错误'), 'err')
-      if (state.processing) onFail(msg.message || 'Worker 不可用')
-      return
-    }
-    if (msg.id !== run.runId) return /* 过期消息 */
-    if (msg.type === 'progress') {
-      if (dom.encodeFill) dom.encodeFill.style.width = ((msg.done / msg.total) * 100).toFixed(1) + '%'
-      if (dom.encodeText) dom.encodeText.textContent = '编码中 ' + msg.done + ' / ' + msg.total + ' 帧'
-    } else if (msg.type === 'done') {
-      onEncodeDone(msg.bytes)
-    } else if (msg.type === 'error') {
-      onFail('编码失败: ' + (msg.message || '未知错误'))
+      if (signal.aborted) return
+      item.status = 'error'; item.error = e.message
+    } finally { releaseVideo(v) }
+    if (!signal.aborted && container) {
+      renderFiles()
+      if (selectedId === item.id) selectFile(item.id, true)
     }
   }
-
-  /* ---- DOM 收集 ---- */
-  function collectDom () {
-    dom.zone = qs('[data-vg-upload]')
-    dom.fileInput = qs('[data-vg-file-input]')
-    dom.fileList = qs('[data-vg-file-list]')
-    dom.batchBtn = qs('[data-vg-batch]')
-    dom.clearBtn = qs('[data-vg-clear]')
-    dom.editor = qs('[data-vg-editor]')
-    dom.emptyHint = qs('[data-vg-empty]')
-    dom.editorBody = qs('[data-vg-editor-body]')
-    dom.video = qs('[data-vg-video]')
-    dom.stage = qs('[data-vg-stage]')
-    dom.cropLayer = qs('[data-vg-crop-layer]')
-    dom.cropRect = qs('[data-vg-crop-rect]')
-    dom.cropHandles = qs('[data-vg-crop-handles]')
-    dom.cropInfo = qs('[data-vg-crop-info]')
-    dom.resetCropBtn = qs('[data-vg-reset-crop]')
-    dom.timelineTrack = qs('[data-vg-timeline]')
-    dom.rangeStart = qs('[data-vg-range-start]')
-    dom.rangeEnd = qs('[data-vg-range-end]')
-    dom.playhead = qs('[data-vg-playhead]')
-    dom.startInput = qs('[data-vg-start-input]')
-    dom.endInput = qs('[data-vg-end-input]')
-    dom.playSelBtn = qs('[data-vg-play-sel]')
-    dom.fpsSlider = qs('[data-vg-fps]')
-    dom.fpsVal = qs('[data-vg-fps-val]')
-    dom.sizeGroup = qs('[data-vg-size-group]')
-    dom.manualWidth = qs('[data-vg-manual-width]')
-    dom.manualHeight = qs('[data-vg-manual-height]')
-    dom.keepRatio = qs('[data-vg-switch-keepratio]')
-    dom.colorGroup = qs('[data-vg-color-group]')
-    dom.formatGroup = qs('[data-vg-format-group]')
-    dom.loopGroup = qs('[data-vg-loop-group]')
-    dom.presetGroup = qs('[data-vg-preset-group]')
-    dom.genBtn = qs('[data-vg-generate]')
-    dom.cancelBtn = qs('[data-vg-cancel]')
-    dom.extractWrap = qs('[data-vg-extract-wrap]')
-    dom.extractFill = qs('[data-vg-extract-fill]')
-    dom.extractText = qs('[data-vg-extract-text]')
-    dom.encodeWrap = qs('[data-vg-encode-wrap]')
-    dom.encodeFill = qs('[data-vg-encode-fill]')
-    dom.encodeText = qs('[data-vg-encode-text]')
-    dom.resultWrap = qs('[data-vg-result-wrap]')
-    dom.resultImg = qs('[data-vg-result-img]')
-    dom.resultInfo = qs('[data-vg-result-info]')
-    dom.downloadBtn = qs('[data-vg-download]')
-    dom.regenBtn = qs('[data-vg-regenerate]')
-    dom.curName = qs('[data-vg-cur-name]')
-    dom.curMeta = qs('[data-vg-cur-meta]')
+  function addFiles (incoming) {
+    if (task) return
+    var added = [], skipped = 0, duplicates = 0
+    Array.from(incoming).forEach(function (file) {
+      if (!file.type.startsWith('video/') && !/\.(mp4|m4v|webm|mov|mkv|avi|ogv)$/i.test(file.name)) { skipped++; return }
+      if (files.some(function (f) { return f.name === file.name && f.file.size === file.size && f.file.lastModified === file.lastModified })) { duplicates++; return }
+      var item = { id: ++sequence, file: file, name: file.name, url: URL.createObjectURL(file), status: 'loading', error: '', gif: null, edit: null, controller: new AbortController() }
+      files.push(item); added.push(item)
+      item.ready = readMeta(item)
+    })
+    if (added.length) selectFile(added[0].id)
+    renderFiles()
+    message((skipped ? '已跳过 ' + skipped + ' 个非视频文件。' : '') + (duplicates ? '已跳过 ' + duplicates + ' 个重复文件。' : ''))
   }
-
-  /* ---- 文件列表 ---- */
-  function addFiles (fileArr) {
-    var added = 0
-    for (var i = 0; i < fileArr.length; i++) {
-      var f = fileArr[i]
-      if (!f.type.startsWith('video/')) continue
-      if (state.files.some(function (x) { return x.name === f.name && x.size === f.size })) continue
-      var id = ++idSeq
-      var url = URL.createObjectURL(f)
-      var item = {
-        id: id, file: f, name: f.name, size: f.size, type: f.type,
-        videoUrl: url, thumb: '', duration: 0, vw: 0, vh: 0,
-        status: 'pending', gif: null, error: ''
-      }
-      state.files.push(item)
-      added++
-      loadMeta(item)
-    }
-    if (added) {
-      renderFileList()
-      /* 拖入文件后直接默认开启编辑第一个文件，无需用户手动点编辑 */
-      selectFile(state.files[0].id)
-    } else {
-      toast('未添加视频文件（仅支持视频格式）', 'err')
-    }
-  }
-
-  function loadMeta (item) {
-    var v = document.createElement('video')
-    v.preload = 'metadata'
-    v.muted = true
-    v.src = item.videoUrl
-    var done = false
-    v.onloadedmetadata = function () {
-      if (done || !container) return
-      done = true
-      item.duration = v.duration || 0
-      item.vw = v.videoWidth || 0
-      item.vh = v.videoHeight || 0
-      /* 生成首帧缩略图 */
-      try {
-        v.currentTime = Math.min(0.1, (item.duration || 1) * 0.05)
-      } catch (e) { /* ignore */ }
-    }
-    v.onseeked = function () {
-      if (!container) return
-      try {
-        var c = document.createElement('canvas')
-        var tw = 96, th = Math.max(1, Math.round(tw * (item.vh || 1) / (item.vw || 1)))
-        c.width = tw; c.height = th
-        var cx = c.getContext('2d')
-        cx.drawImage(v, 0, 0, tw, th)
-        item.thumb = c.toDataURL('image/jpeg', 0.6)
-      } catch (e) { /* 某些格式无法截帧，留空 */ }
-      renderFileList()
-    }
-    v.onerror = function () {
-      if (done || !container) return
-      done = true
-      item.status = 'error'
-      item.error = '无法读取视频'
-      renderFileList()
-    }
-  }
-
-  function removeFile (id) {
-    var idx = state.files.findIndex(function (x) { return x.id === id })
-    if (idx < 0) return
-    var item = state.files[idx]
-    URL.revokeObjectURL(item.videoUrl)
-    if (item.gif) URL.revokeObjectURL(item.gif.url)
-    state.files.splice(idx, 1)
-    if (state.selectedId === id) {
-      state.selectedId = state.files.length ? state.files[0].id : null
-      selectFile(state.selectedId)
-    }
-    renderFileList()
-  }
-
-  function renderFileList () {
-    if (!dom.fileList) return
-    if (!state.files.length) { dom.fileList.innerHTML = ''; return }
-    dom.fileList.innerHTML = state.files.map(function (f) {
-      var statusLabel, statusCls
-      if (f.status === 'done') { statusLabel = '已生成'; statusCls = 'done' }
-      else if (f.status === 'error') { statusLabel = f.error || '失败'; statusCls = 'error' }
-      else if (f.status === 'processing') { statusLabel = '处理中'; statusCls = 'processing' }
-      else { statusLabel = '待编辑'; statusCls = 'pending' }
-      var sel = f.id === state.selectedId ? ' data-selected="true"' : ''
-      var thumbHtml = f.thumb
-        ? '<img class="vg-file-item__thumb" src="' + f.thumb + '" alt="" />'
-        : '<span class="vg-file-item__thumb vg-file-item__thumb--ph">&#127916;</span>'
-      var meta = (f.vw ? f.vw + 'x' + f.vh : '—') + ' · ' + (f.duration ? fmtTime(f.duration) : '—') + ' · ' + fmt(f.size)
-      return '<div class="vg-file-item" data-fid="' + f.id + '"' + sel + '>' +
-        thumbHtml +
-        '<div class="vg-file-item__info">' +
-          '<div class="vg-file-item__name">' + esc(f.name) + '</div>' +
-          '<div class="vg-file-item__meta">' + meta + '</div>' +
-          '<span class="vg-file-item__status" data-status="' + statusCls + '">' + esc(statusLabel) + '</span>' +
-        '</div>' +
-        '<div class="vg-file-item__actions">' +
-          '<button class="vg-file-item__btn" data-edit="' + f.id + '" type="button" title="编辑">编辑</button>' +
-          '<button class="vg-file-item__btn vg-file-item__btn--danger" data-remove="' + f.id + '" type="button" title="移除">&times;</button>' +
-        '</div>' +
-      '</div>'
+  function renderFiles () {
+    if (!container) return
+    dom.fileList.innerHTML = files.map(function (f) {
+      var labels = { loading: '读取中', pending: f.gif ? '设置已修改' : '待生成', processing: '生成中', done: '已生成', error: '无法生成' }
+      return '<div class="vg-file-item" data-selected="' + (f.id === selectedId) + '">' +
+        (f.thumb ? '<img class="vg-file-item__thumb" src="' + f.thumb + '" alt="" />' : '<span class="vg-file-item__thumb vg-file-item__thumb--ph" aria-hidden="true">▶</span>') +
+        '<button type="button" class="vg-file-item__info" data-select="' + f.id + '" aria-pressed="' + (f.id === selectedId) + '"' + (task ? ' disabled' : '') + '><span class="vg-file-item__name">' + esc(f.name) + '</span><span class="vg-file-item__meta">' + (f.duration ? time(f.duration) + ' 秒 · ' : '') + fmt(f.file.size) + '</span><span class="vg-file-item__status" data-status="' + f.status + '">' + labels[f.status] + '</span></button>' +
+        '<button type="button" class="vg-file-item__btn vg-file-item__btn--danger" data-remove="' + f.id + '" aria-label="移除 ' + esc(f.name) + '"' + (task ? ' disabled' : '') + '>×</button></div>'
     }).join('')
+    dom.batch.hidden = files.length < 2
+    dom.batch.disabled = !!task || !files.some(function (f) { return f.status !== 'done' })
+    dom.clear.hidden = !files.length
+    dom.clear.disabled = !!task
+    dom.fileInput.disabled = !!task
+    dom.fileCount.textContent = files.length ? files.length + ' 个视频 · 设置分别保存' : '支持多选，所有处理均在本地完成'
   }
-
-  /* ---- 选中文件 → 进入编辑器 ---- */
-  function selectFile (id) {
-    /* 停止当前抽帧/播放 */
+  function selectFile (id, internal) {
+    if (task && !internal) return
     stopPlayback()
-    cancelRun()
-    state.selectedId = id
-    renderFileList()
-
-    var item = id ? state.files.find(function (x) { return x.id === id }) : null
-    if (!item) {
-      if (dom.editorBody) dom.editorBody.hidden = true
-      if (dom.emptyHint) dom.emptyHint.hidden = false
-      if (dom.video) { dom.video.removeAttribute('src'); dom.video.load() }
-      if (dom.stage) dom.stage.style.aspectRatio = ''
-      hideResult()
-      return
-    }
-
-    if (dom.emptyHint) dom.emptyHint.hidden = true
-    if (dom.editorBody) dom.editorBody.hidden = false
-    if (dom.curName) dom.curName.textContent = item.name
-    if (dom.curMeta) dom.curMeta.textContent = (item.vw ? item.vw + ' × ' + item.vh : '—') + ' · ' + fmtTime(item.duration) + ' · ' + fmt(item.size)
-
-    /* 重置编辑状态 */
-    editorState = {
-      vw: item.vw, vh: item.vh, duration: item.duration,
-      /* 裁剪矩形（原始像素坐标） */
-      crop: { x: 0, y: 0, w: item.vw, h: item.vh },
-      /* 选段时间 */
-      start: 0, end: item.duration,
-      playing: false, playRaf: 0
-    }
-    applyDefaultSize()
-    loadVideoIntoStage(item)
-    renderTimeline()
-    renderCropRect()
-    if (item.status === 'done' && item.gif) showResult(item); else hideResult()
-  }
-
-  /* 编辑器临时状态 */
-  var editorState = null
-
-  function curItem () {
-    return state.selectedId ? state.files.find(function (x) { return x.id === state.selectedId }) : null
-  }
-
-  function applyDefaultSize () {
-    if (!editorState) return
-    /* 默认「原尺寸」被选中；尺寸选择已在模板里 default active */
-    updateManualSize()
-  }
-
-  function loadVideoIntoStage (item) {
-    if (!dom.video) return
-    dom.video.src = item.videoUrl
-    dom.video.muted = true
+    selectedId = id
+    var item = current()
+    if (!internal) message(item && item.error || '', !!(item && item.error))
+    dom.editorBody.hidden = !item || !item.edit
+    dom.empty.hidden = !!(item && item.edit)
+    dom.emptyText.textContent = !item ? '选一个视频，把精彩片段变成 GIF' : item.status === 'loading' ? '正在读取视频…' : item.error
+    renderFiles()
+    if (!item || !item.edit) { releaseVideo(dom.video); return }
+    dom.curName.textContent = item.name
+    dom.curMeta.textContent = item.vw + ' × ' + item.vh + ' · ' + time(item.duration) + ' 秒'
+    dom.video.src = item.url
+    dom.video.poster = item.thumb || ''
     dom.video.load()
-    /* 若元数据已知，立即适配舞台宽高比；否则等 loadedmetadata 事件 */
-    if (item.vw && item.vh) applyStageAspect()
+    dom.stageInner.style.aspectRatio = item.vw + ' / ' + item.vh
+    dom.stageInner.style.width = 'min(100%, ' + (340 * item.vw / item.vh) + 'px)'
+    renderEdit()
+    renderResult()
   }
-
-  /* 舞台按视频真实宽高比自适应，避免固定 16:9 导致不同尺寸视频 letterbox 错位 */
-  function applyStageAspect () {
-    if (!dom.stage || !dom.video) return
-    var vw = dom.video.videoWidth, vh = dom.video.videoHeight
-    if (vw && vh) {
-      dom.stage.style.aspectRatio = vw + ' / ' + vh
-    }
-  }
-
-  /* ---- 尺寸计算 ---- */
-  function getOutSize () {
-    if (!editorState) return { w: 0, h: 0 }
-    var cw = editorState.crop.w, ch = editorState.crop.h
-    if (!cw || !ch) return { w: 0, h: 0 }
-    var sel = dom.sizeGroup ? dom.sizeGroup.querySelector('[data-vg-size][data-active="true"]') : null
-    var max = 0
-    if (sel) {
-      var v = sel.getAttribute('data-vg-size')
-      if (v === 'custom') {
-        var mw = parseInt(dom.manualWidth.value) || 0
-        var mh = parseInt(dom.manualHeight.value) || 0
-        var keep = dom.keepRatio && dom.keepRatio.checked
-        if (mw && mh) return { w: mw, h: mh }
-        if (mw && keep) return { w: mw, h: Math.round(ch * mw / cw) }
-        if (mh && keep) return { w: Math.round(cw * mh / ch), h: mh }
-        if (mw) return { w: mw, h: Math.round(ch * mw / cw) }
-        if (mh) return { w: Math.round(cw * mh / ch), h: mh }
-        return { w: cw, h: ch }
-      }
-      max = parseInt(v) || 0
-    }
-    if (max > 0) {
-      var s = max / Math.max(cw, ch)
-      if (s < 1) return { w: Math.round(cw * s), h: Math.round(ch * s) }
-    }
-    return { w: cw, h: ch }
-  }
-
-  function updateManualSize () {
-    if (!editorState || !dom.manualWidth || !dom.manualHeight) return
-    var cw = editorState.crop.w, ch = editorState.crop.h
-    var sel = dom.sizeGroup ? dom.sizeGroup.querySelector('[data-vg-size][data-active="true"]') : null
-    var isCustom = sel && sel.getAttribute('data-vg-size') === 'custom'
-    dom.manualWidth.placeholder = cw || ''
-    dom.manualHeight.placeholder = ch || ''
-    dom.manualWidth.disabled = !isCustom
-    dom.manualHeight.disabled = !isCustom
-  }
-
-  /* ---- 时间轴 ---- */
-  function renderTimeline () {
-    if (!editorState || !dom.timelineTrack) return
-    var dur = editorState.duration || 0
-    if (dom.startInput) dom.startInput.max = dur.toFixed(2)
-    if (dom.endInput) dom.endInput.max = dur.toFixed(2)
-    if (dom.startInput) dom.startInput.value = editorState.start.toFixed(2)
-    if (dom.endInput) dom.endInput.value = editorState.end.toFixed(2)
-    moveRangeHandles()
-  }
-
-  function moveRangeHandles () {
-    if (!editorState || !dom.rangeStart || !dom.rangeEnd) return
-    var dur = editorState.duration || 0
-    var sp = dur ? (editorState.start / dur) * 100 : 0
-    var ep = dur ? (editorState.end / dur) * 100 : 100
-    dom.rangeStart.style.left = sp + '%'
-    dom.rangeEnd.style.left = ep + '%'
-    /* 选中区间高亮条 */
-    if (dom.timelineTrack) {
-      dom.timelineTrack.style.setProperty('--vg-sel-start', sp + '%')
-      dom.timelineTrack.style.setProperty('--vg-sel-end', ep + '%')
-    }
-  }
-
-  function movePlayhead (t) {
-    if (!dom.playhead) return
-    var dur = editorState ? (editorState.duration || 0) : 0
-    var p = dur ? clamp(t / dur, 0, 1) * 100 : 0
-    dom.playhead.style.left = p + '%'
-  }
-
-  /* 拖动时间轴把手 */
-  function bindTimelineDrag () {
-    function dragHandle (handle, which) {
-      var dragging = false
-      on(handle, 'pointerdown', function (e) {
-        if (!editorState) return
-        e.preventDefault()
-        dragging = true
-        handle.setPointerCapture(e.pointerId)
-      })
-      on(handle, 'pointermove', function (e) {
-        if (!dragging || !editorState) return
-        var dur = editorState.duration || 0
-        var rect = dom.timelineTrack.getBoundingClientRect()
-        var p = clamp((e.clientX - rect.left) / rect.width, 0, 1)
-        var t = p * dur
-        if (which === 'start') {
-          editorState.start = clamp(t, 0, editorState.end - 0.05)
-        } else {
-          editorState.end = clamp(t, editorState.start + 0.05, dur)
-        }
-        if (dom.startInput) dom.startInput.value = editorState.start.toFixed(2)
-        if (dom.endInput) dom.endInput.value = editorState.end.toFixed(2)
-        moveRangeHandles()
-      })
-      var stopDrag = function (e) {
-        if (!dragging) return
-        dragging = false
-        if (e && handle.releasePointerCapture && e.pointerId !== undefined) {
-          try { handle.releasePointerCapture(e.pointerId) } catch (err) {}
-        }
-      }
-      on(handle, 'pointerup', stopDrag)
-      on(handle, 'pointercancel', stopDrag)
-    }
-    if (dom.rangeStart) dragHandle(dom.rangeStart, 'start')
-    if (dom.rangeEnd) dragHandle(dom.rangeEnd, 'end')
-
-    /* 点击轨道定位播放头 */
-    on(dom.timelineTrack, 'click', function (e) {
-      if (!editorState) return
-      if (e.target === dom.rangeStart || e.target === dom.rangeEnd) return
-      var rect = dom.timelineTrack.getBoundingClientRect()
-      var p = clamp((e.clientX - rect.left) / rect.width, 0, 1)
-      var t = p * (editorState.duration || 0)
-      if (dom.video) { try { dom.video.currentTime = t } catch (err) {} }
-      movePlayhead(t)
+  function activate (group, attribute, value) {
+    group.querySelectorAll('[' + attribute + ']').forEach(function (button) {
+      var active = button.getAttribute(attribute) === String(value)
+      button.dataset.active = String(active); button.setAttribute('aria-pressed', String(active))
     })
   }
-
-  /* 选中片段循环播放 */
-  function togglePlaySel () {
-    if (!editorState || !dom.video) return
-    if (editorState.playing) { stopPlayback(); return }
-    var v = dom.video
-    editorState.playing = true
-    if (dom.playSelBtn) dom.playSelBtn.textContent = '停止预览'
-    try {
-      v.currentTime = editorState.start
-    } catch (e) {}
-    /* 先启动播放头循环，避免 play() promise 延迟/拒绝导致进度条不动 */
-    tickPlay()
-    var p = v.play()
-    if (p && typeof p.then === 'function') {
-      p.catch(function () {
-        /* 播放被阻止：回滚状态 */
-        if (editorState && editorState.playing) stopPlayback()
-      })
-    }
+  function renderEdit () {
+    var e = edit(), item = current()
+    if (!e) return
+    dom.start.value = time(e.start); dom.end.value = time(e.end)
+    dom.start.max = item.duration; dom.end.max = item.duration
+    dom.fps.value = e.fps; dom.fpsVal.textContent = e.fps
+    dom.width.value = e.width; dom.height.value = e.height; dom.keepRatio.checked = e.keepRatio
+    dom.width.placeholder = Math.round(e.crop.w); dom.height.placeholder = Math.round(e.crop.h)
+    dom.custom.hidden = e.size !== 'custom'
+    dom.cropToggle.setAttribute('aria-pressed', String(e.cropEnabled))
+    dom.cropToggle.textContent = e.cropEnabled ? '完成裁剪' : '裁剪画面'
+    dom.cropRect.hidden = !e.cropEnabled; dom.cropLayer.hidden = !e.cropEnabled; dom.cropFields.hidden = !e.cropEnabled
+    activate(dom.presets, 'data-vg-preset', e.preset)
+    activate(dom.sizes, 'data-vg-size', e.size)
+    activate(dom.colors, 'data-vg-color', e.colors)
+    activate(dom.loops, 'data-vg-loop', e.loop)
+    renderTimeline(); renderCrop(); renderSummary()
   }
-
-  function tickPlay () {
-    if (!editorState || !editorState.playing) return
-    var v = dom.video
-    if (v.currentTime >= editorState.end - 0.02) {
-      v.currentTime = editorState.start
-    }
-    movePlayhead(v.currentTime)
-    editorState.playRaf = requestAnimationFrame(tickPlay)
-  }
-
-  function stopPlayback () {
-    if (!editorState) return
-    if (editorState.playing) {
-      editorState.playing = false
-      if (dom.video) { try { dom.video.pause() } catch (e) {} }
-      if (dom.playSelBtn) dom.playSelBtn.textContent = '播放所选片段'
-    }
-    if (editorState.playRaf) { cancelAnimationFrame(editorState.playRaf); editorState.playRaf = 0 }
-  }
-
-  /* ---- 裁剪矩形 ---- */
-  function renderCropRect () {
-    if (!editorState || !dom.cropRect || !dom.stage) return
-    var cw = editorState.crop.w, ch = editorState.crop.h, cx = editorState.crop.x, cy = editorState.crop.y
-    var vw = editorState.vw, vh = editorState.vh
-    if (!vw || !vh) return
-    var lp = (cx / vw) * 100, tp = (cy / vh) * 100, wp = (cw / vw) * 100, hp = (ch / vh) * 100
-    var rp = lp + wp, bp = tp + hp
-    dom.cropRect.style.left = lp + '%'
-    dom.cropRect.style.top = tp + '%'
-    dom.cropRect.style.width = wp + '%'
-    dom.cropRect.style.height = hp + '%'
-    /* 裁剪层遮罩镂空：外圈顺时针绕整层，内圈逆时针绕裁剪框，
-     * 借 evenodd 规则挖空裁剪框区域，遮罩只盖在裁剪框之外。 */
-    if (dom.cropLayer) {
-      var pts = [
-        '0% 0%', '100% 0%', '100% 100%', '0% 100%', '0% 0%',      /* 外圈（顺时针） */
-        lp + '% ' + tp + '%', lp + '% ' + bp + '%',                /* 内圈（逆时针） */
-        rp + '% ' + bp + '%', rp + '% ' + tp + '%', lp + '% ' + tp + '%'
-      ].join(', ')
-      dom.cropLayer.style.clipPath = 'polygon(' + pts + ')'
-      dom.cropLayer.style.webkitClipPath = 'polygon(' + pts + ')'
-    }
-    if (dom.cropInfo) dom.cropInfo.textContent = Math.round(cw) + ' × ' + Math.round(ch) + ' px（原始坐标）'
-  }
-
-  /* 裁剪拖拽：8 个把手 + 中间区域移动 */
-  function bindCropDrag () {
-    var handles = dom.cropHandles ? dom.cropHandles.querySelectorAll('[data-vg-handle]') : []
-    var mode = null
-    var startX = 0, startY = 0, orig = null
-
-    function onDown (e, m) {
-      if (!editorState) return
-      e.preventDefault()
-      e.stopPropagation()
-      mode = m
-      startX = e.clientX; startY = e.clientY
-      orig = {
-        x: editorState.crop.x, y: editorState.crop.y,
-        w: editorState.crop.w, h: editorState.crop.h,
-        vw: editorState.vw, vh: editorState.vh
-      }
-      if (e.currentTarget.setPointerCapture && e.pointerId !== undefined) {
-        try { e.currentTarget.setPointerCapture(e.pointerId) } catch (err) {}
-      }
-    }
-    function onMove (e) {
-      if (!mode || !editorState || !orig) return
-      var rect = dom.stage.getBoundingClientRect()
-      var dx = (e.clientX - startX) / rect.width * orig.vw
-      var dy = (e.clientY - startY) / rect.height * orig.vh
-      var nx = orig.x, ny = orig.y, nw = orig.w, nh = orig.h
-      var minSize = 20
-      if (mode.indexOf('e') >= 0) nw = clamp(orig.w + dx, minSize, orig.vw - orig.x)
-      if (mode.indexOf('s') >= 0) nh = clamp(orig.h + dy, minSize, orig.vh - orig.y)
-      if (mode.indexOf('w') >= 0) {
-        var maxDx = orig.w - minSize
-        var realDx = clamp(dx, -orig.x, maxDx)
-        nx = orig.x + realDx; nw = orig.w - realDx
-      }
-      if (mode.indexOf('n') >= 0) {
-        var maxDy = orig.h - minSize
-        var realDy = clamp(dy, -orig.y, maxDy)
-        ny = orig.y + realDy; nh = orig.h - realDy
-      }
-      if (mode === 'move') {
-        nx = clamp(orig.x + dx, 0, orig.vw - orig.w)
-        ny = clamp(orig.y + dy, 0, orig.vh - orig.h)
-      }
-      editorState.crop = { x: nx, y: ny, w: nw, h: nh }
-      renderCropRect()
-      updateManualSize()
-    }
-    function onUp (e) {
-      if (!mode) return
-      mode = null
-      if (e && e.currentTarget && e.currentTarget.releasePointerCapture && e.pointerId !== undefined) {
-        try { e.currentTarget.releasePointerCapture(e.pointerId) } catch (err) {}
-      }
-    }
-    handles.forEach(function (h) {
-      var m = h.getAttribute('data-vg-handle')
-      on(h, 'pointerdown', function (e) { onDown(e, m) })
-      on(h, 'pointermove', onMove)
-      on(h, 'pointerup', onUp)
-      on(h, 'pointercancel', onUp)
-    })
-    /* 中间矩形整体移动 */
-    if (dom.cropRect) {
-      on(dom.cropRect, 'pointerdown', function (e) { onDown(e, 'move') })
-      on(dom.cropRect, 'pointermove', onMove)
-      on(dom.cropRect, 'pointerup', onUp)
-      on(dom.cropRect, 'pointercancel', onUp)
-    }
-  }
-
-  function resetCrop () {
-    if (!editorState) return
-    editorState.crop = { x: 0, y: 0, w: editorState.vw, h: editorState.vh }
-    renderCropRect()
-    updateManualSize()
-  }
-
-  /* ---- 参数读取 ---- */
-  function getParams () {
-    var fps = dom.fpsSlider ? parseInt(dom.fpsSlider.value) : 15
-    var out = getOutSize()
-    var colorSel = dom.colorGroup ? dom.colorGroup.querySelector('[data-vg-color][data-active="true"]') : null
-    var maxColors = colorSel ? parseInt(colorSel.getAttribute('data-vg-color')) : 256
-    var fmtSel = dom.formatGroup ? dom.formatGroup.querySelector('[data-vg-format][data-active="true"]') : null
-    var format = fmtSel ? fmtSel.getAttribute('data-vg-format') : 'rgb565'
-    var loopSel = dom.loopGroup ? dom.loopGroup.querySelector('[data-vg-loop][data-active="true"]') : null
-    var repeat = loopSel ? parseInt(loopSel.getAttribute('data-vg-loop')) : 0
-    return {
-      fps: fps,
-      outW: out.w, outH: out.h,
-      maxColors: maxColors,
-      format: format,
-      repeat: repeat,
-      delay: Math.round(1000 / fps)
-    }
-  }
-
-  /* ---- 预设 ---- */
-  function applyPreset (preset) {
-    /* preset: smooth | standard | small | sticker */
-    var map = {
-      smooth: { fps: 24, color: 256, format: 'rgb565', size: '0' },
-      standard: { fps: 15, color: 128, format: 'rgb565', size: '480' },
-      small: { fps: 10, color: 64, format: 'rgb565', size: '360' },
-      sticker: { fps: 8, color: 32, format: 'rgb565', size: '240' }
-    }
-    var p = map[preset]
-    if (!p) return
-    if (dom.fpsSlider) { dom.fpsSlider.value = p.fps; if (dom.fpsVal) dom.fpsVal.textContent = p.fps }
-    setSegActive(dom.colorGroup, '[data-vg-color]', p.color, function (el) { return el.getAttribute('data-vg-color') === String(p.color) })
-    setSegActive(dom.formatGroup, '[data-vg-format]', p.format, function (el) { return el.getAttribute('data-vg-format') === p.format })
-    setSegActive(dom.sizeGroup, '[data-vg-size]', p.size, function (el) { return el.getAttribute('data-vg-size') === p.size })
-    updateManualSize()
-  }
-
-  function setSegActive (group, selector, _val, matchFn) {
-    if (!group) return
-    var pills = group.querySelectorAll(selector)
-    pills.forEach(function (el) {
-      el.setAttribute('data-active', matchFn(el) ? 'true' : 'false')
-    })
-  }
-
-  /* ---- 生成流程 ---- */
-  function generate () {
-    var item = curItem()
-    if (!item) { toast('请先选择视频', 'err'); return }
-    if (state.processing) { toast('正在处理中，请先取消', 'err'); return }
-    if (!editorState || !editorState.vw) { toast('视频尚未就绪', 'err'); return }
-
-    var params = getParams()
-    if (!params.outW || !params.outH) { toast('输出尺寸无效', 'err'); return }
-    if (editorState.end - editorState.start < 0.05) { toast('选段过短', 'err'); return }
-
-    stopPlayback()
-    state.processing = true
-    state.aborted = false
-    run.cancel = false
-    var runId = ++processRunId
-    run.runId = runId
-    var msgId = runId
-    if (dom.genBtn) dom.genBtn.hidden = true
-    if (dom.cancelBtn) dom.cancelBtn.hidden = false
-    if (dom.extractWrap) dom.extractWrap.hidden = false
-    if (dom.encodeWrap) dom.encodeWrap.hidden = true
-    if (dom.resultWrap) dom.resultWrap.hidden = true
-    setExtract(0, '准备抽帧...')
-    item.status = 'processing'
-    renderFileList()
-
-    extractAndEncode(item, params, runId, msgId)
-  }
-
-  function setExtract (pct, text) {
-    if (dom.extractFill) dom.extractFill.style.width = pct.toFixed(1) + '%'
-    if (dom.extractText) dom.extractText.textContent = text
-  }
-  function setEncode (pct, text) {
-    if (dom.encodeFill) dom.encodeFill.style.width = pct.toFixed(1) + '%'
-    if (dom.encodeText) dom.encodeText.textContent = text
-  }
-
-  function extractAndEncode (item, params, runId, msgId) {
-    var v = dom.video
-    if (!v) { onFail('视频元素缺失'); return }
-    /* 计算时间点 */
-    var start = editorState.start
-    var end = editorState.end
-    var step = 1 / params.fps
-    var times = []
-    for (var t = start; t <= end - 0.001; t += step) times.push(t)
-    /* 至少 1 帧 */
-    if (!times.length) times = [start]
-    var total = times.length
-    var frames = []
-    var idx = 0
-    var canvas = document.createElement('canvas')
-    canvas.width = params.outW; canvas.height = params.outH
-    var ctx = canvas.getContext('2d', { willReadFrequently: true })
-
-    function seekNext () {
-      if (!container || runId !== processRunId || run.cancel) { cleanup(); return }
-      if (idx >= total) {
-        cleanup()
-        startEncode(frames, params, runId, msgId)
-        return
-      }
-      var time = times[idx]
-      var onSeeked = function () {
-        v.removeEventListener('seeked', onSeeked)
-        v.removeEventListener('error', onErr)
-        if (!container || runId !== processRunId || run.cancel) { cleanup(); return }
-        try {
-          /* drawImage 源矩形 = 裁剪矩形（原始像素），目标 = 输出尺寸 */
-          ctx.drawImage(v,
-            editorState.crop.x, editorState.crop.y, editorState.crop.w, editorState.crop.h,
-            0, 0, params.outW, params.outH)
-          var imgData = ctx.getImageData(0, 0, params.outW, params.outH)
-          frames.push(imgData.data)
-        } catch (e) {
-          cleanup()
-          onFail('抽帧失败: ' + (e.message || '未知错误'))
-          return
-        }
-        idx++
-        setExtract((idx / total) * 100, '抽帧 ' + idx + ' / ' + total)
-        /* 让出事件循环，避免 UI 卡死 */
-        setTimeout(seekNext, 0)
-      }
-      var onErr = function () {
-        v.removeEventListener('seeked', onSeeked)
-        v.removeEventListener('error', onErr)
-        cleanup()
-        onFail('视频跳转失败，可能该时间点无法解码')
-      }
-      v.addEventListener('seeked', onSeeked)
-      v.addEventListener('error', onErr)
-      try { v.currentTime = time } catch (e) { onErr() }
-    }
-    function cleanup () { /* 占位，未来扩展 */ }
-
-    /* 确保视频已加载到该源 */
-    var onReady = function () {
-      v.removeEventListener('loadeddata', onReady)
-      seekNext()
-    }
-    if (v.readyState >= 2) { seekNext() }
-    else {
-      v.addEventListener('loadeddata', onReady)
-      try { v.load() } catch (e) {}
-    }
-  }
-
-  function startEncode (frames, params, runId, msgId) {
-    if (!container || runId !== processRunId || run.cancel) return
-    if (!frames.length) { onFail('未能提取到任何帧'); return }
-    if (dom.extractWrap) dom.extractWrap.hidden = true
-    if (dom.encodeWrap) dom.encodeWrap.hidden = false
-    setEncode(0, '编码中 0 / ' + frames.length + ' 帧')
-    var w = ensureWorker()
-    if (!w) { onFail('编码 Worker 不可用'); return }
-    /* 用 msgId 作为 worker 消息 id，与 onWorkerMessage 里的 run.runId 对比 */
-    run.runId = msgId
-    /* gifenc 在 worker 内部处理；传输帧的 ArrayBuffer 不可转移（getImageData 的 data 是副本，但为安全起见复制一份） */
-    var transferFrames = frames.map(function (f) {
-      /* f 是 Uint8ClampedArray；构造可转移的 ArrayBuffer 副本 */
-      var buf = new ArrayBuffer(f.length)
-      new Uint8Array(buf).set(f)
-      return buf
-    })
-    /* 将 ArrayBuffer 包装回 Uint8Array 给 worker（worker 内按 Uint8Array 用） */
-    var frameViews = transferFrames.map(function (b) { return new Uint8Array(b) })
-    var transferList = transferFrames
-    w.postMessage({
-      id: msgId, type: 'encode',
-      frames: frameViews,
-      width: params.outW, height: params.outH,
-      delay: params.delay, repeat: params.repeat,
-      maxColors: params.maxColors, format: params.format
-    }, transferList)
-  }
-
-  function onEncodeDone (bytesBuf) {
-    var item = curItem()
-    if (!item) return
-    var bytes = new Uint8Array(bytesBuf)
-    var blob = new Blob([bytes], { type: 'image/gif' })
-    if (item.gif) URL.revokeObjectURL(item.gif.url)
-    item.gif = {
-      url: URL.createObjectURL(blob),
-      size: blob.size,
-      frames: 0,
-      duration: editorState.end - editorState.start
-    }
-    /* 帧数无法从 bytes 反推，用抽帧总数近似；此处用 resultInfo 展示估算 */
-    item.status = 'done'
+  function changed (custom) {
+    var item = current()
+    if (!item || !item.edit) return
+    if (custom) item.edit.preset = ''
+    if (item.gif) item.status = settingsKey(item) === item.gif.settings ? 'done' : 'pending'
+    else item.status = 'pending'
     item.error = ''
-    finishRun()
-    showResult(item)
-    renderFileList()
-    toast('GIF 生成完成 (' + fmt(blob.size) + ')', 'ok')
+    renderSummary(); renderResult(); renderFiles()
   }
-
-  function onFail (message) {
-    var item = curItem()
-    if (item) { item.status = 'error'; item.error = message; renderFileList() }
-    finishRun()
-    toast(message, 'err')
+  function renderSummary () {
+    var item = current()
+    if (!item || !item.edit) return
+    var text, invalid = false
+    try {
+      var p = core.plan(item.edit, item)
+      text = time(p.duration) + ' 秒 · ' + p.width + ' × ' + p.height + ' px · ' + p.fps + ' fps · ' + p.frames + ' 帧'
+    } catch (e) { text = e.message; invalid = true }
+    dom.summary.textContent = text; dom.summary.dataset.error = String(invalid)
+    dom.generate.disabled = !!task || invalid
+    dom.regenerate.disabled = !!task || invalid
+    dom.fps.style.setProperty('--vg-range', ((item.edit.fps - 3) / 27 * 100) + '%')
   }
-
-  function finishRun () {
-    state.processing = false
-    state.aborted = false
-    if (dom.genBtn) dom.genBtn.hidden = false
-    if (dom.cancelBtn) dom.cancelBtn.hidden = true
-    if (dom.extractWrap) dom.extractWrap.hidden = true
-    if (dom.encodeWrap) dom.encodeWrap.hidden = true
+  function renderTimeline () {
+    var e = edit(), item = current()
+    if (!e) return
+    var start = e.start / item.duration * 100, end = e.end / item.duration * 100
+    dom.rangeStart.style.left = start + '%'; dom.rangeEnd.style.left = end + '%'
+    dom.timeline.style.setProperty('--vg-sel-start', start + '%'); dom.timeline.style.setProperty('--vg-sel-end', end + '%')
+    ;[[dom.rangeStart, 'start'], [dom.rangeEnd, 'end']].forEach(function (pair) {
+      pair[0].setAttribute('aria-valuemin', '0'); pair[0].setAttribute('aria-valuemax', String(item.duration)); pair[0].setAttribute('aria-valuenow', String(e[pair[1]])); pair[0].setAttribute('aria-valuetext', time(e[pair[1]]) + ' 秒')
+    })
+    dom.duration.textContent = '已选 ' + time(e.end - e.start) + ' 秒'
   }
-
-  function cancelRun () {
-    if (!state.processing) return
-    run.cancel = true
-    state.aborted = true
-    processRunId++
-    finishRun()
-    var item = curItem()
-    if (item && item.status === 'processing') { item.status = 'pending'; renderFileList() }
-    toast('已取消', 'info')
+  function setRange (which, value, preview) {
+    if (!edit() || task) return
+    stopPlayback()
+    var e = edit(), r = core.normalizeRange(which === 'start' ? value : e.start, which === 'end' ? value : e.end, current().duration, which)
+    e.start = r.start; e.end = r.end
+    dom.start.value = time(e.start); dom.end.value = time(e.end)
+    renderTimeline(); changed()
+    if (preview) { try { dom.video.currentTime = which === 'start' ? e.start : Math.max(e.start, e.end - 0.02) } catch (err) {} }
   }
-
-  /* ---- 结果展示 ---- */
-  function showResult (item) {
-    if (!dom.resultWrap || !item.gif) return
-    dom.resultWrap.hidden = false
-    if (dom.resultImg) dom.resultImg.src = item.gif.url
-    if (dom.resultInfo) {
-      var params = getParams()
-      dom.resultInfo.textContent = fmt(item.gif.size) + ' · ' + params.outW + '×' + params.outH + ' · ' + params.fps + 'fps'
+  function stopPlayback () {
+    playing = false; cancelAnimationFrame(raf); raf = 0
+    if (dom.video) dom.video.pause()
+    if (dom.play) { dom.play.textContent = '▶ 预览片段'; dom.play.setAttribute('aria-pressed', 'false') }
+  }
+  async function play () {
+    if (playing) { stopPlayback(); return }
+    if (!edit() || task) return
+    var item = current()
+    try {
+      dom.video.currentTime = item.edit.start
+      playing = true
+      await dom.video.play()
+      if (!playing || current() !== item || task) return
+      dom.play.textContent = 'Ⅱ 暂停预览'; dom.play.setAttribute('aria-pressed', 'true')
+      function tick () {
+        if (!playing) return
+        if (dom.video.currentTime >= item.edit.end - 0.015 || dom.video.ended) { dom.video.currentTime = item.edit.start; dom.video.play().catch(stopPlayback) }
+        dom.playhead.style.left = (dom.video.currentTime / item.duration * 100) + '%'
+        raf = requestAnimationFrame(tick)
+      }
+      tick()
+    } catch (e) { stopPlayback(); message('暂时无法预览，请重新选择视频', true) }
+  }
+  function renderCrop () {
+    var e = edit(), item = current()
+    if (!e) return
+    var c = e.crop, left = c.x / item.vw * 100, top = c.y / item.vh * 100, right = (c.x + c.w) / item.vw * 100, bottom = (c.y + c.h) / item.vh * 100
+    Object.assign(dom.cropRect.style, { left: left + '%', top: top + '%', width: (right - left) + '%', height: (bottom - top) + '%' })
+    dom.cropLayer.style.clipPath = 'polygon(evenodd, 0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%, ' + left + '% ' + top + '%, ' + right + '% ' + top + '%, ' + right + '% ' + bottom + '%, ' + left + '% ' + bottom + '%, ' + left + '% ' + top + '%)'
+    dom.cropInfo.textContent = Math.round(c.w) + ' × ' + Math.round(c.h) + ' · ' + (c.w === item.vw && c.h === item.vh ? '完整画面' : '已裁剪')
+    ;['x', 'y', 'w', 'h'].forEach(function (key) { dom['crop' + key].value = Math.round(c[key]) })
+  }
+  function cropChanged () {
+    var e = edit()
+    if (e.keepRatio && Number(e.width) > 0) { e.height = Math.max(1, Math.round(e.crop.h * Number(e.width) / e.crop.w)); dom.height.value = e.height }
+    renderCrop(); changed()
+  }
+  function bindCrop () {
+    var drag = null
+    on(dom.cropRect, 'pointerdown', function (ev) {
+      if (!edit() || task || !edit().cropEnabled) return
+      ev.preventDefault()
+      drag = { id: selectedId, mode: ev.target.dataset.vgHandle || 'move', x: ev.clientX, y: ev.clientY, crop: Object.assign({}, edit().crop) }
+      dom.cropRect.setPointerCapture(ev.pointerId)
+    })
+    on(dom.cropRect, 'pointermove', function (ev) {
+      if (!drag || drag.id !== selectedId || task) return
+      var bounds = dom.stageInner.getBoundingClientRect(), item = current(), c = drag.crop
+      var dx = (ev.clientX - drag.x) / bounds.width * item.vw, dy = (ev.clientY - drag.y) / bounds.height * item.vh
+      var x = c.x, y = c.y, right = c.x + c.w, bottom = c.y + c.h
+      if (drag.mode === 'move') {
+        x = clamp(c.x + dx, 0, item.vw - c.w); y = clamp(c.y + dy, 0, item.vh - c.h); right = x + c.w; bottom = y + c.h
+      } else {
+        if (drag.mode.includes('w')) x = clamp(c.x + dx, 0, right - 1)
+        if (drag.mode.includes('e')) right = clamp(right + dx, x + 1, item.vw)
+        if (drag.mode.includes('n')) y = clamp(c.y + dy, 0, bottom - 1)
+        if (drag.mode.includes('s')) bottom = clamp(bottom + dy, y + 1, item.vh)
+      }
+      edit().crop = { x: Math.round(x), y: Math.round(y), w: Math.max(1, Math.round(right) - Math.round(x)), h: Math.max(1, Math.round(bottom) - Math.round(y)) }
+      cropChanged()
+    })
+    ;['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (type) { on(dom.cropRect, type, function () { drag = null }) })
+    on(dom.cropToggle, 'click', function () { edit().cropEnabled = !edit().cropEnabled; renderEdit() })
+    on(dom.resetCrop, 'click', function () { var item = current(); item.edit.crop = { x: 0, y: 0, w: item.vw, h: item.vh }; cropChanged() })
+    ;['x', 'y', 'w', 'h'].forEach(function (key) {
+      function updateCrop (event) {
+        var raw = dom['crop' + key].value
+        if (event.type === 'input' && raw === '') return
+        var c = edit().crop, item = current(), n = Math.round(Number(dom['crop' + key].value) || 0)
+        if (key === 'x') c.x = clamp(n, 0, item.vw - c.w)
+        if (key === 'y') c.y = clamp(n, 0, item.vh - c.h)
+        if (key === 'w') c.w = clamp(n, 1, item.vw - c.x)
+        if (key === 'h') c.h = clamp(n, 1, item.vh - c.y)
+        cropChanged()
+        if (event.type === 'input') dom['crop' + key].value = raw
+      }
+      on(dom['crop' + key], 'input', updateCrop)
+      on(dom['crop' + key], 'blur', updateCrop)
+    })
+  }
+  function setBusy () {
+    dom.controls.disabled = !!task
+    dom.cancel.hidden = !task; dom.progress.hidden = !task
+    dom.generate.hidden = !!task; dom.regenerate.disabled = !!task
+    dom.editor.setAttribute('aria-busy', String(!!task))
+    renderFiles(); renderSummary()
+  }
+  function progress (value, text) { if (!container) return; dom.progressFill.style.width = value + '%'; dom.progressBar.setAttribute('aria-valuenow', String(Math.round(value))); dom.progressText.textContent = text }
+  function workerRequest (worker, id, payload, expected, signal, transfer) {
+    return new Promise(function (resolve, reject) {
+      var timer
+      function cleanup () { clearTimeout(timer); worker.removeEventListener('message', receive); worker.removeEventListener('error', fail); worker.removeEventListener('messageerror', fail); signal.removeEventListener('abort', cancel) }
+      function receive (event) {
+        var data = event.data || {}
+        if (data.id !== id) return
+        if (data.type === 'error') { cleanup(); reject(new Error(data.message)); return }
+        if (data.type === expected) { cleanup(); resolve(data) }
+      }
+      function fail () { cleanup(); reject(new Error('GIF 编码器运行失败，请刷新后重试')) }
+      function cancel () { cleanup(); reject(aborted()) }
+      if (signal.aborted) { reject(aborted()); return }
+      worker.addEventListener('message', receive); worker.addEventListener('error', fail); worker.addEventListener('messageerror', fail); signal.addEventListener('abort', cancel, { once: true })
+      timer = setTimeout(function () { cleanup(); reject(new Error('GIF 编码超时，请减小输出尺寸后重试')) }, 30000)
+      try { worker.postMessage(Object.assign({ id: id }, payload), transfer || []) } catch (e) { cleanup(); reject(e) }
+    })
+  }
+  async function convert (item, signal, label) {
+    var p = core.plan(item.edit, item), settings = JSON.stringify(p)
+    var worker, video = document.createElement('video'), canvas = document.createElement('canvas'), id = ++sequence
+    video.muted = true; video.preload = 'auto'; video.playsInline = true
+    item.status = 'processing'; item.error = ''; renderFiles()
+    try {
+      check(signal)
+      worker = new Worker('./js/videogif-worker.js')
+      await workerRequest(worker, id, { type: 'start', width: p.width, height: p.height, colors: p.colors, repeat: p.repeat, total: p.frames }, 'ready', signal)
+      await waitMedia(video, 'loadeddata', function () { return video.readyState >= 2 }, signal, function () { video.src = item.url; video.load() })
+      canvas.width = p.width; canvas.height = p.height
+      var ctx = canvas.getContext('2d', { willReadFrequently: true })
+      if (!ctx) throw new Error('无法创建画布，请减小尺寸后重试')
+      for (var i = 0; i < p.frames; i++) {
+        await seek(video, p.times[i], signal)
+        check(signal)
+        ctx.drawImage(video, p.crop.x, p.crop.y, p.crop.w, p.crop.h, 0, 0, p.width, p.height)
+        var buffer = ctx.getImageData(0, 0, p.width, p.height).data.buffer
+        await workerRequest(worker, id, { type: 'frame', index: i, rgba: buffer, delay: p.delays[i] }, 'progress', signal, [buffer])
+        progress((i + 1) / p.frames * 98, label + '已处理 ' + (i + 1) + ' / ' + p.frames + ' 帧')
+      }
+      var result = await workerRequest(worker, id, { type: 'finish' }, 'done', signal)
+      check(signal)
+      var blob = new Blob([result.bytes], { type: 'image/gif' })
+      if (item.gif) URL.revokeObjectURL(item.gif.url)
+      item.gif = { url: URL.createObjectURL(blob), size: blob.size, width: p.width, height: p.height, frames: p.frames, fps: p.fps, duration: p.duration, settings: settings }
+      item.status = 'done'
+    } finally {
+      if (worker) worker.terminate()
+      releaseVideo(video); canvas.width = 0; canvas.height = 0
     }
   }
-  function hideResult () {
-    if (dom.resultWrap) dom.resultWrap.hidden = true
+  function waitReady (promise, signal) {
+    return new Promise(function (resolve, reject) {
+      function cancel () { reject(aborted()) }
+      if (signal.aborted) { cancel(); return }
+      signal.addEventListener('abort', cancel, { once: true })
+      promise.then(function (result) { signal.removeEventListener('abort', cancel); resolve(result) }, function (error) { signal.removeEventListener('abort', cancel); reject(error) })
+    })
   }
-
-  function downloadGif () {
-    var item = curItem()
+  async function startJobs (batch) {
+    if (task) return
+    var queue = batch ? files.filter(function (f) { return f.status !== 'done' }) : [current()].filter(Boolean)
+    if (!queue.length) return
+    stopPlayback(); message('')
+    var active = { controller: new AbortController() }, succeeded = 0, failed = 0
+    task = active; setBusy()
+    try {
+      for (var i = 0; i < queue.length; i++) {
+        check(active.controller.signal)
+        var item = queue[i], label = batch ? '视频 ' + (i + 1) + '/' + queue.length + ' · ' : ''
+        progress(0, label + '准备视频…')
+        // The metadata promise settles on decode errors, timeouts and file cancellation.
+        await waitReady(item.ready, active.controller.signal)
+        check(active.controller.signal)
+        selectFile(item.id, true)
+        try {
+          if (!item.edit) throw new Error(item.error || '视频读取失败')
+          await convert(item, active.controller.signal, label)
+          succeeded++
+          renderResult()
+        } catch (e) {
+          if (active.controller.signal.aborted) { item.status = item.gif && settingsKey(item) === item.gif.settings ? 'done' : 'pending'; throw e }
+          failed++; item.status = 'error'; item.error = e.message
+          message(item.name + '：' + e.message, true)
+          if (!batch) break
+        }
+      }
+      check(active.controller.signal)
+      if (batch) message('批量完成：' + succeeded + ' 个成功' + (failed ? '，' + failed + ' 个失败，可在列表中查看并重试。' : '。点击视频可预览和下载。'), failed > 0)
+      else if (succeeded) message('GIF 已生成，可以预览和下载。')
+    } catch (e) { if (container && task === active) message(active.controller.signal.aborted ? '已取消，队列中剩余视频不会继续生成。' : e.message, !active.controller.signal.aborted) }
+    finally {
+      if (task === active) {
+        task = null
+        if (container) { setBusy(); renderFiles(); renderResult() }
+      }
+    }
+  }
+  function renderResult () {
+    var item = current(), gif = item && item.gif
+    dom.result.hidden = !gif
+    if (!gif) { dom.resultImg.removeAttribute('src'); return }
+    dom.resultImg.src = gif.url
+    dom.resultInfo.textContent = fmt(gif.size) + ' · ' + gif.width + ' × ' + gif.height + ' · ' + time(gif.duration) + ' 秒 · ' + gif.frames + ' 帧'
+    var stale = settingsKey(item) !== gif.settings
+    dom.resultNote.textContent = stale ? '设置已修改，下方预览为上次结果。重新生成后生效。' : '生成完成 · 点击下载保存到设备'
+    dom.download.textContent = stale ? '下载上次结果' : '下载 GIF'
+  }
+  function download () {
+    var item = current()
     if (!item || !item.gif) return
     var a = document.createElement('a')
-    a.href = item.gif.url
-    var dot = item.name.lastIndexOf('.')
-    var base = dot > 0 ? item.name.slice(0, dot) : item.name
-    a.download = base + '.gif'
-    document.body.appendChild(a)
-    a.click()
-    setTimeout(function () { a.remove() }, 200)
+    a.href = item.gif.url; a.download = item.name.replace(/\.[^.]+$/, '') + '.gif'
+    document.body.appendChild(a); a.click(); a.remove()
   }
-
-  /* ---- 批量生成全部 ---- */
-  function batchGenerate () {
-    if (state.processing) { toast('正在处理中', 'err'); return }
-    var pending = state.files.filter(function (f) { return f.status !== 'done' && f.status !== 'processing' })
-    if (!pending.length) { toast('没有待处理的视频', 'info'); return }
-    runBatch(pending.slice(), 0)
-  }
-
-  function runBatch (queue, idx) {
-    if (idx >= queue.length) {
-      toast('批量生成完成', 'ok')
-      return
-    }
-    if (!container) return
-    var item = queue[idx]
-    selectFile(item.id)
-    /* 等待视频元数据 + DOM 更新 */
-    var tryGen = function () {
-      if (!container) return
-      if (!editorState || !editorState.vw) { setTimeout(tryGen, 200); return }
-      generate()
-      /* 轮询完成 */
-      var poll = function () {
-        if (!container) return
-        if (!state.processing) {
-          if (item.status === 'done') runBatch(queue, idx + 1)
-          else { toast(item.name + ' 失败，跳过', 'err'); runBatch(queue, idx + 1) }
-          return
-        }
-        setTimeout(poll, 300)
-      }
-      poll()
-    }
-    setTimeout(tryGen, 400)
-  }
-
-  /* ---- 视频播放头同步 ---- */
-  function bindVideoEvents () {
-    if (!dom.video) return
-    on(dom.video, 'timeupdate', function () {
-      if (!editorState) return
-      if (editorState.playing) return /* 由 tickPlay 处理 */
-      movePlayhead(dom.video.currentTime)
-    })
-    on(dom.video, 'loadedmetadata', function () {
-      if (!dom.video) return
-      /* 与文件元数据对齐 */
-      var item = curItem()
-      if (item) {
-        item.vw = dom.video.videoWidth || item.vw
-        item.vh = dom.video.videoHeight || item.vh
-        item.duration = dom.video.duration || item.duration
-      }
-      if (editorState) {
-        editorState.vw = dom.video.videoWidth || editorState.vw
-        editorState.vh = dom.video.videoHeight || editorState.vh
-        editorState.duration = dom.video.duration || editorState.duration
-        /* 裁剪矩形适配真实视频尺寸（首次加载时 vw/vh 此前为 0） */
-        if (editorState.vw && editorState.vh) {
-          editorState.crop = { x: 0, y: 0, w: editorState.vw, h: editorState.vh }
-        }
-        /* 舞台按视频真实宽高比自适应，避免 letterbox 导致裁剪框错位 */
-        applyStageAspect()
-        renderCropRect()
-        renderTimeline()
-        /* 元数据就绪后同步播放头到当前时间，避免卡在 0 */
-        movePlayhead(dom.video.currentTime || 0)
-      }
-      if (item) renderFileList()
-    })
-    /* durationchange 兜底：某些视频 loadedmetadata 时 duration 尚为 Infinity，
-     * 待 durationchange 才得到真实时长，此时再刷新时间轴与播放头 */
-    on(dom.video, 'durationchange', function () {
-      if (!editorState || !dom.video) return
-      var d = dom.video.duration
-      if (isFinite(d) && d > 0) {
-        editorState.duration = d
-        var item = curItem()
-        if (item) { item.duration = d; renderFileList() }
-        /* 若选段越界则收拢到有效范围 */
-        if (editorState.end > d) editorState.end = d
-        if (editorState.start > editorState.end - 0.05) editorState.start = 0
-        renderTimeline()
-        movePlayhead(dom.video.currentTime || 0)
-      }
-    })
-  }
-
-  /* ---- 分段控件通用 ---- */
-  function bindSeg (group, selector, onChange) {
-    if (!group) return
-    var pills = group.querySelectorAll(selector)
-    pills.forEach(function (el) {
-      on(el, 'click', function () {
-        pills.forEach(function (p) { p.setAttribute('data-active', 'false') })
-        el.setAttribute('data-active', 'true')
-        if (onChange) onChange(el)
-      })
-    })
-  }
-
-  /* ---- 事件绑定 ---- */
-  function on (el, evt, fn) {
-    if (el) el.addEventListener(evt, fn, ac ? { signal: ac.signal } : undefined)
-  }
-
-  function init () {
-    /* 上传区 */
-    on(dom.zone, 'click', function (e) {
-      if (e.target.closest('button')) return
-      if (dom.fileInput) dom.fileInput.click()
-    })
-    on(dom.fileInput, 'change', function () {
-      if (dom.fileInput && dom.fileInput.files.length) addFiles(dom.fileInput.files)
-      if (dom.fileInput) dom.fileInput.value = ''
-    })
-    on(dom.zone, 'dragover', function (e) { e.preventDefault(); if (dom.zone) dom.zone.setAttribute('data-dragover', 'true') })
-    on(dom.zone, 'dragleave', function () { if (dom.zone) dom.zone.setAttribute('data-dragover', 'false') })
-    on(dom.zone, 'drop', function (e) {
-      e.preventDefault(); if (dom.zone) dom.zone.setAttribute('data-dragover', 'false')
-      if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files)
-    })
-
-    /* 文件列表 */
+  function bind () {
+    on(dom.fileInput, 'change', function () { addFiles(dom.fileInput.files); dom.fileInput.value = '' })
+    on(dom.zone, 'dragover', function (e) { e.preventDefault(); if (!task) dom.zone.dataset.dragover = 'true' })
+    on(dom.zone, 'dragleave', function () { dom.zone.dataset.dragover = 'false' })
+    on(dom.zone, 'drop', function (e) { e.preventDefault(); dom.zone.dataset.dragover = 'false'; addFiles(e.dataTransfer.files) })
     on(dom.fileList, 'click', function (e) {
-      var editBtn = e.target.closest('[data-edit]')
-      if (editBtn) { selectFile(parseInt(editBtn.getAttribute('data-edit'))); return }
-      var rmBtn = e.target.closest('[data-remove]')
-      if (rmBtn) { removeFile(parseInt(rmBtn.getAttribute('data-remove'))); return }
-      var item = e.target.closest('[data-fid]')
-      if (item) selectFile(parseInt(item.getAttribute('data-fid')))
+      if (task) return
+      var select = e.target.closest('[data-select]'), remove = e.target.closest('[data-remove]')
+      if (select) selectFile(Number(select.dataset.select))
+      if (remove) {
+        var id = Number(remove.dataset.remove), item = files.find(function (f) { return f.id === id })
+        files = files.filter(function (f) { return f.id !== id })
+        if (selectedId === id) selectFile(files.length ? files[0].id : null)
+        releaseFile(item); renderFiles()
+      }
     })
-    on(dom.batchBtn, 'click', batchGenerate)
-    on(dom.clearBtn, 'click', function () {
-      state.files.forEach(function (f) {
-        URL.revokeObjectURL(f.videoUrl)
-        if (f.gif) URL.revokeObjectURL(f.gif.url)
+    on(dom.clear, 'click', function () { if (task) return; var old = files; files = []; selectFile(null); old.forEach(releaseFile); message('') })
+    on(dom.batch, 'click', function () { startJobs(true) })
+    on(dom.generate, 'click', function () { startJobs(false) })
+    on(dom.regenerate, 'click', function () { startJobs(false) })
+    on(dom.cancel, 'click', function () { if (task) task.controller.abort() })
+    on(dom.download, 'click', download)
+    on(dom.play, 'click', play)
+    on(dom.video, 'loadeddata', function () {
+      var item = current()
+      if (item && item.edit && !playing) {
+        try { dom.video.currentTime = item.edit.start } catch (e) {}
+      }
+    })
+    on(dom.video, 'timeupdate', function () { if (current() && current().duration) dom.playhead.style.left = (dom.video.currentTime / current().duration * 100) + '%' })
+    ;['start', 'end'].forEach(function (which) {
+      function updateRange (event) {
+        var raw = dom[which].value
+        if (event.type === 'input' && raw === '') return
+        setRange(which, raw, true)
+        if (event.type === 'input') dom[which].value = raw
+      }
+      on(dom[which], 'input', updateRange)
+      on(dom[which], 'blur', updateRange)
+    })
+    on(dom.full, 'click', function () { edit().start = 0; setRange('end', current().duration, true) })
+    ;[[dom.rangeStart, 'start'], [dom.rangeEnd, 'end']].forEach(function (pair) {
+      var dragging = false, id
+      function move (ev) {
+        if (!dragging || id !== selectedId || task) return
+        var r = dom.timeline.getBoundingClientRect()
+        setRange(pair[1], clamp((ev.clientX - r.left) / r.width, 0, 1) * current().duration, true)
+      }
+      on(pair[0], 'pointerdown', function (ev) { if (task) return; ev.preventDefault(); dragging = true; id = selectedId; pair[0].setPointerCapture(ev.pointerId); move(ev) })
+      on(pair[0], 'pointermove', move)
+      ;['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (type) { on(pair[0], type, function () { dragging = false }) })
+      on(pair[0], 'keydown', function (ev) {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(ev.key)) return
+        ev.preventDefault()
+        var value = ev.key === 'Home' ? 0 : ev.key === 'End' ? current().duration : edit()[pair[1]] + (ev.key === 'ArrowLeft' ? -1 : 1) * (ev.shiftKey ? 1 : 0.1)
+        setRange(pair[1], value, true)
       })
-      state.files = []
-      state.selectedId = null
-      selectFile(null)
-      renderFileList()
     })
-
-    /* 裁剪 */
-    on(dom.resetCropBtn, 'click', resetCrop)
-    bindCropDrag()
-
-    /* 时间轴 */
-    bindTimelineDrag()
-    on(dom.playSelBtn, 'click', togglePlaySel)
-    on(dom.startInput, 'input', function () {
-      if (!editorState) return
-      var v = parseFloat(dom.startInput.value) || 0
-      editorState.start = clamp(v, 0, editorState.end - 0.05)
-      moveRangeHandles()
+    on(dom.timeline, 'click', function (ev) { if (task || ev.target.closest('[role="slider"]')) return; var r = dom.timeline.getBoundingClientRect(); dom.video.currentTime = clamp((ev.clientX - r.left) / r.width, 0, 1) * current().duration })
+    on(dom.presets, 'click', function (ev) {
+      var button = ev.target.closest('[data-vg-preset]'); if (!button) return
+      var key = button.dataset.vgPreset
+      Object.assign(edit(), core.presets[key], { preset: key, width: '', height: '' })
+      renderEdit(); changed()
     })
-    on(dom.endInput, 'input', function () {
-      if (!editorState) return
-      var v = parseFloat(dom.endInput.value) || 0
-      editorState.end = clamp(v, editorState.start + 0.05, editorState.duration)
-      moveRangeHandles()
+    ;[[dom.sizes, 'data-vg-size', 'size'], [dom.colors, 'data-vg-color', 'colors'], [dom.loops, 'data-vg-loop', 'loop']].forEach(function (group) {
+      on(group[0], 'click', function (ev) { var button = ev.target.closest('[' + group[1] + ']'); if (!button) return; edit()[group[2]] = button.getAttribute(group[1]); if (group[2] !== 'loop') edit().preset = ''; renderEdit(); changed() })
     })
-
-    /* FPS 滑块 */
-    on(dom.fpsSlider, 'input', function () {
-      if (dom.fpsVal) dom.fpsVal.textContent = dom.fpsSlider.value
+    on(dom.fps, 'input', function () { edit().fps = Number(dom.fps.value); edit().preset = ''; dom.fpsVal.textContent = edit().fps; activate(dom.presets, 'data-vg-preset', ''); changed() })
+    ;['width', 'height'].forEach(function (key) {
+      on(dom[key], 'input', function () {
+        var e = edit(); e[key] = dom[key].value
+        if (e.keepRatio && Number(e[key]) > 0) {
+          var other = key === 'width' ? 'height' : 'width', ratio = key === 'width' ? e.crop.h / e.crop.w : e.crop.w / e.crop.h
+          e[other] = Math.max(1, Math.round(Number(e[key]) * ratio)); dom[other].value = e[other]
+        }
+        changed(true)
+      })
     })
-
-    /* 分段控件 */
-    bindSeg(dom.sizeGroup, '[data-vg-size]', function () { updateManualSize() })
-    bindSeg(dom.colorGroup, '[data-vg-color]')
-    bindSeg(dom.formatGroup, '[data-vg-format]')
-    bindSeg(dom.loopGroup, '[data-vg-loop]')
-    bindSeg(dom.presetGroup, '[data-vg-preset]', function (el) {
-      applyPreset(el.getAttribute('data-vg-preset'))
-    })
-
-    /* 手动尺寸 + 保持比例 */
-    on(dom.manualWidth, 'input', function () {
-      if (!editorState || !dom.keepRatio || !dom.keepRatio.checked) return
-      var mw = parseInt(dom.manualWidth.value) || 0
-      if (mw && editorState.crop.w) dom.manualHeight.value = Math.round(editorState.crop.h * mw / editorState.crop.w)
-    })
-    on(dom.manualHeight, 'input', function () {
-      if (!editorState || !dom.keepRatio || !dom.keepRatio.checked) return
-      var mh = parseInt(dom.manualHeight.value) || 0
-      if (mh && editorState.crop.h) dom.manualWidth.value = Math.round(editorState.crop.w * mh / editorState.crop.h)
-    })
-
-    /* 生成 */
-    on(dom.genBtn, 'click', generate)
-    on(dom.cancelBtn, 'click', cancelRun)
-    on(dom.regenBtn, 'click', generate)
-    on(dom.downloadBtn, 'click', downloadGif)
-
-    bindVideoEvents()
-
-    /* 初始：无选中 */
-    selectFile(null)
+    on(dom.keepRatio, 'change', function () { edit().keepRatio = dom.keepRatio.checked; cropChanged() })
+    bindCrop()
   }
-
-  function mount (el) {
-    container = el
-    ac = new AbortController()
-    collectDom()
-    init()
+  function mount (element) {
+    container = element; lifecycle = new AbortController()
+    var refs = { zone: 'upload', fileInput: 'file-input', fileList: 'file-list', fileCount: 'file-count', batch: 'batch', clear: 'clear', editor: 'editor', editorBody: 'editor-body', empty: 'empty', emptyText: 'empty-text', curName: 'cur-name', curMeta: 'cur-meta', video: 'video', stageInner: 'stage-inner', cropRect: 'crop-rect', cropLayer: 'crop-layer', cropFields: 'crop-fields', cropToggle: 'crop-toggle', resetCrop: 'reset-crop', cropInfo: 'crop-info', cropx: 'crop-x', cropy: 'crop-y', cropw: 'crop-w', croph: 'crop-h', start: 'start-input', end: 'end-input', rangeStart: 'range-start', rangeEnd: 'range-end', timeline: 'timeline', playhead: 'playhead', duration: 'duration', play: 'play-sel', full: 'full', presets: 'preset-group', sizes: 'size-group', colors: 'color-group', loops: 'loop-group', fps: 'fps', fpsVal: 'fps-val', width: 'manual-width', height: 'manual-height', keepRatio: 'keep-ratio', custom: 'custom', controls: 'controls', generate: 'generate', cancel: 'cancel', regenerate: 'regenerate', summary: 'summary', progress: 'progress', progressBar: 'progress-bar', progressFill: 'progress-fill', progressText: 'progress-text', result: 'result-wrap', resultImg: 'result-img', resultInfo: 'result-info', resultNote: 'result-note', download: 'download', notice: 'notice' }
+    Object.keys(refs).forEach(function (key) { dom[key] = qs('[data-vg-' + refs[key] + ']') })
+    bind(); selectFile(null)
   }
-
   function unmount () {
-    if (ac) { ac.abort(); ac = null }
-    processRunId++
-    run.cancel = true
-    state.processing = false
+    if (task) task.controller.abort()
+    task = null
+    if (lifecycle) lifecycle.abort()
     stopPlayback()
-    /* 撤销所有 blob URL */
-    state.files.forEach(function (f) {
-      URL.revokeObjectURL(f.videoUrl)
-      if (f.gif) URL.revokeObjectURL(f.gif.url)
-    })
-    state.files = []
-    state.selectedId = null
-    if (worker) { try { worker.terminate() } catch (e) {} worker = null }
-    if (dom.video) { try { dom.video.pause(); dom.video.removeAttribute('src'); dom.video.load() } catch (e) {} }
-    editorState = null
-    dom = {}
-    container = null
+    if (dom.video) releaseVideo(dom.video)
+    files.forEach(releaseFile); files = []; selectedId = null
+    container = null; dom = {}
   }
-
   window.__page_videogif = { mount: mount, unmount: unmount }
 })()

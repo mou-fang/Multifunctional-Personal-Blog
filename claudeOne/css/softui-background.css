@@ -1,0 +1,57 @@
+/* One shared background below the complete SPA. The canvas stays opaque so
+   final-pixel dithering is not quantized again by CSS opacity or filters. */
+.softui-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  visibility: hidden;
+  background: #e6efff;
+}
+body[data-theme="neumorphism"] .softui-background { visibility: visible; }
+body[data-theme="neumorphism"][data-softui-background-ready]::before { content: none; }
+.softui-background__canvas { position: absolute; inset: 0; width: 100%; height: 100%; visibility: hidden; }
+body[data-theme="neumorphism"] .softui-background[data-renderer="webgl"] .softui-background__canvas { visibility: visible; }
+.softui-background[data-renderer="webgl"] .softui-background__fallback { visibility: hidden; }
+
+/* CSS fallback is visible before the first GPU frame or if WebGL is unavailable. */
+.softui-background__fallback { position: absolute; inset: 0; opacity: .45; }
+.softui-background__glow { position: absolute; inset: -12%; animation-play-state: paused; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
+.softui-background__glow--main {
+  z-index: 3;
+  background: radial-gradient(ellipse 60% 72% at 90% 16%, rgba(199,189,235,.82), transparent 78%);
+  animation-name: softui-drift-main;
+  animation-duration: 32s;
+}
+.softui-background__glow--cool {
+  z-index: 2;
+  background: radial-gradient(ellipse 65% 78% at 4% 83%, rgba(181,223,230,.72), transparent 76%);
+  animation-name: softui-drift-cool;
+  animation-duration: 41s;
+}
+.softui-background__glow--warm {
+  z-index: 1;
+  background: radial-gradient(ellipse 60% 68% at -3% -8%, rgba(248,235,233,.40) 0%, rgba(248,235,233,.3882) 10%, rgba(248,235,233,.3548) 20%, rgba(248,235,233,.3054) 30%, rgba(248,235,233,.2475) 40%, rgba(248,235,233,.1889) 50%, rgba(248,235,233,.1358) 60%, rgba(248,235,233,.0920) 70%, rgba(248,235,233,.0586) 80%, rgba(248,235,233,.0352) 90%, rgba(248,235,233,.0199) 100%, rgba(248,235,233,.0053) 120%, rgba(248,235,233,.0011) 140%, transparent 200%);
+  animation-name: softui-drift-warm;
+  animation-duration: 47s;
+}
+body[data-theme="neumorphism"] .softui-background[data-flowing="true"]:not([data-renderer="webgl"]) .softui-background__glow { animation-play-state: running; }
+@keyframes softui-drift-main {
+  0%, 100% { transform: translate3d(0,0,0) scale(1); }
+  35% { transform: translate3d(-8%,6%,0) scale(1.04); }
+  70% { transform: translate3d(3%,-5%,0) scale(1.07); }
+}
+@keyframes softui-drift-cool {
+  0%, 100% { transform: translate3d(0,0,0) scale(1); }
+  40% { transform: translate3d(7%,-7%,0) scale(1.05); }
+  75% { transform: translate3d(-3%,4%,0) scale(1.02); }
+}
+@keyframes softui-drift-warm {
+  0%, 100% { transform: translate3d(0,0,0) scale(1); }
+  45% { transform: translate3d(6%,5%,0) scale(1.08); }
+  80% { transform: translate3d(-4%,-3%,0) scale(1.03); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .softui-background__glow { animation: none !important; }
+}

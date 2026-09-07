@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="./css/base.css" />
   <link rel="stylesheet" href="./css/components.css" />
   <link rel="stylesheet" href="./css/neumorphism.css" />
+  <link rel="stylesheet" href="./css/softui-background.css" />
   <link rel="stylesheet" href="./css/liquid-glass.css" />
   <link rel="stylesheet" href="./css/animations.css" />
   <link rel="stylesheet" href="./css/player.css" />
@@ -31,6 +32,16 @@
   <div class="ambient ambient-a"></div>
   <div class="ambient ambient-b"></div>
   <div class="ambient ambient-c"></div>
+
+  <!-- Shared Soft UI background: aurora palette, 45%, continuous across routes. -->
+  <div class="softui-background" data-softui-background aria-hidden="true">
+    <div class="softui-background__fallback">
+      <div class="softui-background__glow softui-background__glow--main"></div>
+      <div class="softui-background__glow softui-background__glow--cool"></div>
+      <div class="softui-background__glow softui-background__glow--warm"></div>
+    </div>
+    <canvas class="softui-background__canvas" data-softui-canvas></canvas>
+  </div>
 
   <div class="site-shell">
     <header class="site-header page-chunk" data-reveal-order="1">
@@ -592,6 +603,8 @@
   <!-- Script order: config → shell → player → page-registry → router → homepage JS -->
   <script src="./js/config.js"></script>
   <script src="./js/shell.js"></script>
+  <script src="./js/softui-background-renderer.js"></script>
+  <script src="./js/softui-background.js"></script>
   <script src="./js/deepseek-client.js"></script>
   <script src="./js/ncm-decrypt.js"></script>
   <script src="./js/qq-music-decrypt.js"></script>
@@ -2505,229 +2518,77 @@
   </template>
 
   <template id="page-videogif">
-    <!-- Hero -->
     <section class="vg-hero page-chunk" data-reveal-order="2">
-      <span class="pill pill--accent">Video Tool</span>
-      <h1 style="margin-top:12px">视频转 GIF</h1>
-      <p class="muted" style="max-width:62ch; margin-top:8px">
-        导入视频后预览、裁剪画面、选取片段，本地浏览器内生成 GIF。可调帧率、输出尺寸、颜色数与循环次数。所有处理在你的设备上完成，不上传任何服务器。
-      </p>
+      <span class="pill pill--accent">视频工具 · 本地处理</span>
+      <h1>视频转 GIF</h1>
+      <p class="muted">选好精彩片段，一键生成动图。视频留在你的设备上，无需上传。</p>
+      <ol class="vg-steps" aria-label="制作步骤"><li><b>1</b> 选择视频</li><li><b>2</b> 截取片段</li><li><b>3</b> 生成下载</li></ol>
     </section>
-
-    <!-- 主布局：左文件列表 + 右编辑器 -->
     <section class="vg-layout page-chunk" data-reveal-order="3">
-      <!-- 左栏 -->
-      <div class="vg-left">
-        <div class="vg-upload" data-vg-upload data-dragover="false">
-          <div class="vg-upload__inner">
-            <div class="vg-upload__icon">&#9660;</div>
-            <div class="vg-upload__title">拖拽视频到此处，或点击选择</div>
-            <div class="vg-upload__hint">支持 MP4 / WebM / MOV / MKV，可多选</div>
-          </div>
-          <input type="file" class="vg-upload__input" data-vg-file-input
-                 accept="video/mp4,video/webm,video/quicktime,video/x-matroska,video/*"
-                 multiple aria-label="选择视频文件" />
-        </div>
-
+      <aside class="vg-left">
+        <div class="vg-section-heading"><h2>我的视频</h2><span class="muted">01</span></div>
+        <label class="vg-upload" data-vg-upload data-dragover="false">
+          <span class="vg-upload__inner"><span class="vg-upload__icon" aria-hidden="true">＋</span><span class="vg-upload__title">点击选择或拖入视频</span><span class="vg-upload__hint">推荐 MP4 / WebM，可多选</span></span>
+          <input type="file" class="vg-upload__input" data-vg-file-input accept="video/*,.mp4,.m4v,.webm,.mov,.mkv,.avi,.ogv" multiple aria-label="选择视频文件" />
+        </label>
+        <p class="vg-note" data-vg-file-count>支持多选，所有处理均在本地完成</p>
         <div class="vg-filelist" data-vg-file-list></div>
-
-        <div class="vg-left-actions">
-          <button class="btn btn-primary" data-vg-batch type="button">批量生成全部</button>
-          <button class="btn btn-ghost" data-vg-clear type="button">清空列表</button>
-        </div>
-      </div>
-
-      <!-- 右栏：编辑器 -->
+        <div class="vg-left-actions"><button class="btn" data-vg-batch type="button" hidden>生成全部待处理视频</button><button class="btn btn-ghost btn-sm" data-vg-clear type="button" hidden>清空列表</button></div>
+        <div class="vg-tips"><strong>从 5 秒开始，刚刚好</strong><p>默认选取前 5 秒，可拖动时间轴调整。短片段、小尺寸，分享更轻松。</p><p>MOV / MKV 等格式能否读取，取决于视频编码和浏览器支持。</p></div>
+      </aside>
       <div class="vg-editor card" data-vg-editor>
-        <!-- 空状态 -->
-        <div class="vg-empty" data-vg-empty>
-          <div class="vg-empty__icon">&#127916;</div>
-          <div>从左侧上传或选择视频开始</div>
-        </div>
-
-        <!-- 编辑器主体 -->
+        <div class="vg-empty" data-vg-empty><span class="vg-empty__icon" aria-hidden="true">▷</span><h2 data-vg-empty-text>选一个视频，把精彩片段变成 GIF</h2><p class="muted">选择后即可预览，使用推荐设置直接生成。</p></div>
         <div data-vg-editor-body hidden>
-          <div class="vg-editor-head">
-            <h3 data-vg-cur-name>视频</h3>
-            <span class="muted" data-vg-cur-meta></span>
-          </div>
-
-          <!-- 预览舞台 + 裁剪 -->
-          <div class="vg-stage-wrap">
-            <div class="vg-stage" data-vg-stage>
-              <div class="vg-stage__inner">
-                <video data-vg-video playsinline preload="metadata"></video>
-                <div class="vg-crop-layer" data-vg-crop-layer></div>
-                <div class="vg-crop-rect" data-vg-crop-rect>
-                  <div class="vg-crop-handles" data-vg-crop-handles>
-                    <div data-vg-handle="nw"></div>
-                    <div data-vg-handle="n"></div>
-                    <div data-vg-handle="ne"></div>
-                    <div data-vg-handle="e"></div>
-                    <div data-vg-handle="se"></div>
-                    <div data-vg-handle="s"></div>
-                    <div data-vg-handle="sw"></div>
-                    <div data-vg-handle="w"></div>
-                  </div>
-                </div>
+          <div class="vg-editor-head"><h2 data-vg-cur-name>视频</h2><span class="muted" data-vg-cur-meta></span></div>
+          <fieldset class="vg-controls" data-vg-controls>
+            <legend class="vg-sr-only">编辑 GIF</legend>
+            <div class="vg-stage-wrap">
+              <div class="vg-stage" data-vg-stage><div class="vg-stage__inner" data-vg-stage-inner>
+                <video data-vg-video playsinline muted preload="auto" aria-label="视频预览"></video>
+                <div class="vg-crop-layer" data-vg-crop-layer hidden></div>
+                <div class="vg-crop-rect" data-vg-crop-rect hidden><div class="vg-crop-handles">
+                  <span data-vg-handle="nw"></span><span data-vg-handle="n"></span><span data-vg-handle="ne"></span><span data-vg-handle="e"></span><span data-vg-handle="se"></span><span data-vg-handle="s"></span><span data-vg-handle="sw"></span><span data-vg-handle="w"></span>
+                </div></div>
+              </div></div>
+              <div class="vg-preview-toolbar"><button class="btn btn-sm" data-vg-play-sel type="button" aria-pressed="false">▶ 预览片段</button><span class="vg-crop-info" data-vg-crop-info></span><button class="btn btn-ghost btn-sm" data-vg-crop-toggle type="button" aria-pressed="false">裁剪画面</button></div>
+              <div class="vg-crop-fields" data-vg-crop-fields hidden>
+                <p class="vg-note">拖动边角裁剪、拖动框内移动，也可输入像素位置。</p>
+                <div class="vg-crop-inputs"><label>左侧<input class="input" type="number" min="0" step="1" data-vg-crop-x /></label><label>顶部<input class="input" type="number" min="0" step="1" data-vg-crop-y /></label><label>宽度<input class="input" type="number" min="1" step="1" data-vg-crop-w /></label><label>高度<input class="input" type="number" min="1" step="1" data-vg-crop-h /></label><button class="btn btn-ghost btn-sm" data-vg-reset-crop type="button">恢复完整画面</button></div>
               </div>
             </div>
-            <div class="vg-field" style="flex-direction:row; align-items:center; justify-content:space-between; gap:var(--space-3)">
-              <span class="vg-crop-info" data-vg-crop-info>裁剪区域</span>
-              <button class="btn btn-ghost btn-sm" data-vg-reset-crop type="button">重置裁剪</button>
+            <div class="vg-timeline-wrap">
+              <div class="vg-section-heading"><h3>截取片段</h3><span data-vg-duration></span></div>
+              <p class="vg-note">拖动两端选取范围，点击轨道查看画面。</p>
+              <div class="vg-timeline-shell"><div class="vg-timeline" data-vg-timeline>
+                <button type="button" class="vg-range-handle" data-vg-range-start role="slider" aria-label="片段起点" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"></button>
+                <button type="button" class="vg-range-handle" data-vg-range-end role="slider" aria-label="片段终点" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" style="left:100%"></button>
+                <div class="vg-playhead" data-vg-playhead></div>
+              </div></div>
+              <div class="vg-timeline-inputs"><label class="vg-time-field">开始<input class="input" type="number" data-vg-start-input min="0" step="0.01" value="0" aria-label="开始时间（秒）" />秒</label><span class="muted">→</span><label class="vg-time-field">结束<input class="input" type="number" data-vg-end-input min="0" step="0.01" value="0" aria-label="结束时间（秒）" />秒</label><button class="btn btn-ghost btn-sm" data-vg-full type="button">选取整段</button></div>
             </div>
-          </div>
-
-          <!-- 时间轴 -->
-          <div class="vg-timeline-wrap" style="margin-top:var(--space-4)">
-            <div class="vg-timeline-shell">
-              <div class="vg-timeline" data-vg-timeline>
-                <div class="vg-range-handle" data-vg-range-start></div>
-                <div class="vg-range-handle" data-vg-range-end style="left:100%"></div>
-                <div class="vg-playhead" data-vg-playhead"></div>
+            <div class="vg-params">
+              <div class="vg-section-heading"><h3>选择效果</h3><span class="vg-note">不确定就选「推荐」</span></div>
+              <div class="vg-presets vg-seg" data-vg-preset-group>
+                <button type="button" data-vg-preset="standard" data-active="true" aria-pressed="true"><strong>推荐</strong><span>清晰与体积均衡</span></button>
+                <button type="button" data-vg-preset="smooth" aria-pressed="false"><strong>更流畅</strong><span>保留更多动作细节</span></button>
+                <button type="button" data-vg-preset="small" aria-pressed="false"><strong>小文件</strong><span>更方便发送分享</span></button>
+                <button type="button" data-vg-preset="sticker" aria-pressed="false"><strong>表情包</strong><span>轻巧的小动图</span></button>
               </div>
+              <details class="vg-advanced"><summary>高级设置 <span>尺寸、帧率、颜色与循环</span></summary><div class="vg-advanced__body">
+                <div class="vg-field"><label class="vg-field__label" for="vg-fps">流畅度</label><div class="vg-range-row"><input id="vg-fps" type="range" data-vg-fps min="3" max="30" value="15" step="1" /><span class="vg-slider-val"><span data-vg-fps-val>15</span> fps</span></div><p class="vg-note">帧率越高动作越流畅，文件通常也越大。</p></div>
+                <div class="vg-field"><span class="vg-field__label">输出尺寸 · 最长边</span><div class="vg-seg" data-vg-size-group>
+                  <button type="button" class="pill" data-vg-size="240">240 px</button><button type="button" class="pill" data-vg-size="360">360 px</button><button type="button" class="pill" data-vg-size="480" data-active="true">480 px</button><button type="button" class="pill" data-vg-size="720">720 px</button><button type="button" class="pill" data-vg-size="0">原尺寸</button><button type="button" class="pill" data-vg-size="custom">自定义</button>
+                </div><div data-vg-custom hidden><div class="vg-size-manual"><label>宽度<input class="input" type="number" data-vg-manual-width min="1" max="1920" step="1" aria-label="输出宽度" /></label><label>高度<input class="input" type="number" data-vg-manual-height min="1" max="1920" step="1" aria-label="输出高度" /></label></div><label class="vg-check"><input type="checkbox" data-vg-keep-ratio checked />保持宽高比</label></div></div>
+                <div class="vg-field"><span class="vg-field__label">颜色数量</span><div class="vg-seg" data-vg-color-group><button type="button" class="pill" data-vg-color="32">32 色</button><button type="button" class="pill" data-vg-color="64">64 色</button><button type="button" class="pill" data-vg-color="128" data-active="true">128 色</button><button type="button" class="pill" data-vg-color="256">256 色</button></div></div>
+                <div class="vg-field"><span class="vg-field__label">播放次数</span><div class="vg-seg" data-vg-loop-group><button type="button" class="pill" data-vg-loop="0" data-active="true">无限循环</button><button type="button" class="pill" data-vg-loop="1">仅播放一次</button><button type="button" class="pill" data-vg-loop="3">播放 3 次</button><button type="button" class="pill" data-vg-loop="5">播放 5 次</button></div></div>
+              </div></details>
             </div>
-            <div class="vg-timeline-inputs">
-              <div class="vg-time-field">
-                <span>开始</span>
-                <input class="input" type="number" data-vg-start-input min="0" step="0.1" value="0" aria-label="开始时间(秒)" />
-                <span>s</span>
-              </div>
-              <div class="vg-time-field">
-                <span>结束</span>
-                <input class="input" type="number" data-vg-end-input min="0" step="0.1" value="0" aria-label="结束时间(秒)" />
-                <span>s</span>
-              </div>
-              <button class="btn btn-sm" data-vg-play-sel type="button">播放所选片段</button>
-            </div>
-          </div>
-
-          <!-- 设置面板 -->
-          <div class="vg-params">
-            <!-- 一键预设 -->
-            <div class="vg-params__section">
-              <div class="vg-params__head">一键预设</div>
-              <div class="vg-seg" data-vg-preset-group>
-                <span class="pill" data-vg-preset="smooth">流畅（24fps·256色）</span>
-                <span class="pill" data-vg-preset="standard" data-active="true">标准（15fps·128色·480）</span>
-                <span class="pill" data-vg-preset="small">小文件（10fps·64色·360）</span>
-                <span class="pill" data-vg-preset="sticker">表情包（8fps·32色·240）</span>
-              </div>
-            </div>
-
-            <!-- 帧率 -->
-            <div class="vg-params__section">
-              <div class="vg-params__head">帧率</div>
-              <div class="vg-field">
-                <div class="vg-range-row">
-                  <input type="range" data-vg-fps min="3" max="30" value="15" step="1" aria-label="帧率" />
-                  <span class="vg-slider-val"><span data-vg-fps-val>15</span> fps</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 输出尺寸 -->
-            <div class="vg-params__section">
-              <div class="vg-params__head">输出尺寸</div>
-              <div class="vg-field">
-                <div class="vg-seg" data-vg-size-group>
-                  <span class="pill" data-vg-size="0" data-active="true">原始</span>
-                  <span class="pill" data-vg-size="480">480</span>
-                  <span class="pill" data-vg-size="360">360</span>
-                  <span class="pill" data-vg-size="240">240</span>
-                  <span class="pill" data-vg-size="200">200</span>
-                  <span class="pill" data-vg-size="custom">自定义</span>
-                </div>
-                <div class="vg-size-manual">
-                  <div>
-                    <span class="vg-field__label">宽度</span>
-                    <input class="input" type="number" data-vg-manual-width min="1" max="1920" placeholder="自动" aria-label="输出宽度" disabled />
-                  </div>
-                  <div>
-                    <span class="vg-field__label">高度</span>
-                    <input class="input" type="number" data-vg-manual-height min="1" max="1920" placeholder="自动" aria-label="输出高度" disabled />
-                  </div>
-                </div>
-                <label class="switch" data-vg-switch-keepratio>
-                  <input type="checkbox" checked />
-                  <span class="switch__track"></span>
-                  <span class="switch__label">保持宽高比</span>
-                </label>
-              </div>
-            </div>
-
-            <!-- 颜色与质量 -->
-            <div class="vg-params__section">
-              <div class="vg-params__head">颜色与质量</div>
-              <div class="vg-field">
-                <span class="vg-field__label">调色板颜色数</span>
-                <div class="vg-seg" data-vg-color-group>
-                  <span class="pill" data-vg-color="32">32</span>
-                  <span class="pill" data-vg-color="64">64</span>
-                  <span class="pill" data-vg-color="128" data-active="true">128</span>
-                  <span class="pill" data-vg-color="256">256（最佳）</span>
-                </div>
-              </div>
-              <div class="vg-field">
-                <span class="vg-field__label">颜色量化格式</span>
-                <div class="vg-seg" data-vg-format-group>
-                  <span class="pill" data-vg-format="rgb565" data-active="true">rgb565（高质量）</span>
-                  <span class="pill" data-vg-format="rgba4444">rgba4444</span>
-                  <span class="pill" data-vg-format="rgba5">rgba5（紧凑）</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 循环 -->
-            <div class="vg-params__section">
-              <div class="vg-params__head">循环播放</div>
-              <div class="vg-field">
-                <div class="vg-seg" data-vg-loop-group>
-                  <span class="pill" data-vg-loop="0" data-active="true">无限循环</span>
-                  <span class="pill" data-vg-loop="1">1 次</span>
-                  <span class="pill" data-vg-loop="3">3 次</span>
-                  <span class="pill" data-vg-loop="5">5 次</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 生成区 -->
-          <div class="vg-gen-area">
-            <div class="vg-gen-actions">
-              <button class="btn btn-primary" data-vg-generate type="button">生成 GIF</button>
-              <button class="btn" data-vg-cancel type="button" hidden>取消</button>
-            </div>
-            <div class="vg-progress" data-vg-extract-wrap hidden>
-              <div class="vg-progress__label">
-                <span data-vg-extract-text>抽帧中...</span>
-              </div>
-              <div class="vg-progress__bar">
-                <div class="vg-progress__fill" data-vg-extract-fill></div>
-              </div>
-            </div>
-            <div class="vg-progress" data-vg-encode-wrap hidden>
-              <div class="vg-progress__label">
-                <span data-vg-encode-text>编码中...</span>
-              </div>
-              <div class="vg-progress__bar">
-                <div class="vg-progress__fill" data-vg-encode-fill></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 结果 -->
-          <div class="vg-result" data-vg-result-wrap hidden>
-            <img class="vg-result__img" data-vg-result-img alt="GIF 预览" />
-            <div class="vg-result__info">
-              <div class="vg-result__meta" data-vg-result-info></div>
-              <div class="vg-result__actions">
-                <button class="btn btn-primary btn-sm" data-vg-download type="button">下载 GIF</button>
-                <button class="btn btn-ghost btn-sm" data-vg-regenerate type="button">重新生成</button>
-              </div>
-            </div>
-          </div>
+          </fieldset>
+          <div class="vg-gen-area"><div><strong>准备生成</strong><p class="vg-note" data-vg-summary aria-live="polite"></p></div><button class="btn btn-primary" data-vg-generate type="button" disabled>生成 GIF</button></div>
+          <div class="vg-result" data-vg-result-wrap hidden><img class="vg-result__img" data-vg-result-img alt="生成的 GIF 预览" /><div class="vg-result__info"><strong data-vg-result-note></strong><div class="vg-result__meta" data-vg-result-info></div><div class="vg-result__actions"><button class="btn btn-primary btn-sm" data-vg-download type="button">下载 GIF</button><button class="btn btn-ghost btn-sm" data-vg-regenerate type="button">重新生成</button></div></div></div>
         </div>
+        <div class="vg-progress" data-vg-progress hidden><div class="vg-progress__label"><span data-vg-progress-text aria-live="polite">准备视频…</span><button class="btn btn-ghost btn-sm" data-vg-cancel type="button" hidden>取消生成</button></div><div class="vg-progress__bar" data-vg-progress-bar role="progressbar" aria-label="GIF 生成进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="vg-progress__fill" data-vg-progress-fill></div></div></div>
+        <p class="vg-notice" data-vg-notice role="status" hidden></p>
       </div>
     </section>
   </template>

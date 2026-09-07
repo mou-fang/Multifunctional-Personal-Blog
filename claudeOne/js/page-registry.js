@@ -192,7 +192,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     description: "claudeOne 视频转 GIF — 本地裁剪、选段、调帧率与画质，浏览器内生成 GIF",
     templateId: "page-videogif",
     css: ["css/videogif.css"],
-    js: ["js/videogif.js"],
+    js: ["js/videogif-core.js", "js/videogif.js"],
     lifecycle: "__page_videogif"
   },
   doom: {

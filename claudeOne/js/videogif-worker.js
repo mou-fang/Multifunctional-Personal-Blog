@@ -1,110 +1,36 @@
-/* ===== claudeOne :: videogif-worker.js =====
- * 同源 Web Worker：负责把主线程抽好的 RGBA 帧编码成 GIF。
- * 运行在 worker-src 'self' CSP 下，通过 importScripts 加载本地 vendored gifenc。
- * gifenc 的 CJS 构建依赖宿主提供 exports/module，故在 importScripts 前预声明 shim。
- *
- * 协议（与 videogif.js 约定）：
- *   入: { id, type:'encode', frames:[Uint8Array], width, height, delay, repeat,
- *         maxColors, format, fps }   — frames 已是裁剪+缩放后的目标尺寸 RGBA
- *   出: { id, type:'progress', done, total }
- *       { id, type:'done', bytes }      — bytes 为 ArrayBuffer，可被 transfer
- *       { id, type:'error', message }
- */
+/* One transferred RGBA frame at a time; acknowledge before the next seek. */
 'use strict'
-
-/* gifenc CJS shim —— 必须在 importScripts 之前定义 */
 var exports = {}
 var module = { exports: exports }
-
-try {
-  importScripts('../libs/gifenc/gifenc.js')
-} catch (e) {
-  self.postMessage({ type: 'error', message: '加载 gifenc 失败: ' + e.message })
-}
-
-var GIFEncoder = exports.GIFEncoder
-var quantize = exports.quantize
-var applyPalette = exports.applyPalette
-
-/* 校验：库是否成功加载 */
-if (typeof GIFEncoder !== 'function' || typeof quantize !== 'function' || typeof applyPalette !== 'function') {
-  self.postMessage({ type: 'error', message: 'gifenc 接口缺失，无法编码' })
-}
-
-/* 帧间复用调色板：对动画连续帧，复用首帧调色板可减小体积并保持色彩一致。
- * gifenc 的 writeFrame 在 first 帧写入全局色表，后续帧若传入 palette 则用局部色表。
- * 这里采用「每帧独立量化 + 首帧作为全局」策略，兼顾质量与兼容性。 */
-function encode(frames, width, height, opts) {
-  var delay = opts.delay
-  var repeat = opts.repeat
-  var maxColors = opts.maxColors || 256
-  var format = opts.format || 'rgb565'
-
-  if (!frames || !frames.length) throw new Error('没有可编码的帧')
-
-  var gif = GIFEncoder()
-  var globalPalette = null
-  var total = frames.length
-
-  for (var i = 0; i < total; i++) {
-    var rgba = frames[i]
-
-    /* 第一帧：量化得到全局调色板 */
-    var palette
-    if (i === 0) {
-      globalPalette = quantize(rgba, maxColors, { format: format })
-      palette = globalPalette
-    } else {
-      /* 后续帧复用全局调色板以避免每帧局部色表膨胀体积；
-       * 若色彩差异大可改为每帧重算，但默认走体积最优 */
-      palette = globalPalette
-    }
-
-    var index = applyPalette(rgba, palette, format)
-    gif.writeFrame(index, width, height, {
-      data: index,
-      palette: palette,
-      delay: delay,
-      repeat: repeat
-    })
-
-    /* 报告进度，让出事件循环避免长时间阻塞 worker 消息队列 */
-    if (i % 2 === 0 || i === total - 1) {
-      self.postMessage({ type: 'progress', done: i + 1, total: total })
-    }
-  }
-
-  gif.finish()
-  var bytes = gif.bytes()
-  /* 拷贝到独立 ArrayBuffer 以便 transfer；gifenc 的内部 buffer 可能被复用 */
-  var out = new ArrayBuffer(bytes.length)
-  new Uint8Array(out).set(bytes)
-  return out
-}
-
-self.onmessage = function (e) {
-  var msg = e.data || {}
-  var id = msg.id
-  if (msg.type !== 'encode') return
-
+var bootError = ''
+try { importScripts('../libs/gifenc/gifenc.js') } catch (e) { bootError = e.message }
+var job = null
+self.onmessage = function (event) {
+  var msg = event.data || {}
   try {
-    var frames = msg.frames
-    var width = msg.width
-    var height = msg.height
-    if (!Array.isArray(frames) || !frames.length) {
-      self.postMessage({ id: id, type: 'error', message: '帧数据为空' })
-      return
+    if (bootError || typeof exports.GIFEncoder !== 'function') throw new Error('编码器加载失败，请刷新页面重试')
+    if (msg.type === 'start') {
+      if (!Number.isInteger(msg.width) || !Number.isInteger(msg.height) || msg.width < 1 || msg.height < 1 || msg.width > 1920 || msg.height > 1920 || !Number.isInteger(msg.total) || msg.total < 1 || msg.total > 1800 || [32, 64, 128, 256].indexOf(msg.colors) < 0) throw new Error('编码参数无效')
+      job = { id: msg.id, width: msg.width, height: msg.height, total: msg.total, colors: msg.colors, repeat: msg.repeat, done: 0, gif: exports.GIFEncoder() }
+      self.postMessage({ id: msg.id, type: 'ready' })
+    } else if (job && job.id === msg.id && msg.type === 'frame') {
+      if (msg.index !== job.done || job.done >= job.total || !(msg.rgba instanceof ArrayBuffer) || msg.rgba.byteLength !== job.width * job.height * 4 || !Number.isFinite(msg.delay) || msg.delay < 20 || msg.delay > 655350) throw new Error('帧数据或顺序无效')
+      var rgba = new Uint8Array(msg.rgba)
+      var palette = exports.quantize(rgba, job.colors, { format: 'rgb565' })
+      var index = exports.applyPalette(rgba, palette, 'rgb565')
+      job.gif.writeFrame(index, job.width, job.height, { palette: palette, delay: msg.delay, repeat: job.repeat })
+      job.done++
+      if (job.gif.bytesView().byteLength > 100 * 1024 * 1024) throw new Error('GIF 超过 100 MB，请缩短片段或减小尺寸')
+      self.postMessage({ id: job.id, type: 'progress', done: job.done, total: job.total })
+    } else if (job && job.id === msg.id && msg.type === 'finish') {
+      if (job.done !== job.total) throw new Error('视频帧尚未处理完成')
+      job.gif.finish()
+      var bytes = job.gif.bytes().slice().buffer
+      self.postMessage({ id: job.id, type: 'done', bytes: bytes }, [bytes])
+      job = null
     }
-
-    var bytes = encode(frames, width, height, {
-      delay: msg.delay,
-      repeat: msg.repeat,
-      maxColors: msg.maxColors,
-      format: msg.format
-    })
-
-    self.postMessage({ id: id, type: 'done', bytes: bytes }, [bytes])
-  } catch (err) {
-    self.postMessage({ id: id, type: 'error', message: (err && err.message) || String(err) })
+  } catch (e) {
+    job = null
+    self.postMessage({ id: msg.id, type: 'error', message: e.message || String(e) })
   }
 }
