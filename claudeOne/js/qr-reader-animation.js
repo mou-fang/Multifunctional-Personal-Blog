@@ -382,7 +382,24 @@
     glyph.width = 212; glyph.height = 40;
     const g = glyph.getContext("2d", { willReadFrequently: true });
     const CYCLE = 11400;
-    let particles = [], currentDemo = -1, demoLabel = "";
+    let particles = [], currentDemo = -1, currentCycle = -1, demoLabel = "";
+    let demoQueue = [];
+    function nextDemo() {
+      if (!demoQueue.length) {
+        demoQueue = DEMOS.map((_, index) => index);
+        // Shuffle a complete round so every phrase plays once before reshuffling.
+        for (let i = demoQueue.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [demoQueue[i], demoQueue[j]] = [demoQueue[j], demoQueue[i]];
+        }
+        // Keep the last phrase of one round from repeating immediately.
+        if (demoQueue.length > 1 && demoQueue[0] === currentDemo) {
+          const j = 1 + Math.floor(Math.random() * (demoQueue.length - 1));
+          [demoQueue[0], demoQueue[j]] = [demoQueue[j], demoQueue[0]];
+        }
+      }
+      return demoQueue.shift();
+    }
     function prepareDemo(index) {
       currentDemo = index;
       const demo = DEMOS[index];
@@ -416,8 +433,11 @@
     let raf = 0, elapsed = 0, last = 0, enabled = false, manualPause = false, disposed = false;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
     function draw(time) {
-      const index = Math.floor(time / CYCLE) % DEMOS.length;
-      if (index !== currentDemo) prepareDemo(index);
+      const cycle = Math.floor(elapsed / CYCLE);
+      if (cycle !== currentCycle) {
+        currentCycle = cycle;
+        prepareDemo(nextDemo());
+      }
       const box = canvas.getBoundingClientRect();
       const dpr = Math.min(devicePixelRatio || 1, 2);
       const width = Math.max(1, Math.round(box.width * dpr));
