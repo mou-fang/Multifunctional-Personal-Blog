@@ -1,262 +1,233 @@
-# claudeOne · 魔方工作台
+# 魔方的妙妙工具 · claudeOne
 
-一个前后端结合的个人工具工作台，以 3D 魔方为首页入口，通过顶部导航进入「游戏」和「工具箱」两大分类。纯原生 HTML/CSS/JS 实现，无构建步骤；内置全局音乐播放器，切页不中断；支持双主题一键切换。
+一个把实用工具、小游戏和音乐播放器放在一起的个人工作台。首页是一颗可以转动、打乱和还原的 3D 魔方；顶部导航连接「首页」「游戏」「工具箱」。整个站点支持 **Soft UI** 与 **Liquid Glass** 两套主题。
 
-## 项目架构
-
-```
-SPA 单页应用（Hash 路由）
-├── index.html           SPA 壳子 + 所有页面模板
-├── js/router.js         Hash 路由器，动态加载/卸载页面
-├── js/page-registry.js  页面注册表（路由 → 模板/CSS/JS/生命周期）
-├── js/player.js         全局音乐播放引擎（DOM 在 SPA 壳子之外，切页不中断）
-├── js/shell.js          公共能力（导航、主题切换、Toast、弹窗、存储）
-├── js/config.js         全局配置（API、限制、播放器参数等）
-└── js/tool-cards.js     游戏/工具卡片数据与渲染
-```
-
-**核心设计：**
-- **SPA 路由**：所有页面通过 `<template>` 标签内嵌在 `index.html`，切换页面时从模板克隆内容注入 `<main>` 槽位，旧页面先 `unmount()` 清理事件。
-- **全局播放器**：播放器 DOM 在 `<main>` 之外，不受页面切换影响。支持展开/最小化两种状态。
-- **双主题**：Soft UI（柔和拟物风）和 Liquid Glass（玻璃拟态风），CSS 变量驱动，播放器深度适配两种风格。
-- **单端口服务**：Express 同时托管前端静态文件和 ASCII 转换 API，统一在 `localhost:3001`。
-
-## 维护规则
-
-- 页面脚本只管理自己的页面逻辑，并通过 `window.__page_xxx = { mount, unmount }` 暴露生命周期。
-- `mount(root)` 只查询当前页面根节点内的 DOM；需要全局能力时通过 `window.ClaudeOne`、`window.ClaudeOnePlayer` 或 router API 调用。
-- `unmount()` 必须清理本页创建的事件监听、定时器、animationFrame、Worker、Object URL、异步请求和临时 DOM。
-- 页面切换中的异步任务必须有 abort 或过期保护，不能在页面卸载后继续写旧 DOM。
-- 全局能力只放在 `js/shell.js`、`js/player.js`、`js/router.js`、`js/config.js` 等公共模块。
-- 页面 CSS 尽量使用页面命名空间，例如 `.page-ascii ...`、`.pixel-...`、`.compress-...`；全局 CSS 只放变量、基础布局、按钮、弹窗、Toast 等通用规则。
-- localStorage key 统一使用 `claudeOne:*` 前缀；DeepSeek API Key 只能保存在浏览器 localStorage，不写死进代码，也不打印到日志。
-- 不硬编码本机绝对路径。API 地址、限制和播放器参数优先放在 `js/config.js`。
-- `music/` 里的用户音频和 `server/uploads/` 里的临时上传不应继续进入 Git；仓库只保留 `.gitkeep` 和生成的 `music/playlist.js`。
+前端采用原生 HTML、CSS 和 JavaScript，通过 Hash 路由切页，无需打包构建。Express 同时提供静态页面和后端接口，默认访问地址为 `http://localhost:3001`。
 
 ## 快速开始
 
-### 前提条件
+先安装 Node.js（服务端使用原生 `fetch`，测试使用 `node:test`）。以下 PowerShell 命令均在**仓库根目录**执行；根目录没有 `package.json`。
 
-- [Node.js](https://nodejs.org/) LTS 版本（用于运行后端和音乐扫描）
-- 可选：[Go](https://go.dev/dl/)（ASCII 艺术功能需要 `ascii-image-converter`）
-
-### 一键启动
-
-双击 `claudeOne/addmusic.bat`：
-
-1. 启动 Express 服务器（前端 + 后端，端口 3001）
-2. 扫描 `music/` 文件夹，提取音乐元数据生成播放列表
-3. 打开浏览器访问 `http://localhost:3001`
-
-之后往 `claudeOne/music/` 文件夹添加新歌曲，再次双击 `claudeOne/addmusic.bat` 即可更新播放列表。
-
-### 控制面板
-
-双击 `control.bat` 提供完整管理菜单：
-
-| 选项 | 功能 |
-|------|------|
-| Start All | 启动服务器 + 扫描音乐 + 打开浏览器 |
-| Start Server Only | 仅启动服务器 |
-| Scan Music Only | 仅重新扫描音乐文件夹 |
-| Restart Server | 重启服务器 |
-| Stop Server | 停止服务器 |
-
-面板顶部显示服务器运行状态（RUNNING/STOPPED + PID）。
-
-## 页面功能
-
-### 首页
-
-可交互的 3D 魔方（Three.js）。拖动旋转观察，松开后惯性自转。提供 12 个面转动按钮（U/U'/D/D'/L/L'/R/R'/F/F'/B/B'），支持键盘快捷键（字母键转面，Shift+字母反向，空格打乱，Esc 还原）。
-
-### 游戏
-
-| 页面 | 路由 | 说明 |
-|------|------|------|
-| **无界穿梭：天际城** | `#/city-shuttle` | PC 专属高速飞行游戏；以城市种子实时生成无限近未来都市、高楼、别墅、公园、游乐园、立交桥、高铁、机场和动态交通。含七类空中任务、第一/第三人称视角、高分辨率彩色 ASCII 与全屏模式；旧 `#/anomaly-bureau` 和 `#/ascii-void` 地址保留为兼容入口 |
-| **俄罗斯转盘** | `#/game` | 设定玩家人数和名字，拖拽排序，选择弹巢与子弹数量，三种结束规则，支持暴露/隐藏弹巢位置 |
-| **推箱子** | `#/sokoban` | 10 个固定关卡从入门到地狱；随机模式内置 BFS 求解器验证可解性；深渊模式含唯一解验证 |
-
-### 工具箱
-
-| 页面 | 路由 | 说明 |
-|------|------|------|
-| **幸运抽奖** | `#/lottery` | 大转盘 + Web Crypto 真随机算法，管理参与者名单和奖项，中奖彩带效果 |
-| **音乐解锁** | `#/music` | 纯浏览器端解密网易云/QQ 音乐加密文件（.ncm .qmc* .mflac .mgg 等），解密后自动加入全局播放器 |
-| **ASCII 艺术** | `#/ascii` | 上传图片转为 ASCII 字符画，后端调用 Go 工具完成转换，支持彩色/灰度/盲文模式 |
-| **图片像素化** | `#/pixel` | 上传图片生成复古像素风、8-bit 风、Game Boy 风或自定义调色板像素画，支持导出 PNG |
-| **拼豆工坊** | `#/beads` | 四阶段本地拼豆工作流：图片优化与 5 品牌 291 色映射、文字/形状/复制镜像/高级图层精修、五种材质预览、逐色摆豆计时与进度；支持 PNG、CSV、JSON 和打印/PDF |
-| **图片加密（混淆）** | `#/scramble` | PixelFlux 可逆像素置换与颜色混淆，浏览器本地导出带完整性校验的可还原 PNG |
-| **图片压缩** | `#/compress` | 浏览器本地压缩图片、调整尺寸、转换 JPG/PNG/WebP，支持批量处理和 ZIP 打包下载 |
-| **二维码美化** | `#/qr` | 生成带 Logo、渐变色、圆点样式和自定义角标的高级二维码，支持 PNG/SVG 导出 |
-| **DeepSeek 聊天** | `#/ai` | 对接 DeepSeek API，流式回复，思维链显示，推理强度调节，多轮对话 + 话题管理。Key 仅存 localStorage |
-
-### 全局音乐播放器
-
-固定在页面底部，展开态显示封面、歌曲信息、进度条和完整控制栏；最小化态收缩为右下角浮动窄条。
-
-- **音乐来源**：`music/` 文件夹（自动扫描，支持 mp3/flac/wav/ogg/aac/m4a 等格式）
-- **元数据提取**：自动从音频文件 ID3 标签读取歌名、歌手、专辑、封面图
-- **封面回退**：内嵌封面 → 同目录同名图片 → cover.jpg → 默认渐变色
-- **播放模式**：顺序 / 随机 / 单曲循环，一键切换，右上角 Toast 提示
-- **拖拽添加**：拖拽音频文件到播放器即可临时播放
-- **来源标记**：显示当前曲目来自「项目文件夹」还是「音乐解锁」或「拖拽添加」
-
-## 主题切换
-
-右上角主题开关在两种风格之间切换：
-
-- **Soft UI**（新拟物）：浅蓝色画布，凸起/凹陷的柔和阴影，没有可见边框
-- **Liquid Glass**（液态玻璃）：网格背景 + 毛玻璃面板，多层堆叠阴影 + 透镜边缘 + 对角高光
-
-切换时从开关位置播放涟漪动画，掩盖元素重排。
-
-## 真人访问统计
-
-首页展示“累计真人访客”和“当前在线”。前端只有在页面可见且出现真实鼠标、触控、滚动或键盘操作后才发送匿名心跳；服务端还会过滤常见爬虫 User-Agent、自动化浏览器、跨站请求和异常浏览器信号。
-
-- 每个浏览器只计为一个累计访客，匿名标识在服务端经过带盐哈希后保存，不记录访问内容，也不持久化原始 IP。
-- 在线人数按最近 70 秒内仍有心跳的匿名访客计算，同一浏览器的多个标签页不会重复计数。
-- 累计数据默认保存在 `claudeOne/server/data/visitor-stats.json`（已忽略 Git）。生产部署需为该目录提供持久化磁盘，也可通过 `VISITOR_DATA_FILE` 指定其他持久化路径。
-- 可通过 `RATE_LIMIT_VISITOR_STATS` 调整每个 IP 每分钟的统计接口请求上限，默认 120。
-
-这套机制会排除常见搜索爬虫和自动化扫描；若要对高级伪装机器人做强验证，仍需接入验证码或登录体系。
-
-## 部署到本地
-
-### 1. 下载项目
-
-```bash
-git clone https://github.com/mou-fang/Multifunctional-Personal-Blog.git
-cd Multifunctional-Personal-Blog
+```powershell
+npm.cmd --prefix claudeOne/server ci
+npm.cmd --prefix claudeOne/server start
 ```
 
-或直接在 GitHub 页面点击 **Code → Download ZIP** 下载解压。
+打开 [本地工作台](http://localhost:3001)。不要直接双击 `index.html`：Worker、WebAssembly 和后端接口需要通过 HTTP 服务使用。
 
-### 2. 安装依赖
+macOS / Linux 使用相同命令，将 `npm.cmd` 替换为 `npm`。
 
-```bash
-cd claudeOne/server
-npm install
+### Windows 启动入口
+
+安装依赖后，也可以使用：
+
+| 文件 | 用途 |
+| --- | --- |
+| [claudeOne/addmusic.bat](claudeOne/addmusic.bat) | 启动服务、扫描音乐、打开浏览器 |
+| [claudeOne/control.bat](claudeOne/control.bat) | 启动、停止、重启服务，或单独更新歌单 |
+
+两个批处理入口当前使用固定端口 `3001`。需要临时换端口时，使用命令行启动：
+
+```powershell
+$env:PORT = "3017"
+npm.cmd --prefix claudeOne/server start
 ```
 
-### 3. 安装 Go 工具（ASCII 艺术需要）
+此时访问 `http://localhost:3017`。批处理按端口查找进程，使用停止或重启菜单前，应确认该端口属于本项目。
 
-```bash
-# 安装 Go 后运行
+### 可选：ASCII 图片转换
+
+ASCII 艺术需要服务端安装 `ascii-image-converter`。安装 Go 后执行：
+
+```powershell
 go install github.com/TheZoraiz/ascii-image-converter@latest
 ```
 
-确保 `ascii-image-converter` 在系统 PATH 中，否则 ASCII 转换功能不可用（其他功能不受影响）。服务端会返回清晰的 JSON 错误，前端应显示友好提示。
+服务优先查找用户目录下的 `go/bin`，再从 `PATH` 查找命令。没有安装时，其他页面仍可使用。
 
-### 4. 启动
+## 现有功能
 
-双击 `claudeOne/addmusic.bat` 一键启动，或手动：
+以下列出已有路由的页面。游戏中心和工具箱中的「即将推出」卡片属于占位内容，不代表功能已经实现。
 
-```bash
-cd claudeOne/server
-node server.js
+### 工具箱
+
+进入 `#/tools` 查看工具卡片。
+
+| 工具 | 路由 | 功能 |
+| --- | --- | --- |
+| 二维码解析 | `#/qr-reader` | 拖入、选取或粘贴图片，识别链接、文本、Wi-Fi、邮件、电话和名片；可复制原文，网页链接可手动打开 |
+| 二维码美化 | `#/qr` | 生成二维码，调整 Logo、颜色、渐变和点阵样式，导出 PNG / SVG |
+| 拼豆工坊 | `#/beads` | 图片转拼豆图纸，提供色卡映射、图层精修、文字与形状、材质预览、逐色制作引导及导出 |
+| 图片加密（混淆） | `#/scramble` | PixelFlux 可逆像素与颜色混淆，导出可还原 PNG；还原需要保留原始导出文件中的信息 |
+| 图片压缩 | `#/compress` | 批量压缩、调整尺寸、转换 JPG / PNG / WebP，可打包下载 |
+| 图片像素化 | `#/pixel` | 把图片转换为像素画，调整调色板与视觉效果，导出 PNG |
+| 视频转 GIF | `#/videogif` | 本地导入视频、裁剪、选取片段、调整帧率和输出尺寸，生成 GIF |
+| ASCII 艺术 | `#/ascii` | 图片转字符画，支持彩色、灰度与盲文等模式；通过后端转换 |
+| 音乐解锁 | `#/music` | 处理 NCM、QMC 等支持的音乐格式；部分 QQ 音乐文件需通过后端获取密钥 |
+| 幸运抽奖 | `#/lottery` | 管理参与者和奖项，通过转盘完成随机抽奖 |
+| DeepSeek 聊天 | `#/ai` | 流式对话、话题管理、提示词和模型设置，需要用户提供 API Key |
+| 播放歌单 | `#/playlist` | 浏览和播放歌单，与全局播放器共用播放状态 |
+
+二维码解析在浏览器本地运行，支持 PNG、JPG、WebP、GIF 和 BMP，每次一张、最大 20 MB。待机时，二维码像素会飞向右侧组成短句或链接；演示文案按轮随机打乱，不连续重复，导入真实图片后停止演示。PixelFlux 用于视觉混淆，不应当作敏感资料的安全加密方案。
+
+### 游戏
+
+进入 `#/games` 查看游戏卡片。
+
+| 游戏 | 路由 | 玩法 |
+| --- | --- | --- |
+| 无界穿梭：天际城 | `#/city-shuttle` | 程序生成城市中的高速飞行与空中任务，支持第一 / 第三人称；需要 PC 键鼠与 WebGL2 |
+| DOOM | `#/doom` | 基于 doomgeneric 与 Freedoom 数据的 WebAssembly 射击游戏 |
+| 推箱子 | `#/sokoban` | 固定关卡与随机生成关卡 |
+| 重力扫雷 | `#/minesweeper` | 翻开空格后方块下落，结合数字和重力变化推理 |
+| 贪吃蛇竞技场 | `#/snake` | 多 AI 对手、大地图、能力道具与障碍物 |
+| 中式八球 | `#/billiards` | 单人练习、人机对战与规则说明 |
+| Only Up | `#/onlyup` | 像素风垂直攀爬与多场景挑战 |
+| 深渊协议 | `#/abyss` | 自动攻击、生存、升级、武器进化与 Boss 战 |
+| 俄罗斯转盘 | `#/game` | 自定义玩家、弹巢和结束规则的聚会小游戏 |
+
+`#/anomaly-bureau` 和 `#/ascii-void` 是天际城的兼容入口，不是另外两款游戏。
+
+### 首页与全局功能
+
+- **首页 `#/home`**：基于 CSS 3D 与 JavaScript 的交互魔方，支持转面、打乱、还原和散开效果。
+- **音乐播放器**：页面切换不中断播放，支持播放进度、音量、顺序 / 随机 / 单曲循环，以及本地音频拖入。
+- **全站 AI 助手**：提供对话与已接入页面的操作能力，执行范围受页面适配器和动作白名单限制。
+- **访问统计**：依据可见页面中的用户交互发送匿名心跳，过滤常见自动化信号；这是启发式统计，并非严格的真人身份验证。
+
+## 两套 UI 风格
+
+| 主题 | 视觉基调 | 相关文件 |
+| --- | --- | --- |
+| Soft UI（`neumorphism`） | 浅蓝底色、柔和凸起 / 凹陷阴影；共享低对比度紫青柔光背景，当前强度为 45% | [neumorphism.css](claudeOne/css/neumorphism.css)、[softui-background.css](claudeOne/css/softui-background.css) |
+| Liquid Glass（`liquid-glass`） | 浅色网格背景、半透明玻璃面板、边缘高光和多层阴影，文字保持深色可读 | [liquid-glass.css](claudeOne/css/liquid-glass.css) |
+
+右上角开关切换主题，选择保存在本机浏览器。两套主题共用布局和交互，通过 [base.css](claudeOne/css/base.css) 中的颜色、阴影、圆角和间距变量表达各自材质。
+
+## 音乐、配置与数据
+
+### 更新本地歌单
+
+将音频放入 `claudeOne/music/`，然后运行：
+
+```powershell
+node claudeOne/scripts/scan-music.js
 ```
 
-然后访问 `http://localhost:3001`。
+扫描器生成 `claudeOne/music/playlist.js`。若安装了可选的 `music-metadata`，会读取音频标签和内嵌封面；当前服务端依赖清单不包含该包，缺少时回退到文件名和同目录封面图片。音频能否播放还取决于浏览器的编解码支持。
 
-如果端口被占用，先停止已有服务，或临时使用其他端口：
+### 配置入口
 
-```bash
-cd claudeOne/server
-PORT=3017 node server.js
+- [config.js](claudeOne/js/config.js)：API 地址、DeepSeek 设置、主题默认值、播放器与部分工具限制。页面自身的限制还需查看对应模块。
+- [server.js](claudeOne/server/server.js)：服务端路由、上传限制、静态资源和音乐接口。
+
+| 环境变量 | 默认值 / 用途 |
+| --- | --- |
+| `PORT` | `3001`，HTTP 监听端口 |
+| `VISITOR_DATA_FILE` | 默认 `claudeOne/server/data/visitor-stats.json`，访客统计持久化文件 |
+| `TRUST_PROXY` | 设为 `1` 或 `true` 启用 Express 代理信任；按实际反向代理部署配置 |
+| `RATE_LIMIT_VISITOR_STATS` | 默认每 IP 每分钟 120 次统计请求 |
+| `RATE_LIMIT_MUSIC_EKEY` | 默认每 IP 每小时 200 次密钥请求 |
+| `RATE_LIMIT_MUSIC_METADATA` | 默认每 IP 每小时 200 次音乐元数据请求 |
+
+### 本地处理与网络请求
+
+二维码解析、拼豆、像素化、压缩、图片混淆和视频转 GIF 的主要处理在浏览器内完成。ASCII 图片会提交到本站后端；DeepSeek 对话会发送到配置的服务地址；部分 QQ 音乐流程会通过本站后端访问音乐服务。页面还会加载外部字体并发送本站访问统计心跳，因此“图片本地处理”不等于“整个站点完全离线”。
+
+DeepSeek API Key 保存在浏览器本地存储，调用时用于向配置的 API 服务认证。QQ 音乐授权信息由后端短期保存在内存会话中。不要将密钥、Cookie、用户音频和临时上传写入仓库。
+
+对外部署时使用 HTTPS；访客统计需要持久化保存上述数据文件。DOOM 的静态资源、许可证与部署注意事项见 [DOOM 资源说明](claudeOne/libs/doom/README.md)。`libs/` 当前有一年不可变缓存，更新库文件时应同步采用新资源路径或版本目录。
+
+## 项目结构
+
+```text
+.
+├── README.md                    使用说明与维护规范
+├── AGENTS.md                    代码代理进入项目时遵循的规则
+├── .gitignore                   用户媒体、依赖与临时产物排除规则
+└── claudeOne/
+    ├── index.html               SPA 外壳、共享组件与页面 template
+    ├── addmusic.bat / control.bat
+    ├── css/
+    │   ├── base.css             主题变量、基础布局与排版
+    │   ├── components.css       通用组件结构
+    │   ├── neumorphism.css      Soft UI 组件材质
+    │   ├── liquid-glass.css     Liquid Glass 组件材质
+    │   ├── softui-background.css
+    │   └── *.css                页面样式
+    ├── js/
+    │   ├── config.js            公共配置
+    │   ├── theme-init.js        首屏主题初始化
+    │   ├── shell.js             导航、主题、Toast 等共享能力
+    │   ├── page-registry.js     页面元数据、资源、生命周期与导航分类
+    │   ├── router.js            Hash 路由与页面挂载 / 卸载
+    │   ├── tool-cards.js        游戏和工具入口
+    │   ├── player.js            全局音乐播放器
+    │   ├── assistant.js         全站 AI 助手与页面适配
+    │   └── *.js                各工具、游戏、核心算法与 Worker
+    ├── libs/                   随项目提供的第三方库、WASM 与许可证
+    ├── scripts/                音乐扫描与控制面板辅助脚本
+    ├── music/                  用户音频及生成的 playlist.js
+    └── server/
+        ├── package.json / package-lock.json
+        ├── server.js           Express 服务入口
+        ├── *test.js / fixtures/ 回归测试与必要样例
+        ├── data/               运行时统计数据
+        └── uploads/            临时上传文件
 ```
 
-### 5. 放置音乐
+## 维护规则
 
-将音频文件（mp3/flac/wav 等）放入 `claudeOne/music/` 文件夹，重新运行 `addmusic.bat` 或在控制面板选择 "Scan Music Only" 更新播放列表。
+### 1. 新增内容必须符合两套 UI 的美术风格
 
-## 目录结构
+**新增或修改工具、游戏、组件和动画时，必须同时适配 Soft UI 与 Liquid Glass。只完成一种主题不算完成。**
 
-```
-Multifunctional-Personal-Blog/
-├── README.md
-├── .gitignore
-├── claudeOne/
-│   ├── index.html              SPA 壳子 + 所有页面模板
-│   ├── addmusic.bat            一键启动器
-│   ├── control.bat             服务器管理面板
-│   ├── music/                  音乐文件夹
-│   │   ├── .gitkeep
-│   │   ├── playlist.js         自动生成的播放列表
-│   │   └── *.mp3               用户放入的音乐文件
-│   ├── scripts/
-│   │   ├── scan-music.js       Node.js 音乐扫描器
-│   │   └── scan-music.ps1      PowerShell 备选方案（已弃用）
-│   ├── css/
-│   │   ├── base.css            全局变量、重置、排版
-│   │   ├── components.css      公共组件（按钮、卡片、弹窗、Toast 等）
-│   │   ├── neumorphism.css     Soft UI 主题覆盖
-│   │   ├── liquid-glass.css    Liquid Glass 主题覆盖
-│   │   ├── animations.css      页面过渡动画
-│   │   ├── player.css          全局播放器样式（双主题深度适配）
-│   │   ├── cube.css            魔方 3D 样式
-│   │   ├── city-shuttle.css    无界穿梭宽屏舞台、飞行 HUD 与全屏布局
-│   │   ├── bead-studio.css     拼豆四阶段工作台、画布与响应式布局
-│   │   ├── games.css / tools.css  卡片网格
-│   │   └── *.css               各页面独立样式
-│   ├── js/
-│   │   ├── config.js           全局配置
-│   │   ├── theme-init.js       首屏主题初始化（防闪烁）
-│   │   ├── shell.js            公共能力（导航、主题、Toast、弹窗）
-│   │   ├── router.js           SPA Hash 路由器
-│   │   ├── page-registry.js    页面注册表
-│   │   ├── player.js           全局播放引擎
-│   │   ├── visitor-stats.js    真人访问验证与在线心跳
-│   │   ├── tool-cards.js       游戏/工具卡片渲染
-│   │   ├── cube.js             魔方 3D（Three.js）
-│   │   ├── city-shuttle-core.js  无限城市、飞行、任务、计分与碰撞纯函数
-│   │   ├── city-shuttle.js     WebGL2 实例化彩色 ASCII 城市穿梭游戏
-│   │   ├── roulette.js         俄罗斯转盘
-│   │   ├── sokoban.js          推箱子
-│   │   ├── lottery.js          幸运抽奖
-│   │   ├── music.js            音乐解锁
-│   │   ├── decrypt-worker.js   解密 Web Worker
-│   │   ├── ascii.js            ASCII 艺术
-│   │   ├── pixel.js            图片像素化
-│   │   ├── bead-studio-core.js 拼豆色卡、色差、转换与图层编辑纯函数
-│   │   ├── bead-studio.js      拼豆工作台交互、预览、制作引导与导出
-│   │   ├── image-scramble-core.js  PixelFlux 可逆算法与 PNG 编解码
-│   │   ├── image-scramble-worker.js 图片混淆处理 Web Worker
-│   │   ├── image-scramble.js   图片混淆页面交互
-│   │   ├── compress.js         图片压缩
-│   │   ├── qr.js               二维码美化
-│   │   └── ai.js               DeepSeek 聊天
-│   ├── libs/
-│   │   ├── pixelit/pixelit.js  像素化库
-│   │   ├── jszip/jszip.min.js  ZIP 打包库
-│   │   ├── qr-code-styling/    二维码渲染库
-│   │   └── browser-image-compression/  图片压缩库
-│   └── server/
-│       ├── package.json
-│       ├── server.js           Express 服务（前端静态 + ASCII API）
-│       ├── visitor-stats.js    匿名访客去重、持久化与爬虫过滤
-│       ├── data/               访问统计运行时数据
-│       └── uploads/            上传临时目录
+- 优先复用 `.card`、`.btn`、`.input`、`.pill` 等公共组件，以及 `--bg`、`--surface`、`--ink`、`--accent`、`--shadow-*`、`--radius-*`、`--space-*` 等变量。不要在通用控件上写死只适合某一主题的背景、文字颜色或阴影。
+- **Soft UI** 沿用浅蓝色基调、柔和层次与凸凹阴影；保持共享紫青柔光背景克制，不给每个卡片另铺高饱和渐变。
+- **Liquid Glass** 沿用浅色网格、透明材质、边缘高光与玻璃阴影；检查透明叠加后文字、输入框和按钮是否仍清晰可读。
+- 主题专属规则以 `body[data-theme="neumorphism"]` 或 `body[data-theme="liquid-glass"]` 限定作用范围。修改一个主题时，应确认另一个主题没有被连带改变。
+- 游戏场景、图片预览和像素艺术可保留内容本身的色彩；外围导航、工具栏、说明、弹窗和按钮仍须适配两套主题。Canvas 内容若采用主题配色，也要响应主题切换。
+- 交互以简单直白为先：突出主操作，清楚显示空状态、处理中、成功和失败；检查 hover、按下、选中、禁用、键盘焦点与长文本状态。
+- 装饰动画应可暂停或遵循减少动态效果偏好；在页面隐藏、卸载或开始实际处理时按需要停止，避免干扰操作。
+- 交付前实际切换两套主题，检查桌面和窄屏的截图与主要流程。明确仅支持 PC 的游戏，应在移动端给出清晰提示，站点导航和提示页面仍应正常显示。
+
+### 2. 页面接入与导航
+
+新页面须完成以下接入，不能只添加一个 HTML 文件：
+
+1. 在 `claudeOne/index.html` 添加页面 `<template>`。
+2. 在 `claudeOne/js/page-registry.js` 注册 `title`、`description`、`templateId`、`css`、`js`、`lifecycle` 和 **`navSection`**。
+3. `navSection` 只能为 `home`、`games`、`tools`；工具页归 `tools`，游戏页归 `games`，兼容地址与目标页保持一致。导航归属统一由注册表维护，不另建页面白名单。
+4. 在 `tool-cards.js` 添加对应分类入口；需由 AI 助手操作时，再更新 `assistant.js` 的页面说明和动作适配。
+5. 暴露 `window.__page_xxx = { mount, unmount }`，相关核心逻辑必须先于页面脚本加载。
+6. 检查直接打开 Hash 地址、刷新、前进后退、卡片跳转以及导航选中态，并更新本 README 的功能表。
+
+### 3. 生命周期与模块边界
+
+- `mount(root)` 中的页面 DOM 查询应限定在传入根节点内。全局能力通过 `window.ClaudeOne`、播放器和路由器接口使用。
+- `unmount()` 清理本页创建的监听、定时器、动画帧、Worker、Object URL、观察器和临时 DOM；取消未完成请求，或用任务标识丢弃过期结果。
+- 连续换文件、取消、重试、切页后返回都不能写入旧结果，也不能重复启动后台任务。
+- 耗时图像 / 媒体计算优先放入 Worker；可复用算法放入 `*-core.js`，界面逻辑留在页面模块。
+- 页面 CSS 使用独立类名前缀，避免裸 `button`、`canvas`、`h1` 等选择器影响其他页面。全局基础样式只放共享规则。
+- 共享播放器、助手和主题背景由站点外壳管理，页面不得重复创建或意外销毁。
+
+### 4. 配置、依赖与仓库卫生
+
+- 不硬编码开发者电脑路径。公共配置集中到 `config.js` 或后端环境变量；本地存储键使用 `claudeOne:*` 前缀。
+- 用户输入和二维码内容按文本渲染，不直接作为 HTML 执行；识别出的链接不自动打开。
+- 不把 API Key、Cookie、授权令牌写入源码或日志。保留与当前任务无关的修改。
+- 新增第三方库应保留来源、版本和许可证；遵循现有无构建架构，避免无必要引入构建链。
+- 用户音乐、临时上传、统计数据、依赖目录、浏览器配置、截图与一次性测试产物遵循 `.gitignore`。必要的正式回归测试及 fixtures 保留在仓库。
+- 一次性验证产物放入已忽略的 `output/`，完成后清理本次创建且不再需要的文件；不要为了清理删除用户媒体或其他任务产物。
+
+### 5. 验证与文档同步
+
+从仓库根目录执行已有回归测试：
+
+```powershell
+npm.cmd --prefix claudeOne/server test
 ```
 
-## 技术栈
+按改动范围做必要验证：纯逻辑或缺陷修复补充有实际价值的回归检查；UI 修改检查两套主题和真实操作流程；文件工具至少确认成功、错误、取消 / 换文件和切页清理。不要仅凭页面显示成功就认定处理或导出结果正确。
 
-- **前端**：原生 HTML / CSS / JavaScript，Three.js（CDN 引入）
-- **路由**：Hash 路由 + `<template>` 模板克隆
-- **后端**：Express（Node.js），multer 处理上传
-- **ASCII 转换**：Go 编写的 `ascii-image-converter` 命令行工具
-- **音乐元数据**：music-metadata（Node.js，ES Module）
-- **主题**：CSS 自定义属性，无运行时开销
-- **无构建步骤**：零依赖前端，所有库都是静态文件
-
-## 浏览器兼容
-
-推荐 Chrome、Edge、Firefox 最新版。
-
-- 魔方需要 WebGL 支持
-- 抽奖需要 `crypto.getRandomValues()`
-- 音乐解锁需要 Web Worker + ES Module
-- 图片混淆需要 Web Worker；恢复信息必须保留在导出的原始 PNG 中
-- 主题动画需要 CSS `clip-path` 和 `backdrop-filter`
+新增功能、修改启动方式、配置、依赖或维护要求时，同步更新 README；规则变更也应同步 [AGENTS.md](AGENTS.md)。文档只描述已经实现的能力，避免把占位卡片、旧别名或计划中的功能写成已上线功能。
