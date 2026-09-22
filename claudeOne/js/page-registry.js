@@ -179,6 +179,14 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     js: ["libs/jszip/jszip.min.js", "libs/browser-image-compression/browser-image-compression.js", "js/compress.js"],
     lifecycle: "__page_compress"
   },
+  "qr-reader": {
+    title: "claudeOne · 二维码解析",
+    description: "拖入二维码图片，在本地识别链接、文本、Wi-Fi 与联系人信息",
+    templateId: "page-qr-reader",
+    css: ["css/qr-reader.css"],
+    js: ["js/qr-reader-core.js", "js/qr-reader-animation.js", "js/qr-reader.js"],
+    lifecycle: "__page_qr_reader"
+  },
   qr: {
     title: "claudeOne · 二维码美化",
     description: "claudeOne QR — 二维码生成与美化工具",

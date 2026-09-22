@@ -1793,6 +1793,42 @@
     </div>
   </template>
 
+  <template id="page-qr-reader">
+    <section class="qread page-chunk" data-reveal-order="2" data-qread>
+      <header class="qread-heading">
+        <div><a class="qread-back" href="#/tools" data-nav-link>← 工具箱</a><h1>二维码里，藏着什么？</h1><p>拖进来，就知道。链接、文字、连接信息，一眼看明白。</p></div>
+        <span class="qread-local"><span></span>本地识别 · 图片不上传</span>
+      </header>
+      <div class="qread-workspace card">
+        <div class="qread-idle" data-idle>
+          <div class="qread-stage-head"><span>从像素，到信息</span><span class="qread-demo-label">待机演示</span></div>
+          <canvas class="qread-animation" data-animation aria-label="黑白二维码像素逐个飞向右侧，组成链接字母的待机动画" role="img"></canvas>
+          <div class="qread-stage-foot"><span>01 / 二维码</span><span class="qread-stage-line"></span><span>02 / 读懂内容</span><button class="qread-motion" type="button" data-motion aria-pressed="false">暂停动画</button></div>
+        </div>
+        <div class="qread-active" data-active hidden>
+          <div class="qread-preview"><img data-preview alt="正在解析的二维码图片" /><span data-filename></span></div>
+          <section class="qread-result" data-result hidden aria-label="识别结果">
+            <div class="qread-result-top"><span class="qread-badge" data-kind></span><span class="qread-success">✓ 识别成功</span></div>
+            <h2 data-detail></h2><dl class="qread-fields" data-fields></dl>
+            <textarea class="qread-content" data-content readonly aria-label="二维码完整内容" spellcheck="false"></textarea>
+            <div class="qread-actions"><button class="btn btn-primary" type="button" data-copy>复制内容</button><a class="btn" data-open target="_blank" rel="noopener noreferrer" hidden>打开链接 ↗</a></div>
+            <p class="qread-note" data-link-note hidden>打开前请确认域名，二维码内容不会自动打开。</p>
+          </section>
+          <div class="qread-scanning" data-scanning><span class="qread-spinner" aria-hidden="true"></span><h2>正在读懂这张二维码…</h2><p>稍等一下，内容马上出现。</p></div>
+        </div>
+        <div class="qread-import" data-drop>
+          <button type="button" class="qread-drop-button" data-pick>
+            <span class="qread-upload-icon" aria-hidden="true">↓</span><span><strong data-pick-label>把二维码图片拖到这里</strong><small>或点击选择图片 · Ctrl / ⌘ + V 粘贴</small></span><span class="qread-pick-pill" aria-hidden="true">选择图片 ↗</span>
+          </button>
+          <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" data-file hidden />
+        </div>
+        <div class="qread-bottom"><span>PNG / JPG / WebP / GIF / BMP · 最大 20 MB · 每次一张</span><button type="button" class="qread-motion" data-reset hidden>清空并重新开始</button></div>
+        <p class="qread-status" data-status role="status" aria-live="polite"></p>
+      </div>
+      <div class="qread-footer"><span>支持链接、文本、Wi-Fi、邮件、电话与名片</span><a href="#/qr" data-nav-link>想制作二维码？ 去生成 ↗</a></div>
+    </section>
+  </template>
+
   <template id="page-qr">
 <!-- Hero -->
       <section class="qr-hero page-chunk" data-reveal-order="2">

@@ -88,6 +88,11 @@
       summary: "批量压缩、调整尺寸、转换格式并下载图片或 ZIP。",
       actions: ["openFilePicker", "setParams", "start", "cancel", "downloadAll", "downloadZip", "recompress", "clear"],
     },
+    "qr-reader": {
+      name: "二维码解析",
+      summary: "拖入、选择或粘贴二维码图片，本地识别链接、文本、Wi-Fi 与名片。识别结果由用户查看和复制。",
+      actions: ["openPage"],
+    },
     qr: {
       name: "二维码美化",
       summary: "生成带 Logo、渐变、点样式、角标、纠错等级的二维码并导出。",
@@ -122,6 +127,7 @@
     { page: "sokoban", words: ["推箱子", "箱子", "过一关", "自动完成", "自动过关"] },
     { page: "home", words: ["魔方", "cube", "首页魔方"] },
     { page: "lottery", words: ["抽奖", "开奖", "中奖", "名单", "奖项", "奖品"] },
+    { page: "qr-reader", words: ["二维码解析", "解析二维码", "识别二维码", "读取二维码", "扫码"] },
     { page: "qr", words: ["二维码", "qr", "码", "背景色", "主题色", "渐变", "预设"] },
     { page: "compress", words: ["图片压缩", "压缩图片", "压缩", "webp", "jpg", "jpeg"] },
     { page: "pixel", words: ["像素化", "像素风", "马赛克"] },
