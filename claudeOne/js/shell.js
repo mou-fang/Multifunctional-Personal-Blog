@@ -21,9 +21,9 @@
 
   // --- Navigation config ----------------------------------------------------
   const NAV_ITEMS = [
-    { label: "首页",   href: "#/home",   matches: ["home"] },
-    { label: "游戏",   href: "#/games",  matches: ["games", "game", "sokoban", "minesweeper", "snake", "billiards", "doom", "onlyup", "abyss"] },
-    { label: "工具箱", href: "#/tools",  matches: ["tools", "lottery", "music", "playlist", "ascii", "pixel", "compress", "qr", "ai", "videogif"] },
+    { label: "首页",   href: "#/home",  section: "home" },
+    { label: "游戏",   href: "#/games", section: "games" },
+    { label: "工具箱", href: "#/tools", section: "tools" },
   ];
 
   function resolveCurrentRoute() {
@@ -37,8 +37,11 @@
     const nav = document.querySelector(".site-nav");
     if (!nav) return;
     const here = resolveCurrentRoute();
+    // Keep section ownership with the route metadata, including legacy aliases.
+    const page = window.__CLAUDEONE_PAGES && window.__CLAUDEONE_PAGES[here];
+    const section = page ? page.navSection : "home";
     nav.innerHTML = NAV_ITEMS.map(function (item) {
-      var isActive = item.matches.some(function (m) { return m === here; });
+      var isActive = item.section === section;
       return '<a href="' + item.href + '" data-nav-link' + (isActive ? ' aria-current="page"' : '') + '>' + item.label + '</a>';
     }).join("");
   }
