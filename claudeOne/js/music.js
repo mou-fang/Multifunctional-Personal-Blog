@@ -103,6 +103,8 @@
       throw new Error("解锁器没有返回有效音频");
     }
     entry.status = "done";
+    entry.sourceFile = null;
+    entry.needsAuth = false;
     entry.title = data.title || entry.name;
     entry.artist = data.artist || "未知艺术家";
     entry.album = data.album || "";
@@ -164,6 +166,17 @@
     }
   }
 
+  function openAuthDialog() {
+    var dialog = container && container.querySelector("[data-qq-auth-dialog]");
+    if (!dialog || dialog.open) return;
+    dialog.showModal();
+  }
+
+  function closeAuthDialog() {
+    var dialog = container && container.querySelector("[data-qq-auth-dialog]");
+    if (dialog && dialog.open) dialog.close();
+  }
+
   function setAuthButtonsBusy(isBusy) {
     if (qqOpenOfficialBtn) qqOpenOfficialBtn.disabled = !!isBusy;
     if (qqSubmitCallbackBtn) qqSubmitCallbackBtn.disabled = !!isBusy;
@@ -175,14 +188,16 @@
     var isLoggedIn = !!(qqAuthSession && qqAuthSession.id);
 
     if (qqLogoutBtn) qqLogoutBtn.hidden = !isLoggedIn;
+    var summary = container && container.querySelector("[data-qq-auth-summary]");
+    if (summary) summary.textContent = isLoggedIn ? "已连接账号 · 点击管理登录信息" : "新版 QQ 文件需要登录时，会自动弹出";
 
     if (isLoggedIn) {
       var display = qqAuthSession.display || "已登录 QQ 音乐";
-      setAuthStatus(display + "。新版 .mflac/.mgg 会使用这个账号请求 EKey。", "ok");
-      if (qqLoginDetail) qqLoginDetail.textContent = "Cookie 保存在服务器内存中，默认 2 小时过期。退出登录会立即清除。";
+      setAuthStatus(display + "。需要登录的文件会使用此账号解锁。", "ok");
+      if (qqLoginDetail) qqLoginDetail.textContent = "登录信息仅保存在服务器内存中，默认 2 小时过期。使用后可退出登录清除。";
     } else {
-      setAuthStatus("未登录。旧格式可直接解锁；新版 QQ 文件需要导入 Cookie。", "idle");
-      if (qqLoginDetail) qqLoginDetail.textContent = "在 y.qq.com 登录后，按 F12 打开控制台，输入 document.cookie 复制整串内容，粘贴到下方输入框导入。服务器只在内存中保存，退出登录会立即清除。";
+      setAuthStatus("尚未连接账号。你可以先选择文件，需要登录时会提示。", "idle");
+      if (qqLoginDetail) qqLoginDetail.textContent = "Cookie 是临时登录凭据，请勿分享给他人。导入后仅保存在服务器内存中，默认 2 小时过期。";
     }
   }
 
@@ -209,6 +224,15 @@
       if (!response.ok || !payload.success) throw new Error(payload.error || "Cookie 导入失败");
       if (qqCallbackInput) qqCallbackInput.value = "";
       renderAuthSession(payload.session);
+      closeAuthDialog();
+      fileResults.forEach(function (entry, id) {
+        if (entry.needsAuth && entry.sourceFile && entry.status === "error") {
+          entry.needsAuth = false;
+          entry.error = null;
+          entry.errorAdvice = null;
+          readAndDecrypt(id, entry.sourceFile);
+        }
+      });
     } catch (error) {
       renderAuthSession(null);
       setAuthStatus(error.message || "Cookie 导入失败，请确认粘贴的是 y.qq.com 的 document.cookie。", "err");
@@ -299,7 +323,8 @@
         rawName: file.name,
         status: "decrypting",
         title: null, artist: null, album: null, ext: null, mime: null,
-        blob: null, coverUrl: null, error: null
+        blob: null, coverUrl: null, error: null,
+        sourceFile: QQ_MUSIC_EXTS.has(ext) ? file : null, needsAuth: false
       });
 
       renderFileCardDOM(id);
@@ -326,7 +351,7 @@
     };
     reader.onerror = function () {
       var entry = fileResults.get(id);
-      if (entry) { entry.status = "error"; entry.error = "无法读取文件"; updateFileCardDOM(id); }
+      if (entry) { entry.status = "error"; entry.error = "无法读取文件"; refreshEntry(id); }
     };
     reader.readAsArrayBuffer(file);
   }
@@ -396,7 +421,8 @@
         if (!tail.ekey && tail.songMid) {
           var authSessionId = getAuthSessionId();
           if (!authSessionId) {
-            setAuthStatus("新版 QQ musicex 文件需要导入 Cookie 才能获取 EKey。", "err");
+            entry.needsAuth = true;
+            setAuthStatus("这个文件需要连接 QQ 音乐账号。导入后会自动继续解锁。", "warn");
             throw new Error("需要先导入 QQ 音乐 Cookie 才能解锁此文件");
           }
 
@@ -414,6 +440,7 @@
           if (!ekeyResponse.ok || !ekeyPayload.success) {
             var errMsg = ekeyPayload.error || "获取 EKey 失败";
             if (ekeyPayload.code === "QQ_LOGIN_REQUIRED") {
+              entry.needsAuth = true;
               setAuthStatus("Cookie 已过期，请重新导入。", "err");
             } else if (ekeyPayload.code === "QQ_VIP_REQUIRED") {
               setAuthStatus(errMsg, "err");
@@ -522,10 +549,8 @@
       entry.status = "error";
       entry.error = f.short;
       entry.errorAdvice = f.advice;
-      // Pop a toast once with the full advice so the user sees it even
-      // without hovering the card.  Subsequent identical failures stay quiet
-      // (the per-card title attribute keeps the message reachable).
-      if (CS && CS.toast && f.advice) CS.toast(f.advice, "err", 6000);
+      // Keep detailed advice in the file row; login failures get a short hint.
+      if (entry.needsAuth) openAuthDialog();
       // Keep the original technical diagnostic in console for offline debug.
       try { console.warn("[music] QQ unlock raw error for " + file.name + ":", error && error.message); } catch (_e) {}
     }
@@ -554,9 +579,8 @@
     // No Cookie imported.
     if (raw.indexOf("Cookie") >= 0 && raw.indexOf("导入") >= 0) {
       return {
-        short: "需要先在上方导入 QQ 音乐 Cookie",
-        advice: "新版 .mflac / .mgg 文件需要先在上方导入 Cookie，才能用你的账号去服务器换解密密钥。" +
-                "在 y.qq.com 登录后，按 F12 打开控制台，输入 document.cookie，复制整串内容粘到上面的输入框即可。",
+        short: "连接 QQ 音乐账号后即可继续",
+        advice: "点击「连接 QQ 账号」，按登录面板中的步骤导入 Cookie。导入成功后，这个文件会自动重试，无需重新添加。",
       };
     }
 
@@ -601,30 +625,27 @@
 
     var title = entry.title || entry.name || "...";
     var artist = entry.status === "queued" ? ("排队中，第 " + (entry.queuePosition || 1) + " 位") :
-      entry.status === "decrypting" ? "解密中..." :
+      entry.status === "decrypting" ? "正在处理，请稍候…" :
       entry.status === "error" ? (entry.error || "解锁失败") : (entry.artist || "");
-    var album = entry.album || "";
+    var album = entry.status === "done" ? [entry.album, (entry.ext || "").toUpperCase()].filter(Boolean).join(" · ") : "";
     var statusText = entry.status === "queued" ? "排队中" :
-      entry.status === "decrypting" ? "解密中" : entry.status === "done" ? "已解锁" : "失败";
+      entry.status === "decrypting" ? "解锁中" : entry.status === "done" ? "已解锁" : entry.needsAuth ? "待登录" : "未完成";
     var statusClass = entry.status === "queued" ? "queued" :
-      entry.status === "decrypting" ? "decrypting" : entry.status === "done" ? "done" : "error";
+      entry.status === "decrypting" ? "decrypting" : entry.status === "done" ? "done" : entry.needsAuth ? "waiting" : "error";
 
     var actionsHTML = "";
     if (entry.status === "done") {
-      actionsHTML = '<button class="file-card__action file-card__action--play" data-action="play" title="试听">&#9654;</button>' +
-        '<button class="file-card__action file-card__action--download" data-action="download" title="下载">&#8595;</button>' +
-        '<button class="file-card__action file-card__action--delete" data-action="delete" title="删除">&#10005;</button>';
+      actionsHTML = '<button type="button" class="file-card__action file-card__action--play" data-action="play">试听</button>' +
+        '<button type="button" class="file-card__action file-card__action--download" data-action="download">下载</button>' +
+        '<button type="button" class="file-card__action" data-action="delete">移除</button>';
     } else if (entry.status === "queued" || entry.status === "decrypting") {
-      actionsHTML = '<button class="file-card__action file-card__action--delete" data-action="delete" title="取消">&#10005;</button>';
+      actionsHTML = '<button type="button" class="file-card__action" data-action="delete">取消</button>';
     } else {
-      actionsHTML = '<button class="file-card__action file-card__action--delete" data-action="delete" title="移除">&#10005;</button>';
+      actionsHTML = (entry.needsAuth ? '<button type="button" class="file-card__action file-card__action--login" data-action="login">连接 QQ 账号</button>' : '') +
+        '<button type="button" class="file-card__action" data-action="delete">移除</button>';
     }
 
-    // For error rows, surface the FULL friendly advice via the artist row's
-    // title attribute so users can hover to read it.  Also tag the meta and
-    // artist nodes with data-error so the CSS can let the text wrap and the
-    // card grow tall enough to show two or three lines instead of clipping
-    // the message to "解密后的内容不是有效音频..." with an ellipsis.
+    // Advice is also available in a keyboard- and touch-accessible disclosure.
     var artistAttr = "";
     if (entry.status === "error" && entry.errorAdvice) {
       artistAttr = ' title="' + CS.escapeHtml(entry.errorAdvice) + '" data-error="true"';
@@ -637,7 +658,8 @@
         '<div class="file-card__album">' + CS.escapeHtml(album) + '</div>' +
       '</div>' +
       '<span class="file-card__status" data-status="' + statusClass + '">' + statusText + '</span>' +
-      '<div class="file-card__actions">' + actionsHTML + '</div>';
+      '<div class="file-card__actions">' + actionsHTML + '</div>' +
+      (entry.status === "error" ? '<details class="file-card__help"><summary>查看原因与解决方法</summary><p>' + CS.escapeHtml(entry.errorAdvice || entry.error || "请重新添加完整的原始音乐文件后重试。") + '</p></details>' : '');
   }
 
   function renderFileCardDOM(id) {
@@ -654,7 +676,7 @@
 
   function updateFileCardDOM(id) {
     var entry = fileResults.get(id);
-    if (!entry) return;
+    if (!entry || !fileList) return;
     var card = fileList.querySelector('[data-file-id="' + id + '"]');
     if (!card) return;
     card.innerHTML = buildCardHTML(entry);
@@ -670,6 +692,9 @@
         if (action === "play") previewWithGlobalPlayer(id);
         else if (action === "download") downloadFile(id);
         else if (action === "delete") removeFile(id);
+        else if (action === "login") {
+          openAuthDialog();
+        }
       }, { signal: ac.signal });
     }
   }
@@ -679,6 +704,21 @@
     var hasFiles = fileResults.size > 0;
     emptyState.hidden = hasFiles;
     batchActions.hidden = !hasFiles;
+    var results = container.querySelector("[data-music-results]");
+    if (results) results.hidden = !hasFiles;
+    var done = 0, pending = 0, failed = 0, waiting = 0;
+    fileResults.forEach(function (entry) {
+      if (entry.status === "done") done++;
+      else if (entry.status !== "error") pending++;
+      else if (entry.needsAuth) waiting++;
+      else failed++;
+    });
+    var summary = container.querySelector("[data-result-summary]");
+    if (summary) summary.textContent = ["共 " + fileResults.size + " 首", done ? done + " 首已解锁" : "", pending ? pending + " 首处理中" : "", waiting ? waiting + " 首待登录" : "", failed ? failed + " 首未完成" : ""].filter(Boolean).join(" · ");
+    if (downloadAllBtn) {
+      downloadAllBtn.disabled = done === 0;
+      downloadAllBtn.textContent = done ? "下载全部（" + done + "）" : "下载全部";
+    }
   }
 
   // --- Global player integration ---------------------------------------------
@@ -803,13 +843,22 @@
     qqCallbackInput = el.querySelector("[data-qq-callback-url]");
     qqSubmitCallbackBtn = el.querySelector("[data-qq-submit-callback]");
     qqLoginDetail = el.querySelector("[data-qq-login-detail]");
+    var authDialog = el.querySelector("[data-qq-auth-dialog]");
+    var openAuthBtn = el.querySelector("[data-qq-open-panel]");
+    var closeAuthBtn = el.querySelector("[data-qq-close-panel]");
+    if (openAuthBtn) openAuthBtn.addEventListener("click", openAuthDialog, { signal: signal });
+    if (closeAuthBtn) closeAuthBtn.addEventListener("click", closeAuthDialog, { signal: signal });
+    if (authDialog) authDialog.addEventListener("click", function (event) {
+      if (event.target === authDialog) closeAuthDialog();
+    }, { signal: signal });
 
     // Worker
     ensureWorker();
 
     // Upload zone
     if (uploadZone && fileInput) {
-      uploadZone.addEventListener("click", function () {
+      uploadZone.addEventListener("click", function (event) {
+        if (event.target === fileInput) return;
         fileInput.value = "";
         fileInput.click();
       }, { signal: signal });
@@ -837,6 +886,11 @@
         if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
       }, { signal: signal });
     }
+
+    var uploadHint = el.querySelector("[data-upload-hint]");
+    if (uploadHint) uploadHint.textContent = "NCM / QMC / MFLAC / MGG 等 · 单个文件不超过 " + Math.round(getMaxMusicFileSize() / 1024 / 1024) + " MB";
+    var formats = el.querySelector("[data-supported-formats]");
+    if (formats) formats.textContent = getSupportedExts().filter(function (ext) { return ext !== ".ncm"; }).join(" / ");
 
     // Batch actions
     if (downloadAllBtn) downloadAllBtn.addEventListener("click", downloadAll, { signal: signal });
@@ -882,6 +936,7 @@
   }
 
   function unmount() {
+    closeAuthDialog();
     if (ac) { ac.abort(); ac = null; }
     if (worker) {
       worker.terminate();

@@ -873,116 +873,84 @@
   </template>
 
   <template id="page-music">
-<!-- Hero -->
-      <section class="music-hero page-chunk" data-reveal-order="2">
-        <div class="music-hero__copy">
-          <span class="pill pill--accent">Music Tool</span>
-          <h1>音乐解锁</h1>
-          <p>移除已购音乐文件的加密保护。QQ音乐旧格式与网易云可直接本地解锁；新版 QQ 音乐文件需要使用你自己的 QQ 音乐登录态向 QQ 官方接口获取 EKey。</p>
-          <div class="music-hero__formats">
-            <span class="pill">网易云 .ncm</span>
-            <span class="pill">QQ音乐 .qmc*</span>
-            <span class="pill">.mflac</span>
-            <span class="pill">.mgg</span>
-          </div>
-        </div>
-      </section>
+    <div class="music-page">
+      <header class="music-hero page-chunk" data-reveal-order="2">
+        <span class="music-eyebrow">让音乐，自由播放</span>
+        <h1>音乐解锁</h1>
+        <p>放入加密音乐文件，找回可以直接播放的音乐。</p>
+      </header>
 
-      <section class="music-auth page-chunk" data-qq-auth-panel data-reveal-order="3">
-        <div class="music-auth__main">
-          <div class="music-auth__head">
-            <span class="pill pill--accent">QQ Music Login</span>
-            <h2>新版 QQ 音乐为什么需要导入 Cookie？</h2>
-            <p>
-              新版 .mflac / .mgg 的 musicex 文件里没有完整解密密钥，只保存歌曲标识。需要使用你的 QQ 音乐账号向 QQ 官方接口请求 EKey；
-              账号有这首歌的下载/播放权限才会返回密钥。旧版 QMC、NCM 和带内置密钥的老 .mflac 不需要登录。所有解密都在浏览器本地完成，音乐文件不会上传到服务器。
-            </p>
-          </div>
-          <div class="music-auth__rules">
-            <div class="music-auth__rule">
-              <strong>不用登录</strong>
-              <span>.ncm、旧版 .qmc0 / .qmc2 / .qmc3、旧版 QTag / STag 文件，浏览器可直接处理。</span>
-            </div>
-            <div class="music-auth__rule">
-              <strong>需要导入 Cookie</strong>
-              <span>新版 QQ musicex：常见于新的 .mflac / .mgg。免费歌曲用普通账号；会员/数字专辑歌曲需要对应权限。</span>
-            </div>
-            <div class="music-auth__rule">
-              <strong>隐私安全</strong>
-              <span>Cookie 只保存在服务器内存中，默认 2 小时过期；退出登录会立即清除。音乐文件全程在浏览器本地处理，不经过服务器。</span>
-            </div>
-          </div>
-        </div>
-        <div class="music-auth__side">
-          <div class="music-auth__status" data-qq-login-status data-tone="idle">未登录。旧格式可直接解锁；新版 QQ 文件需要导入 Cookie。</div>
-          <div class="music-auth__actions" role="group" aria-label="QQ 音乐登录">
-            <button class="music-auth__scan-btn" type="button" data-qq-open-official>打开 QQ 官方登录页</button>
-            <button class="btn btn-sm music-auth__logout-btn" type="button" data-qq-logout hidden>退出登录</button>
-          </div>
-          <div class="music-auth__callback" data-qq-callback-panel>
-            <label class="music-auth__cookie-field">
-              <span>document.cookie</span>
-              <input type="text" data-qq-callback-url placeholder="在 y.qq.com 登录后，把控制台输出的 document.cookie 整串粘贴到这里" autocomplete="off" spellcheck="false" />
-            </label>
-            <button class="btn btn-primary btn-sm" type="button" data-qq-submit-callback>导入 Cookie</button>
-          </div>
-          <div class="music-auth__guide">
-            <strong>如何获取 Cookie？</strong>
-            <ol>
-              <li>点击"打开 QQ 官方登录页"，在新页面扫码登录 QQ 音乐。</li>
-              <li>页面跳到 <code>y.qq.com</code> 后，确认右上角已经是你的账号。</li>
-              <li>按 <code>F12</code> 打开开发者工具，点 <code>Console / 控制台</code>。</li>
-              <li>输入 <code>document.cookie</code> 并回车，复制输出引号里的整串内容。</li>
-              <li>回到本页粘贴到上方输入框，点击"导入 Cookie"。</li>
-            </ol>
-            <p>这串内容相当于临时登录凭据，不要发给别人！服务器只在内存中保存，退出登录会立即清除。</p>
-          </div>
-          <p class="music-auth__note" data-qq-login-detail>
-            在 y.qq.com 登录后，按 F12 打开控制台，输入 document.cookie 复制整串内容，粘贴到下方输入框导入。服务器只在内存中保存，退出登录会立即清除。
-          </p>
-        </div>
-      </section>
-
-      <!-- Workspace -->
-      <section class="music-workspace page-chunk" data-reveal-order="4">
-
-        <!-- Upload zone -->
+      <section class="music-workspace card page-chunk" aria-label="音乐解锁工作区" data-reveal-order="3">
+        <ol class="music-steps" aria-label="操作流程">
+          <li><span>1</span>选择文件</li>
+          <li><span>2</span>自动解锁</li>
+          <li><span>3</span>下载音乐</li>
+        </ol>
         <div class="music-upload" data-upload-zone data-dragover="false">
           <div class="music-upload__inner">
-            <div class="music-upload__icon">&#9835;</div>
-            <div class="music-upload__title">拖拽文件到此处，或点击选择</div>
-            <div class="music-upload__hint">
-              支持网易云音乐 (.ncm)、QQ音乐 (.qmc0 / .qmc2 / .qmc3 / .qmcflac / .qmcogg / .mflac / .mgg / .tkm / .bkcmp3 / .bkcflac)
-            </div>
+            <div class="music-upload__icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 23V8l13-3v15M13 12l13-3"/><ellipse cx="8.5" cy="24" rx="4.5" ry="3"/><ellipse cx="21.5" cy="21" rx="4.5" ry="3"/></svg></div>
+            <h2>把音乐文件拖到这里</h2>
+            <p>或从设备中选择，支持一次添加多首</p>
+            <button type="button" class="btn btn-primary music-upload__button" data-choose-files>选择音乐文件 <span aria-hidden="true">＋</span></button>
+            <span class="music-upload__hint" data-upload-hint>NCM / QMC / MFLAC / MGG 等 · 单个文件不超过 200 MB</span>
           </div>
-          <input type="file" class="music-upload__input" data-file-input multiple accept=".ncm,.qmc0,.qmc2,.qmc3,.qmcflac,.qmcogg,.mflac,.mgg,.tkm,.bkcmp3,.bkcflac,.tm0,.tm2,.tm3,.tm6" aria-label="选择音乐文件" />
+          <input type="file" data-file-input multiple hidden accept=".ncm,.qmc0,.qmc2,.qmc3,.qmcflac,.qmcogg,.mflac,.mgg,.tkm,.bkcmp3,.bkcflac,.tm0,.tm2,.tm3,.tm6" aria-label="选择音乐文件" />
         </div>
-
-        <!-- Options bar -->
-        <div class="music-options">
-          <div class="music-options__group">
-            <span class="music-options__label">命名格式</span>
-            <div class="segmented">
-              <label><input type="radio" name="naming" value="2" data-naming-format checked /> 歌手 - 歌曲名</label>
-              <label><input type="radio" name="naming" value="1" data-naming-format /> 歌曲名</label>
-              <label><input type="radio" name="naming" value="3" data-naming-format /> 歌曲名 - 歌手</label>
-            </div>
-          </div>
-          <div class="music-options__group" data-batch-actions hidden>
-            <button class="btn btn-primary btn-sm" data-download-all type="button">下载全部</button>
-            <button class="btn btn-ghost btn-sm" data-clear-all type="button">清空全部</button>
-          </div>
-        </div>
-
-
-        <!-- File list -->
-        <div class="file-list" data-file-list>
-          <div class="file-list__empty" data-empty-state>
-            <span class="file-list__empty-icon">&#9835;</span>
-            <p>拖拽加密音乐文件到上方区域，开始解锁</p>
-          </div>
-        </div>
+        <div class="music-workspace__foot"><span><span class="music-local-dot" aria-hidden="true"></span>音乐文件在本地处理</span><span>选择后自动开始，无需额外操作</span></div>
       </section>
+
+      <section class="music-results" data-music-results hidden aria-label="解锁结果">
+        <div class="music-results__head">
+          <div><h2>你的音乐</h2><p data-result-summary role="status" aria-live="polite"></p></div>
+          <div class="music-results__actions" data-batch-actions hidden>
+            <button class="btn btn-ghost btn-sm" data-clear-all type="button">清空列表</button>
+            <button class="btn btn-primary btn-sm" data-download-all type="button" disabled>下载全部</button>
+          </div>
+        </div>
+        <div class="file-list" data-file-list><p data-empty-state hidden>添加音乐后，解锁结果会显示在这里。</p></div>
+        <details class="music-naming">
+          <summary>下载设置<span>文件命名方式</span></summary>
+          <fieldset><legend>下载的文件如何命名？</legend>
+            <label><input type="radio" name="naming" value="2" data-naming-format checked /> 歌手 - 歌曲名</label>
+            <label><input type="radio" name="naming" value="1" data-naming-format /> 歌曲名</label>
+            <label><input type="radio" name="naming" value="3" data-naming-format /> 歌曲名 - 歌手</label>
+          </fieldset>
+        </details>
+      </section>
+
+      <div class="music-support page-chunk" data-reveal-order="4">
+        <button class="music-login-entry card" type="button" data-qq-open-panel aria-haspopup="dialog"><span class="music-disclosure__icon" aria-hidden="true">♫</span><span class="music-disclosure__title">QQ 音乐登录<small data-qq-auth-summary>新版 QQ 文件需要登录时，会自动弹出</small></span><span aria-hidden="true">↗</span></button>
+        <dialog class="music-auth-dialog" data-qq-auth-dialog aria-labelledby="music-auth-title" aria-describedby="music-auth-intro"><div class="music-auth modal-card">
+          <header class="music-auth__header"><div><span class="music-step-label">连接账号，继续解锁</span><h2 id="music-auth-title" tabindex="-1" autofocus>QQ 音乐登录</h2></div><button class="btn btn-ghost music-auth__close" type="button" data-qq-close-panel aria-label="关闭 QQ 音乐登录">✕</button></header>
+          <div class="music-disclosure__body">
+            <p class="music-auth__intro" id="music-auth-intro">仅新版 QQ 文件需要连接账号。请使用下载这首歌时的账号，并确保拥有对应歌曲的权限。</p>
+            <div class="music-auth__status" data-qq-login-status data-tone="idle" role="status" aria-live="polite"></div>
+            <div class="music-auth__layout">
+              <div class="music-auth__step"><span class="music-step-label">01 · 登录你的账号</span><p>在 QQ 音乐官网完成登录，再回到这里。</p><button class="btn btn-primary music-auth__official" type="button" data-qq-open-official>打开 QQ 官方登录页 <span aria-hidden="true">↗</span></button></div>
+              <div class="music-auth__step"><span class="music-step-label">02 · 导入登录信息</span>
+                <label class="music-auth__cookie-field"><span>QQ 音乐 Cookie</span><input type="password" data-qq-callback-url placeholder="在这里粘贴 Cookie" autocomplete="off" spellcheck="false" /></label>
+                <div class="music-auth__actions"><button class="btn btn-primary btn-sm" type="button" data-qq-submit-callback>导入并继续解锁</button><button class="btn btn-ghost btn-sm" type="button" data-qq-logout hidden>退出登录</button></div>
+              </div>
+            </div>
+            <details class="music-help-item music-cookie-guide"><summary><span class="music-cookie-guide__icon" aria-hidden="true">?</span><span><strong>不知道 Cookie 在哪里？</strong><small>点击展开获取教程 · 跟着 4 步完成</small></span><span class="music-cookie-guide__arrow" aria-hidden="true">⌄</span></summary><div>
+              <ol><li>在电脑浏览器中登录 <code>y.qq.com</code>，确认显示的是你的账号。</li><li>按 <code>F12</code>（或 <code>Fn + F12</code>），选择「Console / 控制台」。</li><li>输入 <code>document.cookie</code> 并回车，复制输出引号里的完整内容。</li><li>回到本页粘贴，点击「导入并继续解锁」。等待登录的文件会自动重试。</li></ol>
+              <p>手机浏览器通常没有开发者工具，建议在电脑上完成需要登录的文件解锁。</p>
+            </div></details>
+            <p class="music-auth__note" data-qq-login-detail></p>
+          </div>
+        </div></dialog>
+
+        <details class="music-disclosure card" data-music-help>
+          <summary><span class="music-disclosure__icon" aria-hidden="true">?</span><span class="music-disclosure__title">使用帮助<small>支持的格式、隐私说明与常见问题</small></span><span class="music-disclosure__chevron" aria-hidden="true">＋</span></summary>
+          <div class="music-disclosure__body music-faq">
+            <details class="music-help-item"><summary>支持哪些音乐文件？</summary><div><p>网易云音乐：<code>.ncm</code>。</p><p>QQ 音乐：<span data-supported-formats>.qmc0 / .qmc2 / .qmc3 / .qmcflac / .qmcogg / .mflac / .mgg / .tkm / .bkcmp3 / .bkcflac / .tm0 / .tm2 / .tm3 / .tm6</span>。</p><p>支持情况取决于文件的加密版本。直接添加文件即可检测；部分新版 QQ 文件需要登录。</p></div></details>
+            <details class="music-help-item"><summary>解锁后是什么格式？会改变音质吗？</summary><div><p>保留文件中原有的音频格式，常见为 MP3、FLAC 或 OGG，不重新压缩音频。解锁完成后，可以试听或下载；「下载设置」可调整文件命名。</p></div></details>
+            <details class="music-help-item"><summary>音乐文件和登录信息会上传吗？</summary><div><p>音乐文件在浏览器本地解锁，不上传服务器。QQ 歌曲可能通过服务器查询歌曲信息；需要登录的新版文件还会使用歌曲标识和登录信息请求解密密钥。</p><p>导入的 Cookie 相当于临时登录凭据，仅保存在服务器内存中，默认 2 小时过期。请勿分享给他人，使用后可点击「退出登录」清除。</p></div></details>
+            <details class="music-help-item"><summary>解锁失败，该怎么办？</summary><div><p>先点击文件旁的「查看原因」。若提示登录，请打开「QQ 音乐登录」导入登录信息；若密钥不匹配，请使用同一个账号重新下载原始音乐文件后再试。</p><p>文件损坏、加密版本不支持或账号没有歌曲权限，也可能导致失败。请仅处理你有权使用的音乐文件。</p></div></details>
+          </div>
+        </details>
+      </div>
+    </div>
   </template>
 
   <template id="page-playlist">
