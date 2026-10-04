@@ -1,7 +1,7 @@
 /* ===== claudeOne :: page-registry.js =====
  * Central metadata registry for all SPA pages.
  * Used by router.js to load routes and shell.js to highlight their navSection.
- * Every route, including aliases, must declare home, games, or tools.
+ * Every route, including aliases, must declare its parent navigation section.
  */
 window.__CLAUDEONE_PAGES = Object.freeze({
   home: {
@@ -21,6 +21,15 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     css: ["css/games.css"],
     js: ["js/tool-cards.js"],
     lifecycle: "__page_games"
+  },
+  "game-releases": {
+    navSection: "game-releases",
+    title: "claudeOne · 游戏发售",
+    description: "未来约 8 周的游戏发售清单，每周二更新，按平台筛选并查看当周速报原图",
+    templateId: "page-game-releases",
+    css: ["css/game-releases.css"],
+    js: ["js/game-releases-core.js", "js/game-releases.js"],
+    lifecycle: "__page_game_releases"
   },
   "city-shuttle": {
     navSection: "games",

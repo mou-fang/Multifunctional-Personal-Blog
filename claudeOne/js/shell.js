@@ -23,6 +23,7 @@
   const NAV_ITEMS = [
     { label: "首页",   href: "#/home",  section: "home" },
     { label: "游戏",   href: "#/games", section: "games" },
+    { label: "游戏发售", href: "#/game-releases", section: "game-releases" },
     { label: "工具箱", href: "#/tools", section: "tools" },
   ];
 

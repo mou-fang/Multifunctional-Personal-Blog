@@ -1,6 +1,6 @@
 # 魔方的妙妙工具 · claudeOne
 
-一个把实用工具、小游戏和音乐播放器放在一起的个人工作台。首页是一颗可以转动、打乱和还原的 3D 魔方；顶部导航连接「首页」「游戏」「工具箱」。整个站点支持 **Soft UI** 与 **Liquid Glass** 两套主题。
+一个把实用工具、小游戏、游戏发售速报和音乐播放器放在一起的个人工作台。首页是一颗可以转动、打乱和还原的 3D 魔方；顶部导航连接「首页」「游戏」「游戏发售」「工具箱」。整个站点支持 **Soft UI** 与 **Liquid Glass** 两套主题。
 
 前端采用原生 HTML、CSS 和 JavaScript，通过 Hash 路由切页，无需打包构建。Express 同时提供静态页面和后端接口，默认访问地址为 `http://localhost:3001`。
 
@@ -99,6 +99,14 @@ go install github.com/TheZoraiz/ascii-image-converter@latest
 
 `#/anomaly-bureau` 和 `#/ascii-void` 是天际城的兼容入口，不是另外两款游戏。
 
+### 游戏发售
+
+独立导航 `#/game-releases` 展示未来约 8 周的发售清单，按月份排列，支持中文 / 英文名称搜索、平台筛选、显示本期已发售游戏、信息来源以及当周 1440px 无损 PNG 原图查看和下载。没有发布数据时显示首期等待状态，不提供虚构游戏信息。日期按发布任务配置的时区判断；超过 8 天未更新时显示提醒。
+
+同服务器 OpenClaw 通过 `claudeOne/scripts/publish-game-releases.js` 本地发布。`GET /api/game-releases` 和受限的图片读取路由均为公开只读；不提供 HTTP 写入、上传或导入接口。发布器检查 10–15 条、日期窗口、平台、图片清单一致性、至少 10 张不同封面及 PNG 完整性，使用发布锁和原子替换，并保留上一版。数据默认位于仓库根目录 `.game-release-data/`，必须在 `claudeOne/` 静态目录之外。内部 `server/`、`scripts/`、`test-results/` URL 禁止静态访问。
+
+服务器部署、数据格式、权限、发布与验证命令见 [游戏发售接入说明](docs/game-releases-deployment.md)。可完整复制的 OpenClaw 任务提示词见 [周二游戏发售任务](docs/openclaw-game-news-weekly-prompt.md)。源文件中不包含真实发布数据。
+
 ### 首页与全局功能
 
 - **首页 `#/home`**：基于 CSS 3D 与 JavaScript 的交互魔方，支持转面、打乱、还原和散开效果。
@@ -135,6 +143,8 @@ node claudeOne/scripts/scan-music.js
 | 环境变量 | 默认值 / 用途 |
 | --- | --- |
 | `PORT` | `3001`，HTTP 监听端口 |
+| `GAME_RELEASE_DATA_DIR` | 默认仓库根目录 `.game-release-data/`；发售数据与图片的持久化私有目录，必须位于 `claudeOne/` 之外 |
+| `GAME_NEWS_TIMEZONE` | 本地发布器默认 `Asia/Shanghai`，校验任务当天日期；网站按快照记录的时区显示日期 |
 | `VISITOR_DATA_FILE` | 默认 `claudeOne/server/data/visitor-stats.json`，访客统计持久化文件 |
 | `TRUST_PROXY` | 设为 `1` 或 `true` 启用 Express 代理信任；按实际反向代理部署配置 |
 | `RATE_LIMIT_VISITOR_STATS` | 默认每 IP 每分钟 120 次统计请求 |
@@ -209,7 +219,7 @@ DeepSeek API Key 保存在浏览器本地存储，调用时用于向配置的 AP
 
 1. 在 `claudeOne/index.html` 添加页面 `<template>`。
 2. 在 `claudeOne/js/page-registry.js` 注册 `title`、`description`、`templateId`、`css`、`js`、`lifecycle` 和 **`navSection`**。
-3. `navSection` 只能为 `home`、`games`、`tools`；工具页归 `tools`，游戏页归 `games`，兼容地址与目标页保持一致。导航归属统一由注册表维护，不另建页面白名单。
+3. `navSection` 只能为 `home`、`games`、`tools`、`game-releases`；工具页归 `tools`，游戏页归 `games`，游戏发售归独立分类 `game-releases`，兼容地址与目标页保持一致。导航归属统一由注册表维护，不另建页面白名单。
 4. 在 `tool-cards.js` 添加对应分类入口；需由 AI 助手操作时，再更新 `assistant.js` 的页面说明和动作适配。
 5. 暴露 `window.__page_xxx = { mount, unmount }`，相关核心逻辑必须先于页面脚本加载。
 6. 检查直接打开 Hash 地址、刷新、前进后退、卡片跳转以及导航选中态，并更新本 README 的功能表。

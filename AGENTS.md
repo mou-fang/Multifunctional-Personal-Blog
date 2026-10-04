@@ -16,7 +16,7 @@
 
 - 本项目是原生 HTML / CSS / JavaScript Hash SPA，不要无必要引入构建框架。
 - 新页面同步接入 `claudeOne/index.html` 的模板、`claudeOne/js/page-registry.js` 的注册信息和 `claudeOne/js/tool-cards.js` 的入口。
-- 每个路由必须声明 `navSection: "home" | "games" | "tools"`；旧地址与目标页分类一致。不要在导航中另建路由白名单。
+- 每个路由必须声明 `navSection: "home" | "games" | "tools" | "game-releases"`；旧地址与目标页分类一致。游戏发售使用独立导航分类；不要在导航中另建路由白名单。
 - 页面暴露 `window.__page_xxx = { mount, unmount }`。DOM 查询限定在当前页面根节点；卸载时清理监听、观察器、定时器、动画帧、Worker、Object URL 和异步任务。
 - 共享主题、播放器、助手和路由能力由站点外壳管理。页面样式使用独立命名空间，避免影响其他工具和游戏。
 

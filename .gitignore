@@ -6,6 +6,7 @@ claudeOne/server/node_modules/
 .claude/
 
 # Runtime files
+.game-release-data/
 *.log
 output/
 .playwright-cli/

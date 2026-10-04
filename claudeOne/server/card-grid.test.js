@@ -10,7 +10,7 @@ function renderCards(section, script = source) {
   const grid = { innerHTML: "", getAttribute: () => section };
   const context = vm.createContext({ window: {} });
   vm.runInContext(script, context);
-  context.window["__page_" + section].mount({ querySelectorAll: () => [grid] });
+  context.window["__page_" + section].mount({ querySelectorAll: () => [grid], querySelector: () => null });
   const boundary = grid.innerHTML.indexOf('<div class="feature-grid">');
   const cards = Array.from(grid.innerHTML.matchAll(/<(a|div) class="card [^"]+"[^>]*>[\s\S]*?<h3 class="card-title">([^<]+)<\/h3>/g), match => ({
     title: match[2],

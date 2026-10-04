@@ -29,7 +29,7 @@ function shell() {
 test("every registered page has exactly one active parent navigation item", () => {
   const { context, nav, attrs } = shell();
   for (const [route, page] of Object.entries(context.window.__CLAUDEONE_PAGES)) {
-    assert.ok(["home", "games", "tools"].includes(page.navSection), `${route} needs a valid navSection`);
+    assert.ok(["home", "games", "tools", "game-releases"].includes(page.navSection), `${route} needs a valid navSection`);
     for (const suffix of ["", "?seed=123"]) {
       context.window.location.hash = "#/" + route + suffix;
       context.window.ClaudeOne.renderNav();
@@ -48,7 +48,8 @@ test("game and tool cards agree with route ownership; aliases inherit their page
   const pages = context.window.__CLAUDEONE_PAGES;
   const cards = fs.readFileSync(path.join(__dirname, "../js/tool-cards.js"), "utf8");
   const boundary = cards.indexOf("var TOOL_CARDS");
-  for (const [source, expected] of [[cards.slice(0, boundary), "games"], [cards.slice(boundary), "tools"]]) {
+  const releaseBoundary = cards.indexOf("var RELEASE_CARDS");
+  for (const [source, expected] of [[cards.slice(0, boundary), "games"], [cards.slice(boundary, releaseBoundary), "tools"], [cards.slice(releaseBoundary), "game-releases"]]) {
     for (const match of source.matchAll(/href: "#\/([^"]+)"/g)) {
       assert.equal(pages[match[1]]?.navSection, expected, match[1]);
     }

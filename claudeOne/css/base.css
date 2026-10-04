@@ -421,6 +421,10 @@ p {
 }
 
 /* Responsive */
+@media (max-width: 1100px) {
+  .site-header { flex-wrap: wrap; gap: var(--space-4); }
+  .site-nav { order: 3; width: 100%; justify-content: center; }
+}
 @media (max-width: 880px) {
   .site-shell {
     padding: var(--space-4) var(--space-4) var(--space-12);

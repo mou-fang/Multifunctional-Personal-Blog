@@ -212,6 +212,9 @@
     },
   ];
 
+  // Independent navigation section: keep this entry outside the game/tool grids.
+  var RELEASE_CARDS = [{ icon: "📅", title: "游戏发售", desc: "未来约 8 周的发售清单，每周二更新。", tags: ["发售日历"], href: "#/game-releases" }];
+
   function renderCards(cards) {
     var html = "";
     for (var i = 0; i < cards.length; i++) {
@@ -290,6 +293,8 @@
         if (gridSource !== source) continue;
         renderCardGrid(grid, cards);
       }
+      var releaseEntry = el.querySelector("[data-release-entry]");
+      if (source === "games" && releaseEntry) releaseEntry.innerHTML = renderCards(RELEASE_CARDS);
       // Re-observe dynamically added .page-chunk elements for scroll reveal
       if (window.ClaudeOne && typeof window.ClaudeOne.refreshReveal === "function") {
         window.ClaudeOne.refreshReveal();
