@@ -94,22 +94,19 @@
         <div>
           <p class="release-kicker">RELEASE RADAR · 游戏发售</p>
           <h1>下一款，玩什么？</h1>
-          <p class="release-hero__intro">未来约 8 周，值得期待的新游戏。每周二整理，让你的下一场冒险有迹可循。</p>
+          <p class="release-hero__intro">每周二更新未来约 8 周的新游戏发售清单。</p>
           <div class="release-hero__actions">
             <button class="btn" type="button" data-release-poster-open disabled>查看本周速报 ↗</button>
             <span class="release-updated" data-release-updated>每周二更新</span>
           </div>
         </div>
         <div class="release-stats" aria-label="发售概览">
-          <div class="release-stat"><strong data-release-count>—</strong><span>款游戏即将登场</span></div>
-          <div class="release-stat"><strong data-release-next>—</strong><span>下一场冒险的日期</span></div>
+          <div class="release-stat"><strong data-release-count>—</strong><span>款即将发售</span></div>
+          <div class="release-stat"><strong data-release-next>—</strong><span>最近发售日</span></div>
         </div>
       </section>
       <div class="release-toolbar" data-release-filters hidden>
-        <div class="release-toolbar__top">
-          <label class="release-search">找一款游戏<input type="search" placeholder="搜索中文名、英文名或简介" maxlength="160" data-release-search></label>
-          <label class="release-history"><input type="checkbox" data-release-history>显示本期已发售游戏</label>
-        </div>
+        <label class="release-search">找一款游戏<input type="search" placeholder="搜索中文名、英文名或简介" maxlength="160" data-release-search></label>
         <div class="release-filters" role="group" aria-label="筛选游戏平台">
           <button class="release-filter" type="button" aria-pressed="true" data-release-platform="all">全部平台</button>
           <button class="release-filter" type="button" aria-pressed="false" data-release-platform="PC">PC</button>
@@ -118,6 +115,7 @@
           <button class="release-filter" type="button" aria-pressed="false" data-release-platform="Switch 2">Switch 2</button>
           <button class="release-filter" type="button" aria-pressed="false" data-release-platform="mobile">手机</button>
         </div>
+        <label class="release-history"><input type="checkbox" data-release-history>显示本期已发售游戏</label>
       </div>
       <div class="release-status-row">
         <p class="release-status" role="status" aria-live="polite" data-release-status>正在读取发售清单…</p>

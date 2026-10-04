@@ -29,11 +29,19 @@
       img.addEventListener("error", function () { img.remove(); }, { once: true }); img.src = item.cover; media.append(img);
     }
     var countdown = core.daysBetween(date, item.releaseDate);
-    var badge = node("span", "release-card__badge", countdown < 0 ? "本期已发售" : countdown === 0 ? "今日发售" : countdown <= 7 ? "本周发售" : "还有 " + countdown + " 天");
-    media.append(badge); el.append(media);
+    var badge = node("span", "release-card__badge");
+    if (countdown > 0) {
+      badge.append(node("strong", "release-card__badge-value", String(countdown)), node("span", "", "天后"));
+      badge.setAttribute("aria-label", "还有 " + countdown + " 天发售");
+    } else {
+      badge.append(node("strong", "release-card__badge-text", countdown === 0 ? "今日发售" : "已发售"));
+    }
+    el.append(media);
     var body = node("div", "release-card__body");
-    var time = node("time", "release-card__date", item.releaseDate.replace(/-/g, ".")); time.dateTime = item.releaseDate;
-    body.append(time, node("h3", "release-card__title", item.title));
+    var time = node("time", "release-card__date"); time.dateTime = item.releaseDate;
+    time.append(node("span", "release-card__date-label", "发售"), node("strong", "", item.releaseDate.replace(/-/g, ".")));
+    var schedule = node("div", "release-card__schedule"); schedule.append(time, badge);
+    body.append(schedule, node("h3", "release-card__title", item.title));
     if (item.title !== item.searchName) body.append(node("p", "release-card__english", item.searchName));
     var platforms = node("div", "release-card__platforms"); item.platforms.forEach(function (p) { platforms.append(node("span", "release-platform", p)); }); body.append(platforms, node("p", "release-card__summary", item.summary));
     var sources = node("details", "release-card__sources"); sources.append(node("summary", "", "查看信息来源 ↗"));
