@@ -1,5 +1,5 @@
 /* ===== claudeOne :: tool-cards.js =====
- * Card data for games.html and tools.html.
+ * Card data for the game center and toolbox.
  * Renders cards into any element with [data-card-grid] attribute.
  * SPA lifecycle: window.__page_games / window.__page_tools
  */
@@ -21,6 +21,7 @@
       desc: "1993 经典 FPS，WebAssembly 浏览器版。doomgeneric 引擎 + Freedoom 自由数据，完全本地运行。",
       tags: ["FPS", "经典", "WebAssembly"],
       href: "#/doom",
+      featuredOrder: 2,
     },
     {
       icon: "\u{1F4E6}",
@@ -69,6 +70,7 @@
       desc: "中式八球：单人练习、人机对战、规则学习一应俱全。",
       tags: ["体育", "休闲", "对战"],
       href: "#/billiards",
+      featuredOrder: 1,
     },
     {
       icon: "\u{1F3AF}",
@@ -99,6 +101,7 @@
       desc: "本地处理音乐文件格式，支持常见加密音乐格式处理。",
       tags: ["音频", "文件", "本地处理"],
       href: "#/music",
+      featuredOrder: 1,
     },
     {
       icon: "\u{1F3A8}",
@@ -127,6 +130,7 @@
       desc: "用 PixelFlux 打散像素位置与颜色，导出可完整还原的混淆 PNG。",
       tags: ["图片", "可逆混淆", "本地处理"],
       href: "#/scramble",
+      featuredOrder: 2,
     },
     {
       icon: "\u{1F4E6}",
@@ -144,7 +148,7 @@
     },
     {
       icon: "\u{1F4F1}",
-      title: "二维码美化",
+      title: "二维码制作",
       desc: "生成带 Logo、渐变色、圆点样式和自定义角标的二维码。",
       tags: ["二维码", "设计", "导出"],
       href: "#/qr",
@@ -178,8 +182,9 @@
     {
       icon: "\u{1F5A8}",
       title: "颜色工具",
-      desc: "颜色拾取、调色板生成、渐变色预设和色盲模拟。",
-      tags: ["设计", "颜色", "CSS"],
+      desc: "从屏幕或图片取色，整理自己的色卡，生成配色与渐变，保存或导出。",
+      tags: ["取色", "配色", "本地处理"],
+      href: "#/colors",
     },
     {
       icon: "\u{1F50D}",
@@ -207,7 +212,7 @@
     },
   ];
 
-  function renderCardGrid(grid, cards) {
+  function renderCards(cards) {
     var html = "";
     for (var i = 0; i < cards.length; i++) {
       var c = cards[i];
@@ -253,7 +258,25 @@
           "</div>";
       }
     }
-    grid.innerHTML = html;
+    return html;
+  }
+
+  function renderCardGrid(grid, cards) {
+    var featured = cards.filter(function (card) {
+      return card.href && card.featuredOrder;
+    }).sort(function (a, b) {
+      return a.featuredOrder - b.featuredOrder;
+    }).slice(0, 2);
+    var available = cards.filter(function (card) {
+      return card.href && featured.indexOf(card) === -1;
+    });
+    var upcoming = cards.filter(function (card) {
+      return !card.href;
+    });
+    // Keep the two featured entries separate from the automatically ordered grid.
+    grid.innerHTML = (featured.length
+      ? '<div class="feature-grid feature-grid--featured">' + renderCards(featured) + '</div>'
+      : "") + '<div class="feature-grid">' + renderCards(available.concat(upcoming)) + '</div>';
   }
 
   /* Build a mount function for a given card source name ("games" or "tools"). */

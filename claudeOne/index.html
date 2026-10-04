@@ -211,7 +211,7 @@
         这里放一些可以直接打开玩的小游戏和聚会娱乐玩法。
       </p>
     </section>
-    <div class="feature-grid" data-card-grid="games"></div>
+    <div class="card-grid" data-card-grid="games"></div>
   </template>
 
   <template id="page-tools">
@@ -222,7 +222,7 @@
         把常用、小众、奇怪但有用的工具都放在这里。
       </p>
     </section>
-    <div class="feature-grid" data-card-grid="tools"></div>
+    <div class="card-grid" data-card-grid="tools"></div>
   </template>
 
   <template id="page-beads">
@@ -1833,7 +1833,7 @@
 <!-- Hero -->
       <section class="qr-hero page-chunk" data-reveal-order="2">
         <span class="pill pill--accent">QR Tool</span>
-        <h1 style="margin-top:12px">二维码美化器</h1>
+        <h1 style="margin-top:12px">二维码制作</h1>
         <p class="muted" style="max-width:62ch; margin-top:8px">
           生成带 Logo、渐变色、圆点样式和自定义角标的高级二维码，支持 PNG / SVG 导出。
           所有处理在浏览器本地完成，无需上传服务器。
@@ -3272,5 +3272,81 @@
     </section>
   </template>
 
+  <!-- Color studio: page-local controls and local image processing. -->
+  <template id="page-colors">
+    <section class="color-tools" data-ct>
+      <header class="ct-heading">
+        <div><p class="ct-eyebrow">COLOR STUDIO</p><h1>颜色工具</h1><p class="ct-subtitle">取一个喜欢的颜色，搭一套自己的配色。</p></div>
+        <a class="btn btn-sm" href="#/tools" data-nav-link>返回工具箱 →</a>
+      </header>
+      <div class="ct-start">
+        <div class="ct-row">
+          <button class="btn btn-primary" type="button" data-ct-screen><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l3-1 11-11a2.1 2.1 0 0 0-3-3L4 16v4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>屏幕取色</span></button>
+          <button class="btn" type="button" data-ct-upload>＋ 上传图片</button>
+          <span class="ct-hint">也可以拖入图片，或按 Ctrl / ⌘ + V 粘贴</span>
+        </div>
+        <div class="ct-help" data-ct-help>
+          <button class="btn btn-sm ct-help-button" type="button" data-ct-help-toggle aria-expanded="false" aria-controls="ct-help-panel"><span aria-hidden="true">?</span>使用帮助</button>
+          <aside class="ct-help-panel" id="ct-help-panel" data-ct-help-panel popover="auto" hidden tabindex="-1" aria-labelledby="ct-help-title">
+            <div class="ct-help-heading"><h2 id="ct-help-title">使用帮助</h2><button class="ct-help-close" type="button" data-ct-help-close aria-label="关闭使用帮助">×</button></div>
+            <div class="ct-help-content"><p><strong>屏幕取色</strong>点击按钮，再点屏幕上的颜色；Esc 取消。需要桌面 Chrome / Edge 和 HTTPS 或 localhost。其他设备可以上传图片取色。</p><p><strong>图片取色</strong>点图片取一个颜色，或框选模型区域自动提取配色。GIF 读取第一帧；支持 PNG、JPG、WebP、GIF、BMP，最大 20 MB / 4000 万像素。</p><p><strong>管理色卡</strong>选中后可改色、加备注、排序或删除，误操作可撤销。草稿自动保存在当前浏览器；保存方案后可在“已保存”里重新打开。</p><p class="ct-help-note">屏幕颜色用于参考，不等于模型漆色号或实际混漆比例。色觉预览为近似效果。</p></div>
+          </aside>
+        </div>
+      </div>
+      <p class="ct-status" data-ct-status role="status" aria-live="polite" aria-atomic="true"></p>
+      <p class="ct-hint ct-download" data-ct-download-row hidden>文件已生成。若下载没有开始，可点击 <a data-ct-download>保存文件</a>。</p>
+      <details class="ct-export-preview" data-ct-export-preview hidden><summary>预览导出文件</summary><div data-ct-export-content></div></details>
+      <input type="file" data-ct-file accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" hidden />
+      <input type="file" data-ct-json accept=".json,application/json" hidden />
+
+      <section class="card ct-panel ct-image" data-ct-image hidden aria-label="图片取色">
+        <div class="ct-panel-head"><div><h2>从图片找颜色</h2><p class="ct-hint" data-ct-image-name></p></div><button type="button" class="btn btn-sm" data-ct-image-close>移除图片</button></div>
+        <div class="ct-image-grid">
+          <div>
+            <div class="ct-row ct-image-modes"><button class="btn btn-sm" type="button" data-ct-image-mode="pick" aria-pressed="true">点击取色</button><button class="btn btn-sm" type="button" data-ct-image-mode="crop" aria-pressed="false">框选区域</button><button class="btn btn-sm" type="button" data-ct-crop-reset>整张图片</button></div>
+            <div class="ct-canvas-wrap"><canvas data-ct-canvas tabindex="0" role="button" aria-label="图片取色，方向键移动取色点，Enter 取色"></canvas><div class="ct-crop" data-ct-crop hidden></div><span class="ct-crosshair" data-ct-crosshair hidden></span></div>
+            <p class="ct-hint ct-pixel" data-ct-pixel>点击图片取色；键盘可用方向键移动，Enter 取色。</p>
+            <details class="ct-crop-details"><summary>精确选区</summary><div class="ct-crop-fields"><label>X %<input class="input" type="number" min="0" max="99" value="0" data-ct-region="x" /></label><label>Y %<input class="input" type="number" min="0" max="99" value="0" data-ct-region="y" /></label><label>宽 %<input class="input" type="number" min="1" max="100" value="100" data-ct-region="width" /></label><label>高 %<input class="input" type="number" min="1" max="100" value="100" data-ct-region="height" /></label></div><button class="btn btn-sm" type="button" data-ct-region-apply>应用选区</button></details>
+          </div>
+          <div class="ct-extracted"><div class="ct-row"><label class="ct-field ct-count">提取颜色数<select class="select" data-ct-count><option>3</option><option selected>5</option><option>6</option><option>8</option><option>10</option><option>12</option></select></label><span class="ct-hint" data-ct-extract-status role="status" aria-live="polite"></span></div><div class="ct-suggestions" data-ct-extracted></div><button class="btn btn-sm" type="button" data-ct-extracted-add disabled>全部加入色卡</button><p class="ct-hint">点色块查看，加入色卡后可以继续微调。</p></div>
+        </div>
+      </section>
+
+      <div class="ct-workspace">
+        <section class="card ct-panel ct-editor" aria-label="当前颜色">
+          <div class="ct-panel-head"><h2>当前颜色</h2><span class="ct-hint" data-ct-current-label>可点击色块调整</span></div>
+          <label class="ct-current" data-ct-current><span class="ct-current-hex" data-ct-current-hex>#547AC0</span><span class="ct-current-action">点击调整 ↗</span><input type="color" value="#547ac0" data-ct-color aria-label="调整当前颜色" /></label>
+          <label class="ct-field">颜色值<input class="input ct-code-input" data-ct-value value="#547AC0" maxlength="80" placeholder="#547AC0 / rgb(84,122,192)" spellcheck="false" aria-describedby="ct-value-help" /></label>
+          <span class="ct-hint" id="ct-value-help">支持 HEX、rgb(…)、hsl(…)，Enter 应用</span>
+          <div class="ct-code-rows"><button type="button" data-ct-copy="rgb"><span>RGB</span><code data-ct-rgb></code><span>复制</span></button><button type="button" data-ct-copy="hsl"><span>HSL</span><code data-ct-hsl></code><span>复制</span></button><button type="button" data-ct-copy="hex"><span>HEX</span><code data-ct-hex></code><span>复制</span></button></div>
+          <details class="ct-adjust"><summary>微调色相、饱和度与明度</summary><label>色相 <output data-ct-h-out></output><input type="range" min="0" max="359" data-ct-h aria-label="色相" /></label><label>饱和度 <output data-ct-s-out></output><input type="range" min="0" max="100" data-ct-s aria-label="饱和度" /></label><label>明度 <output data-ct-l-out></output><input type="range" min="0" max="100" data-ct-l aria-label="明度" /></label></details>
+          <label class="ct-field">备注 <span class="ct-hint">可选，如主体、肩甲或漆号</span><input class="input" data-ct-note maxlength="80" placeholder="给这个颜色写个备注" /></label>
+          <div class="ct-row ct-editor-actions"><button class="btn btn-primary" type="button" data-ct-add>＋ 加入色卡</button><button class="btn" type="button" data-ct-update hidden>更新选中色</button></div>
+        </section>
+
+        <section class="card ct-panel ct-palette" aria-label="我的配色">
+          <div class="ct-panel-head"><div><h2>我的配色 <span class="ct-badge" data-ct-palette-count>0 色</span></h2><p class="ct-hint" data-ct-draft-state>草稿自动保存在当前浏览器</p></div><button class="btn btn-sm" type="button" data-ct-library>已保存 <span data-ct-saved-count>0</span></button></div>
+          <label class="ct-field">配色名称<input class="input" data-ct-palette-name maxlength="80" placeholder="例如：机甲蓝白方案" value="我的配色" /></label>
+          <div class="ct-row ct-palette-toolbar"><button class="btn btn-sm" type="button" data-ct-new>新建</button><button class="btn btn-sm" type="button" data-ct-undo disabled>撤销</button><button class="btn btn-sm" type="button" data-ct-redo disabled>重做</button><span class="ct-hint">色卡可拖动排序</span></div>
+          <div class="ct-empty" data-ct-empty><div class="ct-empty-marks" aria-hidden="true"><span></span><span></span><span></span></div><h3>喜欢的颜色，放在一起。</h3><p>先从屏幕、图片或左侧选一个颜色，<br />再点击“加入色卡”。</p></div>
+          <div class="ct-swatches" data-ct-swatches></div>
+          <div class="ct-row ct-selection" data-ct-selection hidden><span class="ct-hint" data-ct-selected-name></span><button class="btn btn-sm" type="button" data-ct-move="-1">← 前移</button><button class="btn btn-sm" type="button" data-ct-move="1">后移 →</button><button class="btn btn-sm" type="button" data-ct-delete>删除选中色</button></div>
+          <div class="ct-preview-area" data-ct-preview-area hidden><div class="ct-row ct-preview-label"><span class="ct-hint">换个底色，看看搭配</span><div class="ct-backgrounds" role="group" aria-label="配色预览底色"><button type="button" data-ct-background="#FFFFFF" aria-pressed="true">白</button><button type="button" data-ct-background="#808080" aria-pressed="false">灰</button><button type="button" data-ct-background="#141414" aria-pressed="false">黑</button></div></div><div class="ct-ribbon-wrap" data-ct-ribbon-wrap><div class="ct-ribbon" data-ct-ribbon></div></div></div>
+          <div class="ct-palette-footer"><button class="btn btn-primary btn-sm" type="button" data-ct-save disabled>保存方案</button><button class="btn btn-sm" type="button" data-ct-copy-all disabled>复制色值</button><div class="ct-export"><label class="sr-only" for="ct-export-format">导出格式</label><select class="select" id="ct-export-format" data-ct-export-format><option value="png">PNG 图片</option><option value="svg">SVG 图片</option><option value="json">JSON 色卡</option><option value="css">CSS 变量</option></select><button class="btn btn-sm" type="button" data-ct-export disabled>导出</button></div></div>
+        </section>
+      </div>
+
+      <details class="card ct-panel ct-tools" data-ct-tools><summary><span>更多颜色工具</span><span class="ct-hint">自动配色 · 渐变 · 可读性 · 色觉预览</span></summary>
+        <div class="ct-tabs" role="tablist" aria-label="更多颜色工具"><button type="button" id="ct-tab-harmony" role="tab" aria-controls="ct-panel-harmony" aria-selected="true" data-ct-tab="harmony">自动配色</button><button type="button" id="ct-tab-gradient" role="tab" aria-controls="ct-panel-gradient" aria-selected="false" tabindex="-1" data-ct-tab="gradient">渐变</button><button type="button" id="ct-tab-contrast" role="tab" aria-controls="ct-panel-contrast" aria-selected="false" tabindex="-1" data-ct-tab="contrast">可读性</button><button type="button" id="ct-tab-vision" role="tab" aria-controls="ct-panel-vision" aria-selected="false" tabindex="-1" data-ct-tab="vision">色觉预览</button></div>
+        <section id="ct-panel-harmony" role="tabpanel" aria-labelledby="ct-tab-harmony" data-ct-tool="harmony"><div class="ct-row"><label class="ct-field">以当前颜色为主色<select class="select" data-ct-harmony-type><option value="analogous">相近色 · 柔和统一</option><option value="complement">互补色 · 突出点缀</option><option value="triad">三色搭配 · 活泼丰富</option><option value="mono">同色深浅 · 层次变化</option></select></label><button class="btn btn-sm" type="button" data-ct-harmony-add>全部加入色卡</button></div><div class="ct-suggestions" data-ct-harmony></div><p class="ct-hint">以色相和深浅关系生成搭配，点色块查看；是否适合涂装可以继续微调。</p></section>
+        <section id="ct-panel-gradient" role="tabpanel" aria-labelledby="ct-tab-gradient" data-ct-tool="gradient" hidden><div class="ct-row"><label class="ct-field">类型<select class="select" data-ct-gradient-type><option value="linear">线性渐变</option><option value="radial">径向渐变</option></select></label><label class="ct-field">角度 °<input class="input" type="number" min="0" max="360" value="90" data-ct-gradient-angle /></label><button class="btn btn-sm" type="button" data-ct-gradient-palette>使用我的色卡</button></div><div class="ct-gradient-preview" data-ct-gradient-preview></div><div class="ct-stops" data-ct-stops></div><div class="ct-row"><button class="btn btn-sm" type="button" data-ct-gradient-add>＋ 颜色节点</button><label class="ct-field ct-preset">预设<select class="select" data-ct-gradient-preset><option value="">选择一套渐变</option><option value="sea">海盐蓝</option><option value="sunset">落日</option><option value="lavender">薰衣草</option><option value="forest">森林</option></select></label><button class="btn btn-sm" type="button" data-ct-gradient-copy>复制 CSS</button><button class="btn btn-sm" type="button" data-ct-gradient-export>导出 PNG</button></div><code class="ct-gradient-code" data-ct-gradient-code></code></section>
+        <section id="ct-panel-contrast" role="tabpanel" aria-labelledby="ct-tab-contrast" data-ct-tool="contrast" hidden><div class="ct-row"><label class="ct-field">文字颜色<input type="color" value="#1f3559" data-ct-contrast-fg /></label><button class="btn btn-sm" type="button" data-ct-contrast-use="fg">文字用当前色</button><label class="ct-field">背景颜色<input type="color" value="#ffffff" data-ct-contrast-bg /></label><button class="btn btn-sm" type="button" data-ct-contrast-use="bg">背景用当前色</button><button class="btn btn-sm" type="button" data-ct-contrast-swap>交换</button></div><div class="ct-contrast-preview" data-ct-contrast-preview><strong>颜色好看，也要看得清。</strong><p>这是一段正文，用来比较文字与背景。</p></div><div class="ct-contrast-result"><strong data-ct-ratio></strong><span data-ct-contrast-aa></span><span data-ct-contrast-large></span><span data-ct-contrast-aaa></span></div><p class="ct-hint">WCAG 对比度：AA 正文 ≥ 4.5，大字 ≥ 3；AAA 正文 ≥ 7。</p></section>
+        <section id="ct-panel-vision" role="tabpanel" aria-labelledby="ct-tab-vision" data-ct-tool="vision" hidden><p class="ct-hint">比较同一套配色的近似显示效果；没有色卡时，使用当前颜色。</p><div class="ct-vision" data-ct-vision></div><p class="ct-hint">红色觉、绿色觉、蓝色觉预览使用 Machado 2009 模型；灰度展示明暗层次。</p></section>
+      </details>
+      <p class="ct-local-note">图片在浏览器本地处理 · 无需登录 · 色卡保存于当前设备，可导出备份</p>
+
+      <dialog class="ct-dialog" data-ct-dialog aria-labelledby="ct-library-title"><div class="ct-panel-head"><h2 id="ct-library-title">已保存的配色</h2><button class="btn btn-sm" type="button" data-ct-dialog-close>关闭</button></div><p class="ct-hint">打开后可继续修改。JSON 色卡可在其他设备导入。</p><div class="ct-row ct-library-toolbar"><button class="btn btn-sm" type="button" data-ct-import>导入 JSON 色卡</button><button class="btn btn-sm" type="button" data-ct-library-undo hidden>撤销删除</button></div><p class="ct-hint" data-ct-library-status role="status"></p><div class="ct-saved-list" data-ct-saved-list></div></dialog>
+    </section>
+  </template>
 </body>
 </html>

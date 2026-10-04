@@ -94,7 +94,7 @@
       actions: ["openPage"],
     },
     qr: {
-      name: "二维码美化",
+      name: "二维码制作",
       summary: "生成带 Logo、渐变、点样式、角标、纠错等级的二维码并导出。",
       actions: ["setContent", "setStyle", "applyPreset", "openLogoPicker", "removeLogo", "exportPng", "exportSvg", "copyConfig", "importConfig", "reset", "clear"],
     },
@@ -2887,7 +2887,7 @@
     }),
     qr: {
       getState: () => ({
-        page: "二维码美化",
+        page: "二维码制作",
         contentType: q('input[name="contentType"]:checked')?.value,
         content: q("[data-content-input]")?.value,
         size: (q("[data-width]")?.value || "?") + "x" + (q("[data-height]")?.value || "?"),

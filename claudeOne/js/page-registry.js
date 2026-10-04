@@ -58,6 +58,15 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     js: ["js/tool-cards.js"],
     lifecycle: "__page_tools"
   },
+  colors: {
+    navSection: "tools",
+    title: "claudeOne · 颜色工具",
+    description: "屏幕与图片取色、框选提色、色卡管理、自动配色、渐变和色觉预览，浏览器本地处理",
+    templateId: "page-colors",
+    css: ["css/color-tools.css"],
+    js: ["js/color-tools-core.js", "js/color-tools.js"],
+    lifecycle: "__page_colors"
+  },
   beads: {
     navSection: "tools",
     title: "claudeOne · 拼豆工坊",
@@ -213,7 +222,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   qr: {
     navSection: "tools",
-    title: "claudeOne · 二维码美化",
+    title: "claudeOne · 二维码制作",
     description: "claudeOne QR — 二维码生成与美化工具",
     templateId: "page-qr",
     css: ["css/qr.css"],
