@@ -67,7 +67,8 @@ function createMusicLibraryRouter(options = {}) {
   router.get("/playlist.js", async (_req, res) => {
     try {
       const current = await readSnapshot();
-      res.set("Cache-Control", "public, no-cache");
+      res.set("Cache-Control", "no-store");
+      res.set("Cloudflare-CDN-Cache-Control", "no-store");
       res.type("application/javascript").send(current.script);
     } catch (_) {
       res.status(503).type("text/plain").send("Music library unavailable");

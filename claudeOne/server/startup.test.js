@@ -29,6 +29,9 @@ test("optional downloads wait until the route paints; legacy playlist fallback s
   frames.shift()();
   await settle();
   assert.equal(links.length, 1);
+  assert.equal(links[0].href, "./css/fonts.css?v=20261005-cache");
+  assert.ok(scripts.find(script => script.src === "./js/assistant.js"), "assistant downloads without waiting for the client download");
+  assert.ok(scripts.every(script => script.async === false), "dependency order is preserved");
   const library = scripts.find(script => script.src === "./api/music-library/playlist.js");
   assert.ok(library);
   assert.equal(scripts.some(script => /player.js/.test(script.src)), false);

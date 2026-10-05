@@ -7,6 +7,7 @@
   function loadScript(url) {
     return new Promise(function (resolve, reject) {
       var script = document.createElement("script");
+      script.async = false;
       script.src = url;
       script.onload = resolve;
       script.onerror = function () { script.remove(); reject(new Error("Failed to load " + url)); };
@@ -15,15 +16,14 @@
   }
 
   function loadSequence(urls) {
-    return urls.reduce(function (chain, url) {
-      return chain.then(function () { return loadScript(url); });
-    }, Promise.resolve());
+    // Ordered dynamic scripts download together and execute in insertion order.
+    return Promise.all(urls.map(loadScript));
   }
 
   function startExtras() {
     var font = document.createElement("link");
     font.rel = "stylesheet";
-    font.href = "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap";
+    font.href = "./css/fonts.css?v=20261005-cache";
     document.head.appendChild(font);
 
     // Static-only hosting can still use the scanner's original playlist.

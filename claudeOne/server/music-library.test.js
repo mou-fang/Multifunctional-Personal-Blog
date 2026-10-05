@@ -50,7 +50,8 @@ test("HTTP library validates caches, refreshes rescans, and serves only known im
   const response = await fetch(base + "/api/music-library/playlist.js");
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type"), /javascript/);
-  assert.match(response.headers.get("cache-control"), /no-cache/);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.equal(response.headers.get("cloudflare-cdn-cache-control"), "no-store");
   const script = await response.text();
   const current = parsePlaylist(script);
   assert.equal(current[0].title, "One");

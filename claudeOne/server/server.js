@@ -16,6 +16,7 @@ const { v4: uuidv4 } = require("uuid");
 const { createVisitorStatsRouter } = require("./visitor-stats");
 const { createGameReleasesRouter, blockPrivateStatic } = require("./game-releases");
 const { createMusicLibraryRouter } = require("./music-library");
+const { createStaticAssets } = require("./static-assets");
 const {
   QQMusicUnlockError,
   QQMusicAuthError,
@@ -101,8 +102,11 @@ app.use(compression({
 app.use("/api/game-releases", createGameReleasesRouter());
 app.use("/api/music-library", createMusicLibraryRouter());
 app.use(blockPrivateStatic);
+const staticAssets = createStaticAssets(STATIC_DIR);
+app.use(staticAssets.middleware);
 app.use(express.static(STATIC_DIR, {
   setHeaders(res, filePath) {
+    staticAssets.setHeaders(res, filePath);
     // JavaScript modules and workers
     if (filePath.endsWith(".js")) {
       res.setHeader("Content-Type", "application/javascript; charset=utf-8");
@@ -132,9 +136,7 @@ app.use(express.static(STATIC_DIR, {
 }));
 
 // SPA fallback — serve index.html for any unmatched GET (hash routes)
-app.get(/^\/(home|games|tools|game|sokoban|minesweeper|snake|billiards|doom|lottery|music|playlist|ai|ascii|pixel|compress|qr|videogif)/, (_req, res) => {
-  res.sendFile(path.join(STATIC_DIR, "index.html"));
-});
+app.get(/^\/(home|games|tools|game|sokoban|minesweeper|snake|billiards|doom|lottery|music|playlist|ai|ascii|pixel|compress|qr|videogif)/, staticAssets.sendIndex);
 
 // ---- Multer ----
 const storage = multer.diskStorage({

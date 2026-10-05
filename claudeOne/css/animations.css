@@ -39,6 +39,13 @@
 .page-chunk[data-reveal-order="7"] { transition-delay: 540ms; }
 .page-chunk[data-reveal-order="8"] { transition-delay: 620ms; }
 
+/* The first page is usable as soon as it is ready, without a reveal delay. */
+body[data-initial-route="true"] .page-chunk {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
 /* ===== Page exit (used by shell.js when navigating) ===== */
 body[data-route-state="exiting"] .page-stack {
   opacity: 0;

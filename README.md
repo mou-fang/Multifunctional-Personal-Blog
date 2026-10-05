@@ -109,7 +109,7 @@ go install github.com/TheZoraiz/ascii-image-converter@latest
 
 服务器部署、数据格式、权限、发布与验证命令见 [游戏发售接入说明](docs/game-releases-deployment.md)。可完整复制的 OpenClaw 任务提示词见 [周二游戏发售任务](docs/openclaw-game-news-weekly-prompt.md)。源文件中不包含真实发布数据。
 
-游戏发售页的 CSS、核心脚本和页面脚本使用带版本号的资源 URL；修改这些文件时，同时更新 `page-registry.js` 中三个 URL 的 `v` 参数以及 `index.html` 中注册表脚本的 `v` 参数，再一起部署。这样已访问过的浏览器会请求新版资源，避免继续使用动态加载资源的旧缓存。若线上仍显示旧版，在 Chrome / Edge 按 F12，打开 Network（网络），勾选 Disable cache（停用缓存），保持开发者工具打开并刷新；这一步无需清除站点本地存储中的主题、配色方案等数据。
+使用本站 Express 服务时，游戏发售页与其他页面的 CSS / JS 地址会自动按文件内容生成版本号，修改后一起部署即可。只使用普通静态托管时，仍需同步更新 `page-registry.js` 中资源 URL 的 `v` 参数以及 `index.html` 中注册表脚本的 `v` 参数，避免继续使用旧缓存。若线上仍显示旧版，在 Chrome / Edge 按 F12，打开 Network（网络），勾选 Disable cache（停用缓存），保持开发者工具打开并刷新；这一步无需清除站点本地存储中的主题、配色方案等数据。
 
 ### 首页与全局功能
 
@@ -158,7 +158,7 @@ node claudeOne/scripts/scan-music.js
 
 ### 本地处理与网络请求
 
-二维码解析、颜色工具、拼豆、像素化、压缩、图片混淆和视频转 GIF 的主要处理在浏览器内完成。ASCII 图片会提交到本站后端；DeepSeek 对话会发送到配置的服务地址；部分 QQ 音乐流程会通过本站后端访问音乐服务。页面还会加载外部字体并发送本站访问统计心跳，因此“图片本地处理”不等于“整个站点完全离线”。
+二维码解析、颜色工具、拼豆、像素化、压缩、图片混淆和视频转 GIF 的主要处理在浏览器内完成。ASCII 图片会提交到本站后端；DeepSeek 对话会发送到配置的服务地址；部分 QQ 音乐流程会通过本站后端访问音乐服务。字体由本站提供，页面会发送本站访问统计心跳，因此“图片本地处理”不等于“整个站点完全离线”。
 
 DeepSeek API Key 保存在浏览器本地存储，调用时用于向配置的 API 服务认证。QQ 音乐授权信息由后端短期保存在内存会话中。不要将密钥、Cookie、用户音频和临时上传写入仓库。
 
@@ -166,11 +166,13 @@ DeepSeek API Key 保存在浏览器本地存储，调用时用于向配置的 AP
 
 ### 首屏加载与音乐资源
 
-首屏先加载外壳和当前路由，首次进入不等待切页退出动画。共享脚本使用 `defer`，字体、背景渲染、播放器与助手在首个路由显示后加载；字体暂未到达时使用系统字体。音乐解锁脚本和 libparakeet WASM 仅在进入 `#/music` 时加载，播放器默认 `preload="none"`，点击播放后才请求音频。
+首屏先加载外壳和当前路由，首次进入不等待切页退出或内容淡入动画，内容就绪后直接显示；正常切页保留原有动画。共享脚本使用 `defer`，字体、背景渲染、播放器与助手在首个路由显示后加载；字体暂未到达时使用系统字体。原有 Manrope / Sora 字体改由本站 `css/fonts.css` 和版本目录下的 WOFF2 提供，来源、版本、校验值和许可证见 [字体资源说明](claudeOne/libs/fonts/google-fonts-20261005/README.md)。动态脚本同时下载并按依赖顺序执行。音乐解锁脚本和 libparakeet WASM 仅在进入 `#/music` 时加载，播放器默认 `preload="none"`，点击播放后才请求音频。页头与图标复用无损 WebP Logo，保留原始像素，文件由 570,120 字节降为 342,344 字节。
 
-播放器通过 `GET /api/music-library/playlist.js` 获取轻量歌单。服务端读取现有扫描器生成的 `music/playlist.js`，将内嵌 JPEG / PNG / WebP / GIF 封面转为按内容哈希的只读地址；仅需要展示的封面通过 `/api/music-library/covers/` 下载，并缓存一年。歌单每次校验缓存，源文件更新后自动重新读取，不执行源文件中的 JavaScript，也不改动音频、封面或扫描结果。静态托管没有此接口时，会回退加载原歌单；这种方式仍可能下载较大的内嵌封面数据。
+Express 通过 `server/static-assets.js` 自动为 HTML、注册表和启动脚本引用的 `css/`、`js/`、`logo/` 文件添加内容版本号，无需构建步骤。匹配版本的文件允许浏览器与 Cloudflare 缓存一年；文件内容变化会自动产生新地址，注册表和启动脚本的地址也随其依赖一起更新。HTML、无版本或旧版本地址需要校验更新，不会作为不可变资源长期缓存。`Cloudflare-CDN-Cache-Control` 与浏览器缓存头同时设置；Cloudflare 中额外配置的 Cache Rules / Workers 仍可能影响实际行为。仅使用普通静态托管时，这套自动版本与响应头不生效，需由托管配置和手动版本参数管理。
 
-部署这项优化时，需一起更新 `index.html`、`startup.js`、注册表、路由、播放器、歌单页面以及服务端 `music-library.js` / `server.js`，然后重启 Node 服务。启动资源 URL 带版本参数；之后修改相关资源时同步更新参数，避免 CDN 或浏览器继续使用旧版。
+播放器通过 `GET /api/music-library/playlist.js` 获取轻量歌单。服务端读取现有扫描器生成的 `music/playlist.js`，将内嵌 JPEG / PNG / WebP / GIF 封面转为按内容哈希的只读地址；仅需要展示的封面通过 `/api/music-library/covers/` 下载，并缓存一年。轻量歌单设置 `no-store`，避免 CDN 按 `.js` 后缀缓存旧列表；源文件更新后自动重新读取，不执行源文件中的 JavaScript，也不改动音频、封面或扫描结果。静态托管没有此接口时，会回退加载原歌单；这种方式仍可能下载较大的内嵌封面数据。
+
+部署这些优化时，需一起更新前端、`css/fonts.css`、`libs/fonts/`、WebP Logo，以及服务端 `static-assets.js` / `music-library.js` / `server.js`，然后重启 Node 服务。首次上线自动版本功能时，刷新首页即可获取内容版本地址；此前已被 CDN 缓存的 HTML 需要清除相应首页缓存。
 
 ## 项目结构
 

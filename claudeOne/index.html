@@ -6,9 +6,9 @@
   <meta name="color-scheme" content="light dark" />
   <meta name="description" content="claudeOne — quiet personal workspace" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self' https:; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self'; base-uri 'self'; form-action 'none'">
+        content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https:; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <link rel="icon" type="image/png" href="./logo/e1703e10-52d1-4402-bc11-083e5565afc1.png" />
+  <link rel="icon" type="image/webp" href="./logo/workspace-logo-lossless.webp" />
   <title>claudeOne · 魔方工作台</title>
   <!-- Web fonts load after the first route paints; system fonts render immediately. -->
   <!-- Core CSS (always loaded) -->
@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="./css/easter-egg.css" />
   <!-- Page-specific CSS loaded on demand by router -->
 </head>
-<body data-page="home" data-route-state="idle">
+<body data-page="home" data-route-state="idle" data-initial-route="true">
   <script src="./js/theme-init.js"></script>
 
   <div class="ambient ambient-a"></div>
@@ -44,7 +44,7 @@
     <header class="site-header page-chunk" data-reveal-order="1">
       <a class="site-brand" href="#/home" data-nav-link>
         <span class="brand-mark" aria-hidden="true">
-          <img src="./logo/e1703e10-52d1-4402-bc11-083e5565afc1.png" alt="" />
+          <img src="./logo/workspace-logo-lossless.webp" alt="" width="40" height="40" decoding="async" />
         </span>
         <span class="brand-text">
           <small>魔方的</small>
@@ -650,8 +650,8 @@
   <script src="./js/config.js" defer></script>
   <script src="./js/page-registry.js?v=20261005-startup" defer></script>
   <script src="./js/shell.js" defer></script>
-  <script src="./js/startup.js?v=20261005-startup" defer></script>
-  <script src="./js/router.js?v=20261005-startup" defer></script>
+  <script src="./js/startup.js?v=20261005-cache" defer></script>
+  <script src="./js/router.js?v=20261005-cache" defer></script>
   <script src="./js/visitor-stats.js" defer></script>
   <template id="page-pixel">
 <!-- Hero -->

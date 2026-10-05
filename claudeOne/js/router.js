@@ -109,6 +109,7 @@
     if (loadedJS[url]) return Promise.resolve();
     return new Promise(function (resolve, reject) {
       var script = document.createElement("script");
+      script.async = false;
       script.src = url;
       script.onload = function () {
         loadedJS[url] = true;
@@ -123,9 +124,7 @@
   }
 
   function loadJSSeq(urls) {
-    return urls.reduce(function (chain, url) {
-      return chain.then(function () { return loadJS(url).catch(function () {}); });
-    }, Promise.resolve());
+    return Promise.all(urls.map(function (url) { return loadJS(url).catch(function () {}); }));
   }
 
   /* ---- Lifecycle resolution ----------------------------------------------- */
@@ -176,6 +175,7 @@
     // The initial page has nothing to animate out. Start resource requests
     // during later exit transitions rather than after the animation ends.
     var hasCurrentPage = currentPage !== null;
+    if (hasCurrentPage) document.body.removeAttribute("data-initial-route");
     document.body.setAttribute("data-route-state", hasCurrentPage ? "exiting" : "loading");
     (meta.css || []).forEach(function (url) { loadCSS(url); });
     var scriptsReady = loadJSSeq(meta.js || []);
