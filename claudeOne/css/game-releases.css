@@ -66,6 +66,16 @@ body[data-theme="liquid-glass"] .release-filter { border: 1px solid var(--border
 body[data-theme="liquid-glass"] .release-search input { border: 1px solid var(--border); }
 body[data-theme="liquid-glass"] .release-card__date,
 body[data-theme="liquid-glass"] .release-card__badge { background: var(--surface-raised); box-shadow: var(--shadow-out-sm); }
+/* Reuse the shared Soft UI background's lavender, cyan and warm glow palette. */
+body[data-theme="neumorphism"] .release-card__badge[data-release-state="tomorrow"] {
+  background:
+    radial-gradient(ellipse at 92% 12%, rgba(199, 189, 235, .78), transparent 78%),
+    radial-gradient(ellipse at 5% 90%, rgba(181, 223, 230, .82), transparent 80%),
+    radial-gradient(ellipse at 0% 0%, rgba(248, 235, 233, .45), transparent 80%),
+    var(--surface);
+}
+body[data-theme="neumorphism"] .release-card__badge[data-release-state="released"] { background: #fff2cc; }
+body[data-theme="liquid-glass"] .release-card__badge[data-release-state="released"] { background: rgba(255, 242, 204, .52); }
 @media (max-width: 1000px) {
   .release-hero { gap: 20px; padding: 18px 20px; }
   .release-toolbar { grid-template-columns: minmax(200px, .8fr) minmax(0, 1.2fr); gap: 12px 16px; }

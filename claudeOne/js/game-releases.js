@@ -30,7 +30,11 @@
     }
     var countdown = core.daysBetween(date, item.releaseDate);
     var badge = node("span", "release-card__badge");
-    if (countdown > 0) {
+    badge.setAttribute("data-release-state", countdown < 0 ? "released" : countdown === 0 ? "today" : countdown === 1 ? "tomorrow" : "upcoming");
+    if (countdown === 1) {
+      badge.append(node("strong", "release-card__badge-text", "明天"));
+      badge.setAttribute("aria-label", "明天发售");
+    } else if (countdown > 1) {
       badge.append(node("strong", "release-card__badge-value", String(countdown)), node("span", "", "天后"));
       badge.setAttribute("aria-label", "还有 " + countdown + " 天发售");
     } else {

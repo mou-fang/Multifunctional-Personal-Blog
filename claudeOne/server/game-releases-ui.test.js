@@ -73,7 +73,7 @@ test("release cards default to including history and advance across Shanghai mid
   const h = harness(); h.page.mount(h.container);
   await new Promise(setImmediate);
   assert.equal(h.get("history").checked, true);
-  assert.deepEqual(h.badges(), ["今日发售", "1天后"]);
+  assert.deepEqual(h.badges(), ["今日发售", "明天"]);
   assert.equal([...h.intervals.values()][0].delay, 60000);
   const renders = h.get("list").replacements; h.tick();
   assert.equal(h.get("list").replacements, renders, "same-day checks must not replace cards");
@@ -93,7 +93,7 @@ test("hidden tabs stop date checks, resume immediately, retain the checkbox choi
   h.document.hidden = true; h.document.emit("visibilitychange");
   assert.equal(h.intervals.size, 0);
   h.setNow("2026-10-06T16:00:00Z"); h.window.emit("focus");
-  assert.deepEqual(h.badges(), ["今日发售", "1天后"]);
+  assert.deepEqual(h.badges(), ["今日发售", "明天"]);
   h.document.hidden = false; h.document.emit("visibilitychange");
   assert.deepEqual(h.badges(), []);
   assert.equal(h.get("result").textContent, "显示 0 款");
