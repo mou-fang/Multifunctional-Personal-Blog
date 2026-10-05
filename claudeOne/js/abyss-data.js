@@ -1464,7 +1464,7 @@
   // ------------------------------------------------------------------
   var PASSIVES = [
     { id: "energy_core", name: "能量核心", desc: "攻击 +15%，冷却 -8%", stat: { atk: 0.15, cdr: -0.08 }, evolve: "laser_drone", icon: "🔋" },
-    { id: "magnet", name: "磁场", desc: "范围 +20%，拾取范围扩大", stat: { range: 0.20 }, evolve: "flywheel", icon: "🧲" },
+    { id: "magnet", name: "磁场", desc: "范围 +20%，拾取范围 +20%", stat: { range: 0.20, pickupPct: 0.20 }, evolve: "flywheel", icon: "🧲" },
     { id: "fuel", name: "燃料", desc: "攻击 +10%，攻速 +12%", stat: { atk: 0.10, atkspd: 0.12 }, evolve: "flamer", icon: "⛽" },
     { id: "guidance", name: "制导芯片", desc: "投射物 +1，攻速 +8%", stat: { proj: 1, atkspd: 0.08 }, evolve: "missile", icon: "📡" },
     { id: "cooler", name: "制冷器", desc: "冷却 -15%，攻速 +6%", stat: { cdr: -0.15, atkspd: 0.06 }, evolve: "ice_lance", icon: "❄️" },

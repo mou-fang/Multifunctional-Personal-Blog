@@ -28,6 +28,12 @@
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function lerp(a, b, t) { return a + (b - a) * t; }
   function dist2(ax, ay, bx, by) { var dx = ax - bx, dy = ay - by; return dx * dx + dy * dy; }
+  function segmentDist2(x, y, ax, ay, bx, by) {
+    var dx = bx - ax, dy = by - ay;
+    var len2 = dx * dx + dy * dy;
+    var t = len2 ? clamp(((x - ax) * dx + (y - ay) * dy) / len2, 0, 1) : 0;
+    return dist2(x, y, ax + dx * t, ay + dy * t);
+  }
   function rand(a, b) { return a + Math.random() * (b - a); }
   function randInt(a, b) { return Math.floor(rand(a, b + 1)); }
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -185,7 +191,7 @@
       lastTime: 0,
       accumulator: 0,
       char: ch, map: mp, diff: df,
-      camera: { x: 0, y: 0 },    // 相机左上角世界坐标（玩家居中时计算）
+      camera: { x: (CFG.WORLD_W - CFG.W) / 2, y: (CFG.WORLD_H - CFG.H) / 2 },
       shake: { mag: 0, dur: 0, time: 0 }, // 屏幕震动：mag 强度像素，dur 持续秒
       player: {
         x: CFG.WORLD_W / 2, y: CFG.WORLD_H / 2, vx: 0, vy: 0,
@@ -195,6 +201,7 @@
         gold: me.gold, kills: 0,
         invuln: 0, flash: 0, shield: ch.stats.shield, shieldTimer: 0,
         regenTimer: 0, permaAtk: 0, // 失控实验体永久攻击
+        levelBonuses: { crit: 0, atkspd: 1, speed: 1, range: 1 },
         buffs: [],             // {stat,val,dur}
         skillsX2: 0,           // 动量蓄能：下次技能 ×2 计数
       },
@@ -222,9 +229,12 @@
     };
     // 初始武器
     var startW = settings.startWeapon || ch.startWeapon;
-    if (me.startWeapon) startW = me.startWeapon;
     addWeapon(s, startW);
     s.runStats.weaponsUsed[startW] = true;
+    if (me.startWeapon && me.startWeapon !== startW) {
+      addWeapon(s, me.startWeapon);
+      s.runStats.weaponsUsed[me.startWeapon] = true;
+    }
     recalcStats(s);
     s.player.hp = s.player.maxHp;
     return s;
@@ -233,19 +243,21 @@
   // ============ 属性重算 ============
   function recalcStats(s) {
     var ch = s.char; var me = metaEffects();
+    var previousShield = s.stats ? s.stats.shield : null;
+    var bonuses = s.player.levelBonuses;
     var st = {
       hp: ch.stats.hp + me.hp,
       atk: ch.stats.atk * (1 + me.atkPct) * (1 + s.player.permaAtk),
-      atkspd: ch.stats.atkspd * (1 + me.atkspdPct),
-      crit: ch.stats.crit + me.crit,
+      atkspd: ch.stats.atkspd * (1 + me.atkspdPct) * bonuses.atkspd,
+      crit: ch.stats.crit + me.crit + bonuses.crit,
       critdmg: ch.stats.critdmg + me.critdmg,
-      range: ch.stats.range * (1 + me.rangePct),
+      range: ch.stats.range * (1 + me.rangePct) * bonuses.range,
       proj: ch.stats.proj,
       cdr: ch.stats.cdr + me.cdr,
       luck: ch.stats.luck * (1 + me.luckPct),
       lifesteal: ch.stats.lifesteal + me.lifesteal,
       shield: ch.stats.shield + me.shield,
-      speed: ch.stats.speed * (1 + me.speedPct),
+      speed: ch.stats.speed * (1 + me.speedPct) * bonuses.speed,
       pickupRange: me.pickupPct, // 磁吸/拾取范围加成倍率（0=基础）
     };
     // 被动道具
@@ -263,6 +275,7 @@
       if (e.shield) st.shield += e.shield;
       if (e.speed) st.speed *= (1 + e.speed);
       if (e.hp) st.hp += e.hp;
+      if (e.pickupPct) st.pickupRange += e.pickupPct;
     });
     // 遗物修饰
     if (s.relics.some(function (r) { return r.def.id === "overload_core"; })) { st.atk *= 2; st.hp *= 0.5; }
@@ -291,7 +304,9 @@
       s.player.maxHp = Math.max(1, Math.round(st.hp));
       s.player.hp = Math.min(s.player.maxHp, Math.round(s.player.maxHp * ratio));
     }
-    s.player.shield = Math.max(s.player.shield, st.shield);
+    // 属性刷新不补满已消耗的护盾；仅增加新获得的容量。
+    if (previousShield === null) s.player.shield = st.shield;
+    else s.player.shield += Math.max(0, st.shield - previousShield);
   }
 
   // ============ 武器管理 ============
@@ -315,6 +330,10 @@
     w.runtime.aoe = (b.aoe || 0) * VS * (1 + (w.level - 1) * 0.2);
     w.runtime.slow = b.slow || 0;
     w.runtime.range = b.range || 1;
+    w.runtime.burn = b.burn || 0;
+    w.runtime.knockback = b.knockback || 0;
+    w.runtime.freeze = b.freeze || 0;
+    w.runtime.pull = b.pull || 0;
     if (w.def.id === "pistol") { w.runtime.proj = (b.proj || 1) + (w.level >= 2 ? 1 : 0) + (w.level >= 4 ? 1 : 0); }
   }
 
@@ -378,9 +397,13 @@
   var touch = { active: false, dx: 0, dy: 0 };
   function onKeyDown(e) {
     if (!state) return;
+    if (e.target && (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     var code = e.code;
-    if (["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space"].indexOf(code) >= 0) e.preventDefault();
+    if (["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space"].indexOf(code) >= 0 &&
+        !(code === "Space" && e.target && e.target.tagName === "BUTTON")) e.preventDefault();
     keys[code] = true;
+    if (e.repeat) return;
     if (code === "KeyP") { togglePause(); }
     if (code === "Escape") {
       // 全屏时 Esc 由浏览器接管退出全屏（fullscreenchange 会同步 CSS 类），不触发暂停
@@ -401,7 +424,10 @@
     }
   }
   function onKeyUp(e) { keys[e.code] = false; }
-  function onBlur() { keys = {}; touch.active = false; touch.dx = 0; touch.dy = 0; }
+  function onBlur() {
+    keys = {}; touch.active = false; touch.dx = 0; touch.dy = 0;
+    if (els.knob) els.knob.style.transform = "";
+  }
   function readMoveVec() {
     var mx = 0, my = 0;
     if (keys["ArrowLeft"] || keys["KeyA"]) mx -= 1;
@@ -439,6 +465,7 @@
 
   // ============ 模拟一步（固定步长）============
   function stepSim(dt) {
+    if (!state || state.mode !== "playing") return;
     state.time += dt;
     var p = state.player;
     // 震动衰减
@@ -470,7 +497,9 @@
       if (p.regenTimer >= 1) { p.regenTimer = 0; healPlayer(state, state.char.perk.val, false); }
     }
     // buff 计时
+    var buffCount = p.buffs.length;
     p.buffs = p.buffs.filter(function (b) { b.dur -= dt; return b.dur > 0; });
+    if (p.buffs.length !== buffCount) recalcStats(state);
 
     // 献祭契约
     if (state.modifiers.sacrifice) {
@@ -484,17 +513,22 @@
 
     // 武器
     sWeapons(dt);
+    if (state.mode !== "playing") return;
 
     // 敌人 / 投射物 / 拾取 / 粒子 / 炮塔
     sEnemies(dt);
+    if (state.mode !== "playing") return;
     sProjectiles(dt);
+    if (state.mode !== "playing") return;
     sEnemyShots(dt);
+    if (state.mode !== "playing") return;
     sPickups(dt);
     sTurrets(dt);
     sParticles(dt);
 
     // 地图机制
     sMapMechanic(dt);
+    if (state.mode !== "playing") return;
 
     // 生成器
     sSpawner(dt);
@@ -517,6 +551,7 @@
   function sWeapons(dt) {
     var s = state, p = s.player;
     s.weapons.forEach(function (w) {
+      if (s.mode !== "playing") return;
       w.cd -= dt * s.stats.atkspd;
       if (w.cd > 0) return;
       var kind = w.def.kind;
@@ -556,7 +591,7 @@
     return { dmg: dmg, crit: crit };
   }
   function dealDamage(enemy, baseDmg, src) {
-    if (enemy.dead) return;
+    if (enemy.dead || state.mode !== "playing") return;
     var r = rollDamage(baseDmg);
     var dmg = r.dmg;
     // 护盾兵
@@ -571,13 +606,13 @@
       if (SFX) SFX.hit(r.crit);
       // 吸血
       if (state.stats.lifesteal > 0) healPlayer(state, dmg * state.stats.lifesteal, false);
-      // 反伤词缀
-      if (enemy.affix && enemy.affix.mod.thorns && src !== "reflect") {
-        damagePlayer(enemy.affix.mod.thorns * dmg, "thorns");
-      }
     }
     spawnDamageText(enemy.x, enemy.y - enemy.size, Math.round(r.dmg), r.crit);
     if (enemy.hp <= 0) killEnemy(enemy, src);
+    // 先完成敌人死亡与掉落，再结算反伤，避免结算后继续修改击杀结果。
+    if (dmg > 0 && enemy.affix && enemy.affix.mod.thorns && src !== "reflect") {
+      damagePlayer(enemy.affix.mod.thorns * dmg, "thorns");
+    }
   }
   function killEnemy(e, src) {
     if (e.dead) return;
@@ -600,7 +635,7 @@
     var xpVal = e.def.xp * (state.map.xpMul || 1);
     var goldVal = e.def.gold * (state.modifiers.goldMul || 1);
     spawnPickup(e.x, e.y, "xp", xpVal);
-    if (Math.random() < 0.35 * (goldVal > 0 ? 1 : 0)) spawnPickup(e.x, e.y, "gold", 1);
+    if (Math.random() < 0.35 * (goldVal > 0 ? 1 : 0)) spawnPickup(e.x, e.y, "gold", state.modifiers.goldMul || 1);
     // Boss 击杀
     if (e.isBoss) onBossKilled(e);
   }
@@ -609,7 +644,8 @@
     var n = (e.affix && e.affix.mod.splitOnDeath) ? (e.affix.mod.splitCount || 2) : (def.splitCount || 2);
     for (var i = 0; i < n; i++) {
       var ne = makeEnemy(def, e.x + rand(-10, 10), e.y + rand(-10, 10));
-      ne.hp = (def.splitHpPct || 0.5) * def.hp * state.diff.hpMul;
+      ne.hp = (def.splitHpPct || 0.5) * def.hp * state.diff.hpMul * state.endlessScale;
+      ne.maxHp = ne.hp;
       ne._split = true;
       ne.size = def.size * 0.7;
       state.enemies.push(ne);
@@ -657,7 +693,8 @@
   }
   function fireBeam(w) {
     var s = state, p = s.player;
-    var tgt = nearestEnemy(p.x, p.y, 9999);
+    var len = CFG.W * 1.5 * w.runtime.range * s.stats.range;
+    var tgt = nearestEnemy(p.x, p.y, len);
     var ang = tgt ? Math.atan2(tgt.y - p.y, tgt.x - p.x) : (p.facing > 0 ? 0 : Math.PI);
     var isStar = w.def.id === "star_ray";
     if (isStar) {
@@ -667,27 +704,25 @@
     }
     var beams = w.level >= 3 ? 2 : 1;
     for (var i = 0; i < beams; i++) {
-      var a = ang + (i === 0 ? -0.08 : 0.08);
+      var a = ang + (i === 0 ? 0 : 0.08);
       var thick = w.level >= 4 ? 9 : 6;
-      state.projectiles.push({ beam: true, x: p.x, y: p.y, ang: a, dmg: w.runtime.dmg, life: 0.5, maxLife: 0.5, thick: thick, kind: w.def.id, _hit: {} });
+      state.projectiles.push({ beam: true, x: p.x, y: p.y, ang: a, len: len, dmg: w.runtime.dmg, life: 0.5, maxLife: 0.5, thick: thick, kind: w.def.id, _hit: {} });
     }
   }
   function sweepBeam(ang, dmg, thick, rangeMul) {
     var p = state.player;
-    var len = CFG.W * 1.5 * rangeMul;
-    var hit = false;
+    var len = CFG.W * 1.5 * rangeMul * state.stats.range;
+    var ex = p.x + Math.cos(ang) * len, ey = p.y + Math.sin(ang) * len;
     state.enemies.forEach(function (e) {
       if (e.dead) return;
-      var dx = e.x - p.x, dy = e.y - p.y;
-      var proj = dx * Math.cos(ang) + dy * Math.sin(ang);
-      var perp = Math.abs(-dx * Math.sin(ang) + dy * Math.cos(ang));
-      if (proj > 0 && proj < len && perp < thick + e.size / 2) { dealDamage(e, dmg, "beam"); hit = true; }
+      var r = thick / 2 + e.size / 2;
+      if (segmentDist2(e.x, e.y, p.x, p.y, ex, ey) <= r * r) dealDamage(e, dmg, "beam");
     });
     state.particles.push({ type: "beam", x: p.x, y: p.y, ang: ang, len: len, life: 0.2, maxLife: 0.2, thick: thick });
   }
   function tickAura(w) {
     var s = state, p = s.player;
-    var r = w.runtime.radius * s.stats.range;
+    var r = w.runtime.radius * w.runtime.range * s.stats.range;
     state.enemies.forEach(function (e) {
       if (e.dead) return;
       if (dist2(p.x, p.y, e.x, e.y) < (r + e.size / 2) * (r + e.size / 2)) {
@@ -698,11 +733,7 @@
           var a = Math.atan2(e.y - p.y, e.x - p.x);
           e.x += Math.cos(a) * w.runtime.knockback * 6; e.y += Math.sin(a) * w.runtime.knockback * 6;
         }
-        if (w.def.id === "black_saw" && w.runtime.pull) {
-          var a2 = Math.atan2(p.y - e.y, p.x - e.x);
-          e.x += Math.cos(a2) * w.runtime.pull * 8; e.y += Math.sin(a2) * w.runtime.pull * 8;
-        }
-        if (w.def.id === "permafrost" && w.runtime.freeze) { e.frozen = 1.5; }
+        if (w.runtime.freeze) { e.frozen = Math.max(e.frozen || 0, w.runtime.freeze * 1.5); }
         // 命中爆光火花
         for (var k = 0; k < 3; k++) state.particles.push({ type: "spark", x: e.x, y: e.y, vx: rand(-40, 40), vy: rand(-40, 40), life: 0.3, maxLife: 0.3, color: auraSparkColor(w.def.id), r: 2 });
       }
@@ -726,7 +757,21 @@
     for (var i = s.projectiles.length - 1; i >= 0; i--) {
       var pr = s.projectiles[i];
       pr.life -= dt;
-      if (pr.beam) { if (pr.life <= 0) s.projectiles.splice(i, 1); continue; }
+      if (pr.life <= 0) { s.projectiles.splice(i, 1); continue; }
+      if (pr.beam) {
+        var ex = pr.x + Math.cos(pr.ang) * pr.len, ey = pr.y + Math.sin(pr.ang) * pr.len;
+        for (var b = 0; b < s.enemies.length; b++) {
+          var target = s.enemies[b];
+          if (target.dead || pr._hit[target.id]) continue;
+          var beamR = pr.thick / 2 + target.size / 2;
+          if (segmentDist2(target.x, target.y, pr.x, pr.y, ex, ey) <= beamR * beamR) {
+            pr._hit[target.id] = true;
+            dealDamage(target, pr.dmg, "beam");
+            if (s.mode !== "playing") return;
+          }
+        }
+        continue;
+      }
       if (pr.homing) {
         var tgt = nearestEnemy(pr.x, pr.y, 440);
         if (tgt) {
@@ -736,6 +781,7 @@
           pr.vx = Math.cos(na) * pr.speed; pr.vy = Math.sin(na) * pr.speed;
         }
       }
+      var oldX = pr.x, oldY = pr.y;
       pr.x += pr.vx * dt; pr.y += pr.vy * dt;
       // 拖尾记录
       if (!pr.trail) pr.trail = [];
@@ -746,8 +792,9 @@
       for (var j = 0; j < s.enemies.length; j++) {
         var e = s.enemies[j];
         if (e.dead || pr._hit[e.id]) continue;
-        if (dist2(pr.x, pr.y, e.x, e.y) < (pr.r + e.size / 2) * (pr.r + e.size / 2)) {
+        if (segmentDist2(e.x, e.y, oldX, oldY, pr.x, pr.y) <= (pr.r + e.size / 2) * (pr.r + e.size / 2)) {
           dealDamage(e, pr.dmg, "proj");
+          if (s.mode !== "playing") return;
           pr._hit[e.id] = true;
           if (pr.aoe) aoeDamage(pr.x, pr.y, pr.aoe, pr.dmg * 0.6);
           if (pr.slow) { e.slow = pr.slow; e.slowTimer = 1.5; }
@@ -765,7 +812,17 @@
       if (w.def.kind !== "orbit") return;
       var p = s.player;
       var cnt = w.runtime.count;
-      var r = w.runtime.radius * s.stats.range;
+      var r = w.runtime.radius * w.runtime.range * s.stats.range;
+      if (w.runtime.pull) {
+        s.enemies.forEach(function (e) {
+          if (e.dead) return;
+          var d = Math.hypot(e.x - p.x, e.y - p.y);
+          if (d > CFG.PLAYER_R && d < r + e.size / 2) {
+            var pull = Math.min(d - CFG.PLAYER_R, w.runtime.pull * 40 * dt);
+            e.x += (p.x - e.x) / d * pull; e.y += (p.y - e.y) / d * pull;
+          }
+        });
+      }
       for (var k = 0; k < cnt; k++) {
         var a = w._angle + (k / cnt) * Math.PI * 2;
         var ox = p.x + Math.cos(a) * r, oy = p.y + Math.sin(a) * r;
@@ -801,14 +858,16 @@
   // ============ 敌人更新 ============
   function sEnemies(dt) {
     var s = state, p = s.player;
+    var timeSlow = s.relics.some(function (r) { return r.def.id === "time_rift"; }) ? 0.85 : 1;
     for (var i = s.enemies.length - 1; i >= 0; i--) {
+      if (s.mode !== "playing") return;
       var e = s.enemies[i];
       if (e.dead) { s.enemies.splice(i, 1); continue; }
       if (e.flash > 0) e.flash -= dt;
       if (e.frozen > 0) { e.frozen -= dt; continue; }
       if (e.slowTimer > 0) { e.slowTimer -= dt; } else { e.slow = 0; }
       if (e.burnTimer > 0) { e.burnTimer -= dt; e.hp -= (e.burn || 0) * dt; if (e.hp <= 0) { killEnemy(e, "burn"); continue; } } else { e.burn = 0; }
-      var spd = e.speed * (e.slow ? e.slow : 1);
+      var spd = e.speed * (e.slow ? e.slow : 1) * timeSlow;
       if (e.affix && e.affix.mod.speed) spd *= e.affix.mod.speed;
       // Boss 专属 AI
       if (e.isBoss) { bossAI(e, dt, spd); }
@@ -847,7 +906,7 @@
         var tx = e.wx || p.x, ty = e.wy || p.y;
         var a4 = Math.atan2(ty - e.y, tx - e.x);
         e.x += Math.cos(a4) * spd * 30 * dt; e.y += Math.sin(a4) * spd * 30 * dt;
-        s.enemies.forEach(function (o) { if (o !== e && !o.dead && dist2(e.x, e.y, o.x, o.y) < e.def.healRange * 2 * e.def.healRange * 2) o.hp += e.def.healRate * dt; });
+        s.enemies.forEach(function (o) { if (o !== e && !o.dead && dist2(e.x, e.y, o.x, o.y) < e.def.healRange * 2 * e.def.healRange * 2) o.hp = Math.min(o.maxHp, o.hp + e.def.healRate * dt); });
       } else if (ai === "turret_eye") {
         e.shotCd -= dt;
         if (e.shotCd <= 0) { e.shotCd = e.def.laserRate; var a5 = Math.atan2(p.y - e.y, p.x - e.x); fireEnemyShot(e, a5, true); }
@@ -860,8 +919,9 @@
       var pd = dist2(e.x, e.y, p.x, p.y);
       var collR = e.size / 2 + CFG.PLAYER_R;
       if (pd < collR * collR) {
-        if (ai === "suicide") { damagePlayer(e.def.dmg, "bomber"); killEnemy(e, "suicide"); }
-        else if (e.def.dmg > 0) damagePlayer(e.def.dmg * (e.affix && e.affix.mod.dmg ? e.affix.mod.dmg : 1) * dt * 2, "touch");
+        if (!e.isBoss && e.def.ai === "suicide") { damagePlayer(e.dmg, "bomber"); if (s.mode === "playing") killEnemy(e, "suicide"); }
+        else if (e.dmg > 0) damagePlayer(e.dmg * dt * 2, "touch");
+        if (s.mode !== "playing") return;
         // 腐液史莱姆：碰撞减速玩家
         if (e.def.slowOnHit && !e._slowed) { p.slow = (p.slow || 1) * e.def.slowOnHit; p.slowTimer = 1.2; e._slowed = 0.6; }
       }
@@ -873,17 +933,23 @@
         if (e._pulseCd <= 0) {
           e._pulseCd = 2.5;
           var pr = e.def.pulseRadius;
-          if (dist2(e.x, e.y, p.x, p.y) < pr * pr) damagePlayer(e.def.laserDmg || 10, "pulse");
+          if (dist2(e.x, e.y, p.x, p.y) < pr * pr) damagePlayer(enemyShotDamage(e, e.def.laserDmg || 10), "pulse");
           state.particles.push({ type: "boom", x: e.x, y: e.y, r: pr, life: 0.3, maxLife: 0.3, color: "#8cf" });
         }
       }
     }
     // 限制数量
-    if (s.enemies.length > CFG.MAX_ENEMIES) s.enemies.splice(0, s.enemies.length - CFG.MAX_ENEMIES);
+    for (var c = 0; s.enemies.length > CFG.MAX_ENEMIES && c < s.enemies.length;) {
+      if (s.enemies[c].isBoss) c++;
+      else s.enemies.splice(c, 1);
+    }
+  }
+  function enemyShotDamage(e, base) {
+    return base * state.diff.dmgMul * state.endlessScale * (e.affix && e.affix.mod.dmg ? e.affix.mod.dmg : 1);
   }
   function fireEnemyShot(e, ang, isLaser) {
     var sp = isLaser ? 220 : 120;
-    state.enemyShots.push({ x: e.x, y: e.y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, dmg: e.def.shotDmg || e.def.laserDmg || 6, life: isLaser ? 0.6 : 3, r: isLaser ? 3 : 2, isLaser: !!isLaser });
+    state.enemyShots.push({ x: e.x, y: e.y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, dmg: enemyShotDamage(e, e.def.shotDmg || e.def.laserDmg || 6), life: isLaser ? 0.6 : 3, r: isLaser ? 3 : 2, isLaser: !!isLaser });
   }
   // 投手：抛物投射，从目标上方落下
   function fireLobbedShot(e) {
@@ -892,7 +958,7 @@
     var sx = e.x, sy = e.y - 120;
     var dx = tx - sx, dy = ty - sy;
     var t = 0.9; // 落地时间
-    state.enemyShots.push({ x: sx, y: sy, vx: dx / t, vy: dy / t, dmg: e.def.shotDmg || 9, life: t + 0.2, r: 3, isLaser: false, lobbed: true, spawnY: sy });
+    state.enemyShots.push({ x: sx, y: sy, vx: dx / t, vy: dy / t, dmg: enemyShotDamage(e, e.def.shotDmg || 9), life: t + 0.2, r: 3, isLaser: false, lobbed: true, spawnY: sy });
   }
 
   // Boss AI：根据 def.ai 类型行动
@@ -947,9 +1013,11 @@
     for (var i = s.enemyShots.length - 1; i >= 0; i--) {
       var sh = s.enemyShots[i];
       sh.life -= dt;
+      if (sh.life <= 0) { s.enemyShots.splice(i, 1); continue; }
+      var oldX = sh.x, oldY = sh.y;
       sh.x += sh.vx * dt; sh.y += sh.vy * dt;
       var r = sh.r + CFG.PLAYER_R;
-      if (dist2(sh.x, sh.y, p.x, p.y) < r * r) { damagePlayer(sh.dmg, "shot"); s.enemyShots.splice(i, 1); continue; }
+      if (segmentDist2(p.x, p.y, oldX, oldY, sh.x, sh.y) <= r * r) { damagePlayer(sh.dmg, "shot"); s.enemyShots.splice(i, 1); if (s.mode !== "playing") return; continue; }
       if (sh.life <= 0 || sh.x < -40 || sh.x > CFG.WORLD_W + 40 || sh.y < -40 || sh.y > CFG.WORLD_H + 40) s.enemyShots.splice(i, 1);
     }
   }
@@ -957,24 +1025,27 @@
   // ============ 玩家受伤/治疗 ============
   function damagePlayer(dmg, src) {
     var s = state, p = s.player;
+    if (s.mode !== "playing") return;
     if (p.invuln > 0) return;
     // 幽灵步态静止无敌
     if (s.relics.some(function (r) { return r.def.id === "ghost_gait"; }) && p.idleTime > 1) return;
     // 玻璃大炮：护盾优先
     if (s.relics.some(function (r) { return r.def.id === "glass_cannon"; }) && p.shield <= 0) { p.hp = 0; }
-    else if (p.shield > 0) { p.shield--; p.invuln = 0.6; p.flash = 0.2; }
+    else if (p.shield > 0) { p.shield--; p.shieldTimer = 0; p.invuln = 0.6; p.flash = 0.2; }
     else { p.hp -= dmg; p.invuln = 0.4; p.flash = 0.2; s.runStats.damageTaken += dmg; }
     spawnHurtParticles(p.x, p.y);
     if (SFX) SFX.hurt();
     addShake(6, 0.25); // 受伤震屏
     // 逻辑模块 on_damaged
     s.logicModules.forEach(function (m) { if (m.def.cond.type === "on_damaged") tryTrigger(m); });
+    if (s.relics.some(function (r) { return r.def.id === "abyss_heart"; })) recalcStats(s);
     if (p.hp <= 0) onPlayerDeath();
   }
   function healPlayer(s, amount, countsAsPickup) {
     if (s.modifiers.noHeal && countsAsPickup) return;
     if (countsAsPickup) { s.runStats.healingPicked += amount; s.noHealRun = false; }
     s.player.hp = Math.min(s.player.maxHp, s.player.hp + amount);
+    if (s.relics.some(function (r) { return r.def.id === "abyss_heart"; })) recalcStats(s);
   }
   function onPlayerDeath() {
     state.mode = "dead";
@@ -1009,8 +1080,9 @@
   }
   function openCrate(pk) {
     var s = state;
-    s.player.gold += randInt(5, 15);
-    s.runStats.goldTotal += 10;
+    var gold = randInt(5, 15);
+    s.player.gold += gold;
+    s.runStats.goldTotal += gold;
     if (Math.random() < 0.5) healPlayer(s, s.player.maxHp * 0.15, true);
     spawnPickupParticles(pk.x, pk.y, "#fc4");
   }
@@ -1068,7 +1140,10 @@
     if (s.map.mechanic === "lava" && s.map.envDps) {
       // 熔岩矿井：移动中持续掉血（酷热），静止时在冷却区恢复
       if (p.moveTime > 0) {
-        p.hp -= s.map.envDps * dt;
+        var heatDamage = s.map.envDps * dt;
+        p.hp -= heatDamage;
+        s.runStats.damageTaken += heatDamage;
+        if (s.relics.some(function (r) { return r.def.id === "abyss_heart"; })) recalcStats(s);
         if (p.hp <= 0) onPlayerDeath();
         // 热浪粒子：玩家身边喷火
         if (Math.random() < 0.5) {
@@ -1146,8 +1221,8 @@
   var enemyIdCounter = 1;
   function makeEnemy(def, x, y, isElite) {
     var s = state;
-    var hp = def.hp * s.diff.hpMul;
-    var dmg = def.dmg * s.diff.dmgMul;
+    var hp = def.hp * s.diff.hpMul * s.endlessScale;
+    var dmg = def.dmg * s.diff.dmgMul * s.endlessScale;
     var e = {
       id: enemyIdCounter++, def: def, x: x, y: y, hp: hp, maxHp: hp, dmg: dmg,
       speed: def.speed, size: def.size, flash: 0, dead: false,
@@ -1160,11 +1235,11 @@
       e.affix = pick(D.ELITE_AFFIXES);
       e.hp *= (e.affix.mod.hp || 1); e.maxHp = e.hp;
       e.dmg *= (e.affix.mod.dmg || 1);
-      e.shieldHp = (e.affix.mod.shieldHpMul ? def.shieldHp * e.affix.mod.shieldHpMul : (def.shieldHp || 0));
+      e.shieldHp = (e.affix.mod.shieldHpMul ? (def.shieldHp || def.hp * 0.5) * e.affix.mod.shieldHpMul : (def.shieldHp || 0)) * s.diff.hpMul * s.endlessScale;
       e.isElite = true;
       e.size *= 1.3;
     } else if (def.shieldHp) {
-      e.shieldHp = def.shieldHp * s.diff.hpMul;
+      e.shieldHp = def.shieldHp * s.diff.hpMul * s.endlessScale;
     }
     return e;
   }
@@ -1213,8 +1288,8 @@
     var availRelics = D.RELICS.filter(function (r) { return !s.relics.some(function (rr) { return rr.def.id === r.id; }); });
     if (availRelics.length) addRelic(s, pick(availRelics).id);
     // 击败隐藏 Boss
-    if (b.def.id === "protocol") { unlockAchievement("beat_protocol"); finishRun(true); }
     s.bossIndex++;
+    if (b.def.id === "protocol") { unlockAchievement("beat_protocol"); if (!s.diff.endless) finishRun(true); }
   }
 
   // ============ 逻辑模块事件总线 ============
@@ -1259,6 +1334,7 @@
     var dur = b.dur || 3;
     var keys = Object.keys(b).filter(function (k) { return k !== "dur"; });
     keys.forEach(function (k) { state.player.buffs.push({ stat: k, val: b[k], dur: dur }); });
+    recalcStats(state);
   }
   function spawnTriggerFx() { for (var i = 0; i < 10; i++) state.particles.push({ type: "spark", x: state.player.x, y: state.player.y, vx: rand(-80, 80), vy: rand(-80, 80), life: 0.4, maxLife: 0.4, color: "#9ff", r: 1 }); }
 
@@ -1270,11 +1346,10 @@
     // 赌徒随机波动
     if (s.char.perk && s.char.perk.type === "random_per_level") { randomizeStat(s, s.char.perk.val); }
     // 特工暴击
-    if (s.char.perk && s.char.perk.type === "crit_bonus" && s.player.level % s.char.perk.every === 0) { /* 直接加到 stats */ s.stats.crit += s.char.perk.val; }
+    if (s.char.perk && s.char.perk.type === "crit_bonus" && s.player.level % s.char.perk.every === 0) { s.player.levelBonuses.crit += s.char.perk.val; recalcStats(s); }
     // 逻辑模块 on_level
     s.logicModules.forEach(function (m) { if (m.def.cond.type === "on_level") tryTrigger(m); });
     if (s.player.level >= 30) unlockAchievement("max_level");
-    if (s.player.level >= 30) {}
     // 生成选项
     pendingOptions = genOptions();
     if (pendingOptions.length === 0) { return; }
@@ -1287,10 +1362,9 @@
     var k = pick(keys);
     var delta = (Math.random() * 2 - 1) * amt;
     if (k === "atk") s.player.permaAtk += delta;
-    else if (k === "crit") s.stats.crit = clamp(s.stats.crit + delta, 0, 1);
-    else if (k === "speed") s.stats.speed *= (1 + delta);
-    else if (k === "atkspd") s.stats.atkspd *= (1 + delta);
-    else if (k === "range") s.stats.range *= (1 + delta);
+    else if (k === "crit") s.player.levelBonuses.crit += delta;
+    else s.player.levelBonuses[k] *= (1 + delta);
+    recalcStats(s);
   }
   function genOptions() {
     var s = state;
@@ -1480,7 +1554,7 @@
   }
   function drawOrbit(w) {
     var s = state; var p = s.player;
-    var cnt = w.runtime.count; var r = w.runtime.radius * s.stats.range;
+    var cnt = w.runtime.count; var r = w.runtime.radius * w.runtime.range * s.stats.range;
     var col = w.def.id === "black_saw" ? "#a25cff" : (w.def.id === "blade" ? "#cde" : "#5fc8ff");
     var glow = w.def.id === "black_saw" ? "#e0b8ff" : (w.def.id === "blade" ? "#fff" : "#bfefff");
     for (var k = 0; k < cnt; k++) {
@@ -1540,7 +1614,7 @@
   }
   function drawProjectile(pr) {
     if (pr.beam) {
-      var ex = pr.x + Math.cos(pr.ang) * CFG.W * 1.5, ey = pr.y + Math.sin(pr.ang) * CFG.W * 1.5;
+      var ex = pr.x + Math.cos(pr.ang) * pr.len, ey = pr.y + Math.sin(pr.ang) * pr.len;
       // 外层辉光
       ctx.strokeStyle = (pr.kind === "railgun" ? "#9cf" : "#fc6");
       ctx.lineWidth = pr.thick + 4; ctx.globalAlpha = 0.35;
@@ -1633,7 +1707,7 @@
     var s = state, p = s.player;
     s.weapons.forEach(function (w) {
       if (w.def.kind !== "aura") return;
-      var r = w.runtime.radius * s.stats.range;
+      var r = w.runtime.radius * w.runtime.range * s.stats.range;
       var col = ({ flamer: "rgba(255,154,46", forcefield: "rgba(95,200,255", fusion_jet: "rgba(255,207,82", permafrost: "rgba(140,230,255" })[w.def.id] || "rgba(255,255,255";
       // 呼吸式柔光内圈
       var pulse = 0.5 + 0.5 * Math.sin(state.animTime * 3);
@@ -1709,13 +1783,13 @@
       if (opt.type === "weapon_up") { lvl = "Lv." + opt.w.level + " → " + (opt.w.level + 1); desc = opt.w.def.levels[opt.w.level - 1] || opt.w.def.desc; }
       if (opt.type === "evo") { lvl = "终极进化"; }
       var cls = opt.type === "evo" ? "abyss-card abyss-card--evo" : "abyss-card";
-      return '<div class="' + cls + '" data-abyss-opt="' + i + '">' +
-        '<div class="abyss-card__icon">' + icon + '</div>' +
-        '<div class="abyss-card__name">' + name + '</div>' +
-        '<div class="abyss-card__rarity ' + rarityCls + '">' + rarityLabel + '</div>' +
-        (lvl ? '<div class="abyss-card__lvl">' + lvl + '</div>' : '') +
-        '<div class="abyss-card__desc">' + desc + '</div>' +
-        '</div>';
+      return '<button type="button" class="' + cls + '" data-abyss-opt="' + i + '">' +
+        '<span class="abyss-card__icon">' + icon + '</span>' +
+        '<span class="abyss-card__name">' + name + '</span>' +
+        '<span class="abyss-card__rarity ' + rarityCls + '">' + rarityLabel + '</span>' +
+        (lvl ? '<span class="abyss-card__lvl">' + lvl + '</span>' : '') +
+        '<span class="abyss-card__desc">' + desc + '</span>' +
+        '</button>';
     }).join("");
     if (els.cards) els.cards.innerHTML = html;
     // 绑定点击
@@ -1761,7 +1835,11 @@
   // ============ 结算 ============
   function finishRun(win) {
     var s = state;
+    if (!s || s.finished) return;
+    s.finished = true;
     s.mode = win ? "cleared" : "dead";
+    hideLevelUp();
+    if (els.pause) els.pause.hidden = true;
     if (SFX) { if (win) SFX.win(); else SFX.gameOver(); }
     // 计算碎片
     var frag = Math.floor((s.player.kills * 0.02) + (s.time / 60) * 3 + (s.bossIndex * 8) + (win ? 30 : 0));
@@ -1824,6 +1902,7 @@
 
   // ============ 开始 / 重开 / 退出 ============
   function startRun() {
+    onBlur(); pendingOptions = null;
     state = newState();
     state.mode = "ready";
     if (els.meta) els.meta.hidden = true;
@@ -1843,12 +1922,14 @@
   }
   function restartRun() {
     if (!state) return;
+    onBlur(); pendingOptions = null;
     state = newState();
     state.mode = "playing";
     hideLevelUp(); if (els.pause) els.pause.hidden = true; if (els.result) els.result.hidden = true; if (els.ready) els.ready.hidden = true;
     hideBossBar(); refreshSide();
   }
   function quitToMenu() {
+    onBlur(); pendingOptions = null;
     state = null;
     if (els.stage) els.stage.hidden = true;
     if (els.meta) els.meta.hidden = false;

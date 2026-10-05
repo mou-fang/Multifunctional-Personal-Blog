@@ -4,15 +4,18 @@
 
 .abyss-root {
   --abyss-bg: #0a0d16;
-  --abyss-panel: rgba(18, 24, 40, 0.92);
-  --abyss-ink: #d8e4f5;
-  --abyss-ink-dim: #8aa0c0;
-  --abyss-accent: #5fc8ff;
-  --abyss-accent2: #a25cff;
-  --abyss-danger: #ff6b5a;
-  --abyss-gold: #ffcf52;
-  --abyss-good: #7fe04a;
-  --abyss-border: rgba(120, 160, 220, 0.22);
+  --abyss-panel: var(--surface);
+  --abyss-control: var(--surface-raised);
+  --abyss-hover: var(--surface-sunken);
+  --abyss-overlay: rgba(230, 239, 255, 0.94);
+  --abyss-ink: var(--ink);
+  --abyss-ink-dim: var(--ink-soft);
+  --abyss-accent: #3369bb;
+  --abyss-accent2: #7f46c4;
+  --abyss-danger: #c03b52;
+  --abyss-gold: #94651b;
+  --abyss-good: #187f5e;
+  --abyss-border: rgba(80, 110, 160, 0.2);
   --abyss-radius: 14px;
   max-width: 1400px;
   margin: 0 auto;
@@ -20,10 +23,19 @@
   color: var(--abyss-ink);
 }
 
-body[data-theme="neumorphism"] .abyss-root,
-body[data-theme="liquid-glass"] .abyss-root {
-  /* 战斗画面始终深色，菜单区也走深色卡片以保证可读性 */
+body[data-theme="neumorphism"] .abyss-root {
+  --abyss-shadow: var(--shadow-out-sm);
 }
+body[data-theme="liquid-glass"] .abyss-root {
+  --abyss-panel: rgba(255, 255, 255, 0.68);
+  --abyss-control: rgba(255, 255, 255, 0.55);
+  --abyss-hover: rgba(255, 255, 255, 0.82);
+  --abyss-overlay: rgba(234, 244, 255, 0.92);
+  --abyss-border: rgba(255, 255, 255, 0.8);
+  --abyss-shadow: var(--shadow-out-sm);
+}
+.abyss-root button:focus-visible { outline: 3px solid var(--abyss-accent); outline-offset: 3px; }
+.abyss-meta, .abyss-side { box-shadow: var(--abyss-shadow); }
 
 .abyss-root .page-hero {
   margin-bottom: var(--space-6);
@@ -68,7 +80,7 @@ body[data-theme="liquid-glass"] .abyss-root {
   margin-bottom: var(--space-5);
 }
 .abyss-meta__frag-label { color: var(--abyss-gold); font-size: 0.8rem; font-weight: 700; }
-.abyss-meta__frag-val { color: #fff; font-weight: 800; font-family: "Sora", sans-serif; }
+.abyss-meta__frag-val { color: var(--abyss-ink); font-weight: 800; font-family: "Sora", sans-serif; }
 
 .abyss-config {
   display: grid;
@@ -92,7 +104,8 @@ body[data-theme="liquid-glass"] .abyss-root {
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  background: rgba(30, 40, 64, 0.6);
+  background: var(--abyss-control);
+  box-shadow: var(--abyss-shadow);
   border: 1px solid var(--abyss-border);
   border-radius: 10px;
   cursor: pointer;
@@ -102,7 +115,7 @@ body[data-theme="liquid-glass"] .abyss-root {
   font: inherit;
   width: 100%;
 }
-.abyss-pick:hover { border-color: var(--abyss-accent); background: rgba(40, 56, 90, 0.7); }
+.abyss-pick:hover { border-color: var(--abyss-accent); background: var(--abyss-hover); }
 .abyss-pick.is-selected {
   border-color: var(--abyss-accent);
   background: linear-gradient(135deg, rgba(95, 200, 255, 0.18), rgba(162, 92, 255, 0.12));
@@ -117,7 +130,7 @@ body[data-theme="liquid-glass"] .abyss-root {
 
 .abyss-config__detail {
   position: relative;
-  background: rgba(20, 28, 48, 0.85);
+  background: var(--abyss-control);
   border: 1px solid var(--abyss-accent);
   border-radius: 10px;
   padding: var(--space-5);
@@ -146,7 +159,7 @@ body[data-theme="liquid-glass"] .abyss-root {
 }
 .abyss-launch__btn {
   background: linear-gradient(135deg, var(--abyss-accent), var(--abyss-accent2));
-  color: #06122a; font-weight: 800; padding: 12px 32px; border: none;
+  color: #fff; font-weight: 800; padding: 12px 32px; border: none;
   border-radius: 999px; cursor: pointer; font-size: 1.05rem;
   box-shadow: 0 6px 24px rgba(95, 200, 255, 0.35);
   transition: transform var(--dur-fast), box-shadow var(--dur-fast);
@@ -168,7 +181,8 @@ body[data-theme="liquid-glass"] .abyss-root {
 
 .abyss-growgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .abyss-growcard {
-  background: rgba(30, 40, 64, 0.6); border: 1px solid var(--abyss-border);
+  background: var(--abyss-control); border: 1px solid var(--abyss-border);
+  box-shadow: var(--abyss-shadow);
   border-radius: 10px; padding: 12px;
 }
 .abyss-growcard__head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
@@ -187,7 +201,8 @@ body[data-theme="liquid-glass"] .abyss-root {
 
 .abyss-achvgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
 .abyss-achvcard {
-  background: rgba(30, 40, 64, 0.6); border: 1px solid var(--abyss-border);
+  background: var(--abyss-control); border: 1px solid var(--abyss-border);
+  box-shadow: var(--abyss-shadow);
   border-radius: 10px; padding: 12px; display: flex; gap: 10px; align-items: flex-start;
 }
 .abyss-achvcard.is-done { border-color: var(--abyss-good); background: rgba(127, 224, 74, 0.08); }
@@ -255,6 +270,12 @@ body[data-theme="liquid-glass"] .abyss-root {
 
 /* HUD */
 .abyss-hud {
+  /* Canvas 内的战斗标记保留高对比深色画面配色。 */
+  --abyss-ink: #d8e4f5;
+  --abyss-accent: #5fc8ff;
+  --abyss-accent2: #a25cff;
+  --abyss-danger: #ff6b5a;
+  --abyss-gold: #ffcf52;
   position: absolute; inset: 0; pointer-events: none;
   padding: 10px 12px; display: flex; justify-content: space-between;
   align-items: flex-start; font-family: "Sora", "Manrope", sans-serif;
@@ -294,6 +315,8 @@ body[data-theme="liquid-glass"] .abyss-root {
 .abyss-chip[data-hidden="true"] { display: none; }
 
 .abyss-bossbar {
+  --abyss-danger: #ff6b5a;
+  --abyss-gold: #ffcf52;
   position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
   width: 60%; max-width: 360px; text-align: center;
 }
@@ -302,14 +325,16 @@ body[data-theme="liquid-glass"] .abyss-root {
 /* 升级三选一 */
 .abyss-levelup {
   position: absolute; inset: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 14px;
-  background: rgba(5, 8, 16, 0.82); backdrop-filter: blur(4px); padding: 16px;
+  align-items: center; justify-content: flex-start; justify-content: safe center; gap: 14px;
+  overflow-y: auto; overscroll-behavior: contain; z-index: 2;
+  background: var(--abyss-overlay); backdrop-filter: blur(4px); padding: 16px;
 }
-.abyss-levelup__head { display: flex; align-items: center; gap: 16px; color: var(--abyss-accent); font-family: "Sora", sans-serif; }
+.abyss-levelup__head { display: flex; flex-shrink: 0; align-items: center; gap: 16px; color: var(--abyss-accent); font-family: "Sora", sans-serif; }
 .abyss-levelup__lv { font-size: 1.3rem; font-weight: 800; text-shadow: 0 0 12px rgba(95,200,255,0.5); }
-.abyss-levelup__cards { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; max-width: 560px; }
+.abyss-levelup__cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; width: 100%; max-width: 560px; flex-shrink: 0; }
 .abyss-card {
-  width: 160px; background: rgba(20, 28, 48, 0.95); border: 1px solid var(--abyss-border);
+  min-width: 0; background: var(--abyss-control); border: 1px solid var(--abyss-border);
+  color: var(--abyss-ink); font: inherit; box-shadow: var(--abyss-shadow);
   border-radius: 10px; padding: 14px; cursor: pointer; pointer-events: auto;
   display: flex; flex-direction: column; gap: 6px; text-align: center;
   transition: transform var(--dur-fast), border-color var(--dur-fast), box-shadow var(--dur-fast);
@@ -326,7 +351,8 @@ body[data-theme="liquid-glass"] .abyss-root {
 .abyss-card__lvl { color: var(--abyss-gold); font-size: 0.74rem; }
 .abyss-card--evo { border-color: var(--abyss-gold); box-shadow: 0 0 0 1px var(--abyss-gold), 0 0 18px rgba(255,207,82,0.3); }
 .abyss-mini {
-  background: rgba(30,40,64,0.7); border: 1px solid var(--abyss-border); color: var(--abyss-ink);
+  background: var(--abyss-control); border: 1px solid var(--abyss-border); color: var(--abyss-ink);
+  box-shadow: var(--abyss-shadow);
   border-radius: 999px; padding: 5px 14px; cursor: pointer; font: inherit; font-size: 0.82rem;
   pointer-events: auto; transition: border-color var(--dur-fast);
 }
@@ -334,11 +360,13 @@ body[data-theme="liquid-glass"] .abyss-root {
 
 /* 暂停 / 结算 / 开场覆盖层 */
 .abyss-pause, .abyss-result, .abyss-ready {
-  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  background: rgba(5, 8, 16, 0.82); backdrop-filter: blur(4px); padding: 16px;
+  position: absolute; inset: 0; display: flex; align-items: flex-start; align-items: safe center; justify-content: center;
+  overflow-y: auto; overscroll-behavior: contain; z-index: 2;
+  background: var(--abyss-overlay); backdrop-filter: blur(4px); padding: 16px;
 }
 .abyss-pause__card, .abyss-result__card, .abyss-ready__card {
-  background: rgba(20, 28, 48, 0.96); border: 1px solid var(--abyss-border);
+  background: var(--abyss-control); border: 1px solid var(--abyss-border);
+  box-shadow: var(--abyss-shadow); flex-shrink: 0; width: 100%;
   border-radius: 12px; padding: var(--space-6); text-align: center; max-width: 360px;
 }
 .abyss-pause__card h2, .abyss-result__title, .abyss-ready__card h2 {
@@ -353,7 +381,7 @@ body[data-theme="liquid-glass"] .abyss-root {
 
 .abyss-root .btn {
   background: linear-gradient(135deg, var(--abyss-accent), var(--abyss-accent2));
-  color: #06122a; font-weight: 700; border: none; border-radius: 999px;
+  color: #fff; font-weight: 700; border: none; border-radius: 999px;
   padding: 9px 22px; cursor: pointer; font: inherit;
   transition: transform var(--dur-fast), box-shadow var(--dur-fast);
 }
@@ -375,7 +403,7 @@ body[data-theme="liquid-glass"] .abyss-root {
 .abyss-side__list { display: flex; flex-direction: column; gap: 5px; }
 .abyss-side__item {
   display: flex; align-items: center; gap: 7px; padding: 4px 8px;
-  background: rgba(30,40,64,0.5); border-radius: 6px; font-size: 0.78rem;
+  background: var(--abyss-control); border-radius: 6px; font-size: 0.78rem;
 }
 .abyss-side__item-icon { font-size: 1rem; }
 .abyss-side__item-lvl { color: var(--abyss-gold); margin-left: auto; font-size: 0.72rem; }
@@ -396,8 +424,9 @@ body[data-theme="liquid-glass"] .abyss-root {
 @media (max-width: 760px) {
   .abyss-root { padding: var(--space-4) var(--space-3) var(--space-8); }
   .abyss-canvas-wrap:not(.is-fullscreen) { max-height: 56vh; }
-  .abyss-levelup__cards { flex-direction: column; align-items: stretch; max-width: 280px; }
-  .abyss-card { width: auto; }
+  .abyss-launch { flex-wrap: wrap; }
+  .abyss-growgrid, .abyss-achvgrid { grid-template-columns: minmax(0, 1fr); }
+  .abyss-tabs { flex-wrap: wrap; }
   .abyss-hud__topleft { width: 52%; }
 }
 /* 全屏模式下移动端也占满 */
@@ -425,7 +454,7 @@ body[data-theme="liquid-glass"] .abyss-root {
   .abyss-touch__btns { position: absolute; bottom: 18px; right: 12px; display: flex; gap: 8px; }
   .abyss-touch__btn {
     width: 52px; height: 52px; border-radius: 50%; pointer-events: auto;
-    background: rgba(30, 40, 64, 0.6); border: 1px solid var(--abyss-border);
+    background: var(--abyss-control); border: 1px solid var(--abyss-border);
     color: var(--abyss-ink); font-size: 1.2rem; cursor: pointer;
   }
 }
