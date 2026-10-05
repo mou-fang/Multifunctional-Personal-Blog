@@ -27,8 +27,9 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     title: "claudeOne · 游戏发售",
     description: "未来约 8 周的游戏发售清单，每周二更新，按平台筛选并查看当周速报原图",
     templateId: "page-game-releases",
-    css: ["css/game-releases.css"],
-    js: ["js/game-releases-core.js", "js/game-releases.js"],
+    // Bump these URLs and the registry URL in index.html when release assets change.
+    css: ["css/game-releases.css?v=20261005-live-dates-3"],
+    js: ["js/game-releases-core.js?v=20261005-live-dates-3", "js/game-releases.js?v=20261005-live-dates-3"],
     lifecycle: "__page_game_releases"
   },
   "city-shuttle": {

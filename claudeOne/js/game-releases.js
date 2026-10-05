@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   var core = window.GameReleasesCore;
-  var root, data, controller, timeout, generation = 0, platform = "all", query = "", includeReleased = false, dialog, opener;
+  var root, data, controller, timeout, dateTimer, renderedDate, generation = 0, platform = "all", query = "", includeReleased = true, dialog, opener;
   function find(selector) { return root.querySelector(selector); }
   function node(tag, className, value) {
     var el = document.createElement(tag);
@@ -52,6 +52,7 @@
   function render() {
     if (!root || !data) return;
     var date = core.today(data.timeZone);
+    renderedDate = date;
     var future = core.filter(data.items, { today: date });
     var items = core.filter(data.items, { today: date, platform: platform, query: query, includeReleased: includeReleased });
     find("[data-release-count]").textContent = String(future.length).padStart(2, "0");
@@ -76,6 +77,17 @@
       }
       grid.append(card(item, date));
     });
+  }
+  function checkDate() {
+    if (!root || !data || document.hidden) return;
+    if (core.today(data.timeZone) !== renderedDate) render();
+  }
+  function watchDate() {
+    clearInterval(dateTimer); dateTimer = null;
+    if (document.hidden) return;
+    checkDate();
+    // Only rebuild cards when the edition's local calendar date changes.
+    dateTimer = setInterval(checkDate, 60000);
   }
   async function load() {
     if (controller) controller.abort(); clearTimeout(timeout);
@@ -122,21 +134,26 @@
   function onPosterError() { find("[data-release-poster-error]").hidden = false; }
   function mount(container) {
     unmount(); root = container.querySelector("[data-releases]"); if (!root) return;
-    platform = "all"; query = ""; includeReleased = false; data = null;
+    platform = "all"; query = ""; includeReleased = true; data = null; renderedDate = null;
+    find("[data-release-history]").checked = true;
     dialog = find("[data-release-dialog]");
     root.addEventListener("click", onClick); root.addEventListener("input", onInput); root.addEventListener("change", onChange);
     dialog.addEventListener("close", onClose); find("[data-release-poster]").addEventListener("error", onPosterError);
+    document.addEventListener("visibilitychange", watchDate); window.addEventListener("focus", checkDate);
+    watchDate();
     load();
   }
   function unmount() {
     ++generation; if (controller) controller.abort(); clearTimeout(timeout); controller = null;
+    clearInterval(dateTimer); dateTimer = null;
+    document.removeEventListener("visibilitychange", watchDate); window.removeEventListener("focus", checkDate);
     if (root) {
       if (dialog.open) dialog.close();
       root.removeEventListener("click", onClick); root.removeEventListener("input", onInput); root.removeEventListener("change", onChange);
       dialog.removeEventListener("close", onClose); find("[data-release-poster]").removeEventListener("error", onPosterError);
       find("[data-release-poster]").removeAttribute("src");
     }
-    root = null; data = null; dialog = null; opener = null;
+    root = null; data = null; dialog = null; opener = null; renderedDate = null;
   }
   window.__page_game_releases = { mount: mount, unmount: unmount };
 })();
