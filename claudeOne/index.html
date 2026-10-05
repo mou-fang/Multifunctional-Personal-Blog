@@ -135,7 +135,7 @@
   </template>
 
   <!-- Global Audio Player -->
-  <div class="global-player" data-global-player hidden>
+  <div class="global-player" data-global-player data-minimized hidden>
     <div class="global-player__inner">
       <div class="global-player__cover-wrap">
         <img class="global-player__cover-img" data-gp-cover alt="" hidden />
@@ -166,7 +166,7 @@
           <span class="global-player__volume-icon" data-gp-volume-icon>🔊</span>
           <input type="range" class="global-player__volume-slider" data-gp-volume min="0" max="100" value="80" />
         </div>
-        <button class="global-player__btn global-player__btn--expand" data-gp-expand title="最小化">─</button>
+        <button class="global-player__btn global-player__btn--expand" data-gp-expand title="Expand player" aria-label="Expand player">▲</button>
       </div>
     </div>
     <div class="global-player__drop-overlay">释放以添加到播放队列</div>

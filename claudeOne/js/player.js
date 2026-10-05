@@ -5,7 +5,8 @@
  *   - Modes: shuffle (on/off), repeat (off / one / all).
  *   - UI: expand (full bar) / minimize (thin floating strip).
  *   - Drag & drop: audio files → added to queue, metadata from filename.
- *   - State persisted to localStorage (volume, last track).
+ *   - State persisted to localStorage (volume, last playlist track and position).
+ *   - Opens minimized with the last track loaded and paused.
  * Exposes: window.ClaudeOnePlayer
  */
 
@@ -44,15 +45,17 @@
   let shuffleOrder = [];
   let shufflePos   = -1;
   let repeatMode = "off";
-  let minimized  = false;
+  let minimized  = true;
   let trackLoadError = false;
+  let playbackRequested = false;
+  let pendingResume = null;
 
   const STORAGE_VOL  = "claudeOne:player-volume";
   const STORAGE_IDX  = "claudeOne:player-last-idx";
   const STORAGE_TIME = "claudeOne:player-last-time";
+  const STORAGE_TRACK = "claudeOne:player-last-src";
   const STORAGE_SHUFFLE = "claudeOne:player-shuffle";
   const STORAGE_REPEAT  = "claudeOne:player-repeat";
-  const STORAGE_MIN     = "claudeOne:player-minimized";
 
   /* ---- Helpers ------------------------------------------------------------ */
   function fmtTime(sec) {
@@ -70,10 +73,23 @@
 
   function saveState() {
     try { localStorage.setItem(STORAGE_VOL, volume); } catch (_) {}
-    try { localStorage.setItem(STORAGE_IDX, currentIdx); } catch (_) {}
     try { localStorage.setItem(STORAGE_SHUFFLE, shuffle ? "1" : "0"); } catch (_) {}
     try { localStorage.setItem(STORAGE_REPEAT, repeatMode); } catch (_) {}
-    try { localStorage.setItem(STORAGE_MIN, minimized ? "1" : "0"); } catch (_) {}
+    savePlaybackPosition();
+  }
+
+  function savePlaybackPosition(time) {
+    if (pendingResume || currentIdx < 0 || currentIdx >= playlist.length) return;
+    const track = playlist[currentIdx];
+    // Temporary uploads cannot be reopened after their Blob URLs expire.
+    if (track.source !== "playlist") return;
+    const position = time === undefined ? audioEl.currentTime : time;
+    if (!Number.isFinite(position) || position < 0) return;
+    try {
+      localStorage.setItem(STORAGE_IDX, String(currentIdx));
+      localStorage.setItem(STORAGE_TRACK, track.src);
+      localStorage.setItem(STORAGE_TIME, String(position));
+    } catch (_) {}
   }
 
   function loadSavedState() {
@@ -96,10 +112,6 @@
       shuffleOrder = [];
       shufflePos = -1;
     }
-    try {
-      const m = localStorage.getItem(STORAGE_MIN);
-      minimized = m === "1";
-    } catch (_) {}
   }
 
   /* ---- Mute helpers -------------------------------------------------------- */
@@ -360,7 +372,7 @@
   function getPublicState() {
     return {
       playing: isPlaying,
-      currentTime: audioEl.currentTime || 0,
+      currentTime: pendingResume ? pendingResume.time : audioEl.currentTime || 0,
       duration: audioEl.duration || 0,
       volume: muted ? 0 : volume,
       mute: muted,
@@ -392,8 +404,16 @@
   /* ---- Audio events ------------------------------------------------------- */
   function onAudioLoaded() {
     trackLoadError = false;
+    if (pendingResume) {
+      const savedTime = pendingResume.time;
+      pendingResume = null;
+      if (savedTime > 0 && Number.isFinite(audioEl.duration) && savedTime < audioEl.duration) {
+        try { audioEl.currentTime = savedTime; } catch (_) {}
+      }
+    }
     if (durationEl) durationEl.textContent = fmtTime(audioEl.duration);
     updateProgress();
+    emitPlayerChange("loadedmetadata");
   }
 
   function onAudioTimeUpdate() {
@@ -402,6 +422,7 @@
 
   function replayCurrentTrack() {
     if (currentIdx < 0 || currentIdx >= playlist.length) return;
+    playbackRequested = true;
     trackLoadError = false;
     try { audioEl.currentTime = 0; } catch (_) {}
     updateProgress();
@@ -422,6 +443,8 @@
   }
 
   function updateProgress() {
+    // Metadata loading can emit a zero-time update before the saved seek applies.
+    if (pendingResume) return;
     const dur = audioEl.duration;
     const cur = audioEl.currentTime;
     if (Number.isFinite(dur) && dur > 0) {
@@ -429,7 +452,7 @@
       if (progressFill) progressFill.style.width = pct + "%";
       if (progressThumb) progressThumb.style.left = pct + "%";
       if (currentTEl) currentTEl.textContent = fmtTime(cur);
-      try { localStorage.setItem(STORAGE_TIME, String(cur)); } catch (_) {}
+      savePlaybackPosition();
     }
   }
 
@@ -472,6 +495,12 @@
 
   function onAudioError() {
     trackLoadError = true;
+    if (!playbackRequested) {
+      isPlaying = false;
+      updatePlayBtn();
+      root.removeAttribute("data-playing");
+      return;
+    }
     if (getPlaybackMode() === "one") {
       isPlaying = false;
       updatePlayBtn();
@@ -479,7 +508,7 @@
       return;
     }
     setTimeout(function () {
-      if (trackLoadError) {
+      if (trackLoadError && playbackRequested) {
         const nextIdx = getNextIndex();
         if (nextIdx >= 0 && nextIdx !== currentIdx) {
           loadAndPlay(nextIdx);
@@ -495,6 +524,8 @@
   /* ---- Core playback ------------------------------------------------------ */
   function loadAndPlay(idx) {
     if (idx < 0 || idx >= playlist.length) return;
+    pendingResume = null;
+    playbackRequested = true;
     currentIdx = idx;
     if (shuffle) syncShufflePosToCurrent();
     trackLoadError = false;
@@ -505,6 +536,7 @@
     audioEl.src = track.src;
     audioEl.load();
     applyPlaybackModeEffects();
+    savePlaybackPosition(0);
     audioEl.play().then(function () {
       isPlaying = true;
       root.removeAttribute("hidden");
@@ -522,6 +554,7 @@
   }
 
   function playCurrent() {
+    playbackRequested = true;
     if (currentIdx < 0 && playlist.length > 0) {
       loadAndPlay(0);
       return;
@@ -537,6 +570,7 @@
   }
 
   function pauseCurrent() {
+    playbackRequested = false;
     audioEl.pause();
     isPlaying = false;
     root.removeAttribute("data-playing");
@@ -898,6 +932,7 @@
     isPlaying = false;
     root.removeAttribute("data-playing");
     updatePlayBtn();
+    saveState();
     emitPlayerChange("pause");
   });
 
@@ -935,62 +970,38 @@
     }
 
     var savedIdx = -1;
+    var savedSrc = "";
+    var savedTime = 0;
     try {
       var si = localStorage.getItem(STORAGE_IDX);
       if (si !== null) savedIdx = parseInt(si, 10);
+      savedSrc = localStorage.getItem(STORAGE_TRACK) || "";
+      savedTime = parseFloat(localStorage.getItem(STORAGE_TIME)) || 0;
     } catch (_) {}
-    if (savedIdx >= 0 && savedIdx < playlist.length) {
-      currentIdx = savedIdx;
+    var resumeIdx = savedSrc
+      ? playlist.findIndex(function (track) { return track.src === savedSrc; })
+      : savedIdx;
+    var canResume = Number.isInteger(resumeIdx) && resumeIdx >= 0 && resumeIdx < playlist.length;
+    if (playlist.length > 0) {
+      currentIdx = canResume ? resumeIdx : 0;
+      pendingResume = {
+        time: canResume && Number.isFinite(savedTime) && savedTime > 0 ? savedTime : 0
+      };
     }
     if (shuffle && playlist.length > 0) buildShuffleOrder(currentIdx);
 
     updateModeBtn();
+    setMinimized(true);
 
     if (playlist.length > 0) {
       root.removeAttribute("hidden");
-      if (minimized) {
-        setMinimized(true);
-      } else {
-        setMinimized(false);
-        var playIdx = currentIdx >= 0 ? currentIdx : 0;
-        currentIdx = playIdx;
-        var track = playlist[playIdx];
-        updateTrackInfo(track);
-        audioEl.src = track.src;
-        applyPlaybackModeEffects();
-        try {
-          var savedTime = parseFloat(localStorage.getItem(STORAGE_TIME));
-          if (savedTime > 0) {
-            audioEl.addEventListener("loadedmetadata", function restore() {
-              audioEl.currentTime = savedTime;
-              updateProgress();
-              audioEl.removeEventListener("loadedmetadata", restore);
-            }, { once: true });
-          }
-        } catch (_) {}
-        audioEl.play().then(function () {
-          isPlaying = true;
-          root.setAttribute("data-playing", "");
-          updatePlayBtn();
-        }).catch(function () {
-          isPlaying = false;
-          updatePlayBtn();
-          // Browser blocked autoplay — wait for first user interaction
-          root.setAttribute("data-waiting-interaction", "");
-          var resumeOnInteract = function () {
-            root.removeAttribute("data-waiting-interaction");
-            if (isPlaying || !playlist.length) return;
-            audioEl.play().then(function () {
-              isPlaying = true;
-              root.setAttribute("data-playing", "");
-              updatePlayBtn();
-            }).catch(function () {});
-          };
-          document.addEventListener("click", resumeOnInteract, { once: true });
-          document.addEventListener("keydown", resumeOnInteract, { once: true });
-          document.addEventListener("touchstart", resumeOnInteract, { once: true });
-        });
-      }
+      updateTrackInfo(playlist[currentIdx]);
+      if (currentTEl) currentTEl.textContent = fmtTime(pendingResume.time);
+      audioEl.src = playlist[currentIdx].src;
+      audioEl.load();
+      isPlaying = false;
+      root.removeAttribute("data-playing");
+      updatePlayBtn();
     } else {
       updateTrackInfo(null);
       root.removeAttribute("hidden");
@@ -1001,13 +1012,21 @@
         empty.className = "global-player__empty";
         empty.innerHTML = "<strong>Playlist is empty</strong><span>Drop audio files here or run addmusic.bat to scan the music/ folder</span>";
         root.appendChild(empty);
-        setTimeout(function () { setMinimized(true); }, 4000);
       }
     }
 
     window.ClaudeOnePlayer = API;
     emitPlayerChange("ready");
   }
+
+  // A back/forward cache restore keeps the old DOM and skips init().
+  window.addEventListener("pageshow", function (event) {
+    if (event.persisted) {
+      pauseCurrent();
+      setMinimized(true);
+    }
+  });
+  window.addEventListener("pagehide", function () { saveState(); });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
