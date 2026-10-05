@@ -258,17 +258,11 @@ body[data-theme="liquid-glass"] .theme-toggle__thumb::after {
 }
 
 .github-link__mark {
-  display: grid;
-  place-items: center;
+  display: block;
+  flex: 0 0 30px;
   width: 30px;
   height: 30px;
-  border-radius: 50%;
-  color: var(--accent-ink);
-  background: var(--ink);
-  font-family: "Sora", "Manrope", sans-serif;
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  object-fit: contain;
 }
 
 .github-link__arrow {
