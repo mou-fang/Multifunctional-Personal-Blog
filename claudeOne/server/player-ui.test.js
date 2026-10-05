@@ -140,9 +140,11 @@ test("background interactions and expansion never autoplay; play resumes at the 
   await settle();
   assertMinimized(h);
   assert.equal(h.audio.plays, 0);
+  assert.equal(h.audio.preload, "none", "opening and expanding do not download paused audio");
   h.getNode("[data-gp-play]").dispatchEvent(new Event("click"));
   await settle();
   assert.equal(h.audio.plays, 1);
+  assert.equal(h.audio.preload, "auto", "an explicit play request enables audio loading");
   assert.equal(h.audio.currentTime, 24);
   assert.equal(h.api().getState().playing, true);
   assertMinimized(h);

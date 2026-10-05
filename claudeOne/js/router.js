@@ -173,11 +173,14 @@
       try { currentLifecycle.unmount(); } catch (e) { console.warn("[router] unmount error:", e); }
     }
 
-    // 2. Exit transition
-    document.body.setAttribute("data-route-state", "exiting");
+    // The initial page has nothing to animate out. Start resource requests
+    // during later exit transitions rather than after the animation ends.
+    var hasCurrentPage = currentPage !== null;
+    document.body.setAttribute("data-route-state", hasCurrentPage ? "exiting" : "loading");
+    (meta.css || []).forEach(function (url) { loadCSS(url); });
+    var scriptsReady = loadJSSeq(meta.js || []);
 
-    // Wait for exit animation
-    sleep(TRANSITION_MS).then(function () {
+    sleep(hasCurrentPage ? TRANSITION_MS : 0).then(function () {
       // 3. Load CSS
       (meta.css || []).forEach(function (url) { loadCSS(url); });
 
@@ -199,9 +202,7 @@
       }
 
       // 5. Load JS and mount
-      var jsUrls = meta.js || [];
-
-      loadJSSeq(jsUrls).then(function () {
+      scriptsReady.then(function () {
         // Give scripts a microtask to register their lifecycle
         setTimeout(function () {
           currentLifecycle = getLifecycle(meta);

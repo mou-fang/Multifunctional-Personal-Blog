@@ -162,6 +162,14 @@ DeepSeek API Key 保存在浏览器本地存储，调用时用于向配置的 AP
 
 对外部署时使用 HTTPS；访客统计需要持久化保存上述数据文件。DOOM 的静态资源、许可证与部署注意事项见 [DOOM 资源说明](claudeOne/libs/doom/README.md)。`libs/` 当前有一年不可变缓存，更新库文件时应同步采用新资源路径或版本目录。
 
+### 首屏加载与音乐资源
+
+首屏先加载外壳和当前路由，首次进入不等待切页退出动画。共享脚本使用 `defer`，字体、背景渲染、播放器与助手在首个路由显示后加载；字体暂未到达时使用系统字体。音乐解锁脚本和 libparakeet WASM 仅在进入 `#/music` 时加载，播放器默认 `preload="none"`，点击播放后才请求音频。
+
+播放器通过 `GET /api/music-library/playlist.js` 获取轻量歌单。服务端读取现有扫描器生成的 `music/playlist.js`，将内嵌 JPEG / PNG / WebP / GIF 封面转为按内容哈希的只读地址；仅需要展示的封面通过 `/api/music-library/covers/` 下载，并缓存一年。歌单每次校验缓存，源文件更新后自动重新读取，不执行源文件中的 JavaScript，也不改动音频、封面或扫描结果。静态托管没有此接口时，会回退加载原歌单；这种方式仍可能下载较大的内嵌封面数据。
+
+部署这项优化时，需一起更新 `index.html`、`startup.js`、注册表、路由、播放器、歌单页面以及服务端 `music-library.js` / `server.js`，然后重启 Node 服务。启动资源 URL 带版本参数；之后修改相关资源时同步更新参数，避免 CDN 或浏览器继续使用旧版。
+
 ## 项目结构
 
 ```text

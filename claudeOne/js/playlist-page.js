@@ -122,6 +122,11 @@
     var state = getState();
 
     if (!tracks.length) {
+      if (window.__CLAUDEONE_PLAYER_LOADING) {
+        if (summaryEl) summaryEl.textContent = "正在加载歌单…";
+        if (listEl) listEl.innerHTML = '<div class="playlist-empty" role="status">正在加载歌单…</div>';
+        return;
+      }
       renderEmpty(listEl, summaryEl);
       return;
     }

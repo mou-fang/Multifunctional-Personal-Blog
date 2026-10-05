@@ -15,6 +15,7 @@ const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
 const { createVisitorStatsRouter } = require("./visitor-stats");
 const { createGameReleasesRouter, blockPrivateStatic } = require("./game-releases");
+const { createMusicLibraryRouter } = require("./music-library");
 const {
   QQMusicUnlockError,
   QQMusicAuthError,
@@ -98,6 +99,7 @@ app.use(compression({
 
 // ---- Serve frontend static files (claudeOne/ root) ----
 app.use("/api/game-releases", createGameReleasesRouter());
+app.use("/api/music-library", createMusicLibraryRouter());
 app.use(blockPrivateStatic);
 app.use(express.static(STATIC_DIR, {
   setHeaders(res, filePath) {

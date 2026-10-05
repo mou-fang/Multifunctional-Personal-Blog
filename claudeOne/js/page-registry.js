@@ -173,7 +173,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     description: "claudeOne 音乐解锁 — 移除加密音乐文件的保护",
     templateId: "page-music",
     css: ["css/music.css"],
-    js: ["js/music.js"],
+    js: ["js/ncm-decrypt.js", "js/qq-music-decrypt.js", "libs/qmcwasm/qmcwasm.js", "js/music.js"],
     lifecycle: "__page_music"
   },
   playlist: {
@@ -182,7 +182,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     description: "claudeOne 播放歌单",
     templateId: "page-playlist",
     css: ["css/playlist.css"],
-    js: ["js/playlist-page.js"],
+    js: ["js/playlist-page.js?v=20261005-startup"],
     lifecycle: "__page_playlist"
   },
   ai: {

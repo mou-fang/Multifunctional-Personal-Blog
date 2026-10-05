@@ -533,6 +533,7 @@
     updateTrackInfo(track);
     emitPlayerChange("trackchange");
 
+    audioEl.preload = "auto";
     audioEl.src = track.src;
     audioEl.load();
     applyPlaybackModeEffects();
@@ -555,6 +556,7 @@
 
   function playCurrent() {
     playbackRequested = true;
+    audioEl.preload = "auto";
     if (currentIdx < 0 && playlist.length > 0) {
       loadAndPlay(0);
       return;
@@ -997,6 +999,7 @@
       root.removeAttribute("hidden");
       updateTrackInfo(playlist[currentIdx]);
       if (currentTEl) currentTEl.textContent = fmtTime(pendingResume.time);
+      audioEl.preload = "none";
       audioEl.src = playlist[currentIdx].src;
       audioEl.load();
       isPlaying = false;
@@ -1015,6 +1018,7 @@
       }
     }
 
+    window.__CLAUDEONE_PLAYER_LOADING = false;
     window.ClaudeOnePlayer = API;
     emitPlayerChange("ready");
   }
