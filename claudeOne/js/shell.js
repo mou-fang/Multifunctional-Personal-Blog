@@ -93,6 +93,98 @@
   // --- Theme ----------------------------------------------------------------
   const THEME_KEY = CFG.theme.storageKey;
   const VALID_THEMES = CFG.theme.values;
+  const THEME_ADVICE_KEY = "claudeOne:theme-advice-disabled";
+  let themeAdviceDisabled = storage.get(THEME_ADVICE_KEY) === "1";
+  let themeAdviceDismissed = false;
+  let themeCheckTimer = null;
+  let themeCheckFrame = null;
+  let themeCheckReady = false;
+  let themePageActive = true;
+
+  function cancelThemeCheck() {
+    if (themeCheckTimer !== null) clearTimeout(themeCheckTimer);
+    if (themeCheckFrame !== null) cancelAnimationFrame(themeCheckFrame);
+    themeCheckTimer = themeCheckFrame = null;
+  }
+
+  function showThemeAdvice(reason) {
+    const advice = document.querySelector("[data-theme-advice]");
+    const toggle = document.querySelector("[data-theme-toggle]");
+    if (!advice) return;
+    const text = advice.querySelector("[data-theme-advice-reason]");
+    if (text) text.textContent = reason;
+    advice.hidden = !reason;
+    if (toggle) {
+      if (reason) toggle.setAttribute("aria-describedby", advice.id);
+      else toggle.removeAttribute("aria-describedby");
+    }
+  }
+
+  function checkThemePerformance() {
+    cancelThemeCheck();
+    showThemeAdvice("");
+    if (themeAdviceDisabled || themeAdviceDismissed ||
+        document.body.getAttribute("data-theme") !== "liquid-glass") return;
+
+    // These browser hints are approximate and sometimes unavailable. Missing
+    // values mean unknown, never a low-end device. Do not identify GPU models.
+    const memory = Number(window.navigator && window.navigator.deviceMemory);
+    const cores = Number(window.navigator && window.navigator.hardwareConcurrency);
+    const lowMemory = memory > 0 && memory <= 2;
+    const lowCores = cores > 0 && cores <= 2;
+    const modestBoth = memory > 0 && memory <= 4 && cores > 0 && cores <= 4;
+    if (lowMemory || lowCores || modestBoth) {
+      showThemeAdvice("设备资源可能偏少");
+      return;
+    }
+    if (!themeCheckReady || !themePageActive || document.hidden) return;
+
+    // Observe actual frame scheduling, not a synthetic stress test or an exact
+    // GPU benchmark. Start after the theme ripple (820ms) and route settle.
+    themeCheckTimer = setTimeout(function startSample() {
+      themeCheckTimer = null;
+      if (document.body.getAttribute("data-route-state") !== "idle") return;
+      // Cap observation even when scheduling is extremely slow.
+      themeCheckTimer = setTimeout(cancelThemeCheck, 6500);
+      let previous = null;
+      let elapsed = 0;
+      let frames = 0;
+      let slowFrames = 0;
+      let windows = 0;
+      let slowWindows = 0;
+      function sample(now) {
+        themeCheckFrame = null;
+        if (document.hidden || !themePageActive ||
+            document.body.getAttribute("data-theme") !== "liquid-glass" ||
+            document.body.getAttribute("data-route-state") !== "idle") {
+          cancelThemeCheck();
+          return;
+        }
+        if (previous !== null) {
+          const delta = now - previous;
+          elapsed += delta;
+          frames += 1;
+          // Leave stable 30Hz/30fps devices alone; flag sustained <25fps/jank.
+          if (delta > 40) slowFrames += 1;
+        }
+        previous = now;
+        if (elapsed >= 900 && frames >= 3) {
+          // One loading spike does not warrant advice. Both windows must have
+          // repeated slow frames and an average below 30fps.
+          if (slowFrames / frames >= 0.35 && frames * 1000 / elapsed < 30) slowWindows += 1;
+          windows += 1;
+          elapsed = frames = slowFrames = 0;
+          if (windows === 2) {
+            if (slowWindows === 2) showThemeAdvice("当前渲染有些卡顿");
+            cancelThemeCheck();
+            return;
+          }
+        }
+        themeCheckFrame = requestAnimationFrame(sample);
+      }
+      themeCheckFrame = requestAnimationFrame(sample);
+    }, 1100);
+  }
 
   function resolveTheme() {
     const saved = storage.get(THEME_KEY);
@@ -102,9 +194,15 @@
 
   function applyTheme(theme, opts = {}) {
     const next = VALID_THEMES.includes(theme) ? theme : CFG.theme.default;
+    // Closing lasts through navigation/visibility checks in this theme visit.
+    // A fresh theme switch or page load may offer the advice again.
+    if (next !== document.body.getAttribute("data-theme")) themeAdviceDismissed = false;
     document.body.setAttribute("data-theme", next);
     const toggle = document.querySelector("[data-theme-toggle]");
-    if (toggle) toggle.checked = next === "liquid-glass";
+    if (toggle) {
+      toggle.checked = next === "liquid-glass";
+      toggle.setAttribute("aria-label", next === "liquid-glass" ? "当前 Liquid Glass，切换到 Soft UI" : "当前 Soft UI，切换到 Liquid Glass");
+    }
     const label = document.querySelector("[data-theme-label]");
     if (label) label.textContent = next === "liquid-glass" ? "Liquid Glass" : "Soft UI";
     storage.set(THEME_KEY, next);
@@ -112,6 +210,7 @@
       const announcer = document.querySelector("[data-theme-live]");
       if (announcer) announcer.textContent = "Theme: " + (next === "liquid-glass" ? "Liquid Glass" : "Soft UI");
     }
+    checkThemePerformance();
   }
 
   // Known-good bg color per theme for the fallback overlay (can't reliably read
@@ -122,6 +221,10 @@
   };
 
   function setThemeAnimated(nextTheme, origin) {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      applyTheme(nextTheme);
+      return;
+    }
     // Ripple overlay: covers page with OLD theme bg, then shrinks toward
     // the toggle button origin to reveal the NEW theme underneath.
     // This masks layout shifts during theme switch better than a crossfade.
@@ -221,6 +324,26 @@
         y: rect.top + rect.height / 2,
       });
     });
+    const softButton = document.querySelector("[data-theme-use-soft]");
+    if (softButton) softButton.addEventListener("click", () => {
+      // An immediate switch also avoids spending more frames on the ripple.
+      applyTheme("neumorphism");
+      toggle.focus();
+    });
+    function dismissAdvice(permanently) {
+      themeAdviceDismissed = true;
+      if (permanently) {
+        themeAdviceDisabled = true;
+        storage.set(THEME_ADVICE_KEY, "1");
+      }
+      cancelThemeCheck();
+      showThemeAdvice("");
+      toggle.focus();
+    }
+    const closeButton = document.querySelector("[data-theme-advice-close]");
+    if (closeButton) closeButton.addEventListener("click", () => dismissAdvice(false));
+    const neverButton = document.querySelector("[data-theme-advice-never]");
+    if (neverButton) neverButton.addEventListener("click", () => dismissAdvice(true));
   }
 
   // --- API key modal (used by ai.html) --------------------------------------
@@ -343,8 +466,23 @@
     setupReveal();
   });
 
+  window.addEventListener("claudeone:router-ready", () => {
+    themeCheckReady = true;
+    checkThemePerformance();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) cancelThemeCheck();
+    else checkThemePerformance();
+  });
+  window.addEventListener("pagehide", () => {
+    themePageActive = false;
+    cancelThemeCheck();
+  });
+
   // On page show (back/forward from bfcache), reset exit state so layout returns.
   window.addEventListener("pageshow", () => {
+    themePageActive = true;
     document.body.setAttribute("data-route-state", "idle");
+    checkThemePerformance();
   });
 })();

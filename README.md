@@ -126,7 +126,13 @@ go install github.com/TheZoraiz/ascii-image-converter@latest
 | Soft UI（`neumorphism`） | 浅蓝底色、柔和凸起 / 凹陷阴影；共享低对比度紫青柔光背景，当前强度为 45% | [neumorphism.css](claudeOne/css/neumorphism.css)、[softui-background.css](claudeOne/css/softui-background.css) |
 | Liquid Glass（`liquid-glass`） | 浅色网格背景、半透明玻璃面板、边缘高光和多层阴影，文字保持深色可读 | [liquid-glass.css](claudeOne/css/liquid-glass.css) |
 
-右上角开关切换主题，选择保存在本机浏览器。两套主题共用布局和交互，通过 [base.css](claudeOne/css/base.css) 中的颜色、阴影、圆角和间距变量表达各自材质。
+右上角开关切换主题，选择保存在本机浏览器。切换到 Liquid Glass（包括恢复已保存的主题）时，浏览器会参考可获取的近似内存和逻辑处理器数量；内存不超过 2 GB、逻辑处理器不超过 2 个，或两者都不超过 4 时，在开关旁显示“设备资源可能偏少 / 建议 Soft UI”。缺失数据视为未知，不视为低配置。
+
+其他设备会在页面与切换动画稳定后进行两段各约 900ms 的帧调度观察；两段都出现持续慢帧且平均低于 30fps 时，提示“当前渲染有些卡顿 / 建议 Soft UI”。稳定的 30fps 或偶发加载卡顿不会单独触发提醒。检查完成后停止，后台标签页和页面离开时取消，返回可见页面或完成切页后重新检查。提醒只建议，用户可继续使用 Liquid Glass，也可点击提醒立即切换到 Soft UI；减少动态效果偏好下不播放主题切换动画。检测在本地运行，不上传硬件信息、不识别显卡型号，也不能准确代表电脑完整配置或 GPU 渲染性能。
+
+提醒提供“关闭”和“不再提醒”：关闭后，本次使用 Liquid Glass 期间不再提示，切页或返回标签页也不会重新弹出；刷新页面或切换主题后再次进入 Liquid Glass 时，可重新提醒。不再提醒会保存到当前浏览器，刷新、切页和再次切换主题都不再显示性能提醒，也停止帧调度观察；清除本站本地存储后恢复默认提醒。两种操作均保留当前主题。
+
+两套主题共用布局和交互，通过 [base.css](claudeOne/css/base.css) 中的颜色、阴影、圆角和间距变量表达各自材质。标签页标题只显示当前页面名称；首页短句为 “STAY CURIOUS · KEEP CREATING”（保持好奇，创造不止）。
 
 ## 音乐、配置与数据
 

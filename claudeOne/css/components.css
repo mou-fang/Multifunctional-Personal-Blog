@@ -135,6 +135,88 @@
 }
 
 /* ===== Theme toggle switch ===== */
+.theme-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.theme-advice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  max-width: 200px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  color: var(--ink-soft);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-out-sm);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.theme-advice[hidden] {
+  display: none;
+}
+
+.theme-advice__action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 28px;
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.theme-advice__action:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.theme-advice__action:focus-visible,
+.theme-advice__dismiss:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.theme-advice__options {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  border-top: 1px solid var(--border-soft);
+  padding-top: var(--space-1);
+}
+
+.theme-advice__dismiss {
+  min-height: 28px;
+  padding: 2px 3px;
+  border-radius: var(--radius-sm);
+  color: var(--ink-soft);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.theme-advice__dismiss:hover {
+  color: var(--ink);
+  background: var(--accent-soft);
+}
+
+.theme-advice__dismiss:active {
+  background: var(--surface-sunken);
+  box-shadow: var(--shadow-in-sm);
+}
+
+body[data-theme="liquid-glass"] .theme-advice {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--border);
+  box-shadow: var(--glass-shadow-sm);
+}
+
 .theme-toggle {
   display: inline-flex;
   align-items: center;
@@ -276,6 +358,24 @@ body[data-theme="liquid-glass"] .theme-toggle__thumb::after {
 }
 
 @media (max-width: 640px) {
+  .theme-controls {
+    position: relative;
+  }
+
+  .theme-advice {
+    position: absolute;
+    top: calc(100% + var(--space-2));
+    right: 0;
+    width: max-content;
+    max-width: 112px;
+    padding: 7px 8px;
+    font-size: 0.68rem;
+  }
+
+  .site-header:has(.theme-advice:not([hidden])) .site-nav {
+    margin-top: 100px;
+  }
+
   .github-link {
     padding-right: 9px;
   }

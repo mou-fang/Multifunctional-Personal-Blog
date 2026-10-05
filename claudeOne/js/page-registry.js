@@ -6,16 +6,16 @@
 window.__CLAUDEONE_PAGES = Object.freeze({
   home: {
     navSection: "home",
-    title: "claudeOne · 魔方工作台",
-    description: "claudeOne — quiet personal workspace",
+    title: "魔方工作台",
+    description: "魔方工作台 — 保持好奇，创造不止",
     templateId: "page-home",
-    css: ["css/cube.css"],
+    css: ["css/cube.css?v=20261005-theme-advice"],
     js: ["js/cube.js"],
     lifecycle: "__page_home"
   },
   games: {
     navSection: "games",
-    title: "claudeOne · 游戏中心",
+    title: "游戏中心",
     description: "claudeOne 游戏中心 — 益智与聚会小游戏合集",
     templateId: "page-games",
     css: ["css/games.css"],
@@ -24,7 +24,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   "game-releases": {
     navSection: "game-releases",
-    title: "claudeOne · 游戏发售",
+    title: "游戏发售",
     description: "未来约 8 周的游戏发售清单，每周二更新，按平台筛选并查看当周速报原图",
     templateId: "page-game-releases",
     // Bump these URLs and the registry URL in index.html when release assets change.
@@ -34,7 +34,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   "city-shuttle": {
     navSection: "games",
-    title: "claudeOne · 无界穿梭：天际城",
+    title: "无界穿梭：天际城",
     description: "无界穿梭：天际城 — 驾驶穿梭机高速飞越无限生成的彩色 ASCII 近未来城市",
     templateId: "page-city-shuttle",
     css: ["css/city-shuttle.css"],
@@ -43,7 +43,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   "anomaly-bureau": {
     navSection: "games",
-    title: "claudeOne · 无界穿梭：天际城",
+    title: "无界穿梭：天际城",
     description: "无界穿梭：天际城 — 旧游戏地址兼容入口",
     templateId: "page-city-shuttle",
     css: ["css/city-shuttle.css"],
@@ -52,7 +52,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   "ascii-void": {
     navSection: "games",
-    title: "claudeOne · 无界穿梭：天际城",
+    title: "无界穿梭：天际城",
     description: "无界穿梭：天际城 — 字符禁区旧地址兼容入口",
     templateId: "page-city-shuttle",
     css: ["css/city-shuttle.css"],
@@ -61,7 +61,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   tools: {
     navSection: "tools",
-    title: "claudeOne · 工具箱",
+    title: "工具箱",
     description: "claudeOne 工具箱 — 实用在线工具合集",
     templateId: "page-tools",
     css: ["css/tools.css"],
@@ -70,7 +70,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   colors: {
     navSection: "tools",
-    title: "claudeOne · 颜色工具",
+    title: "颜色工具",
     description: "屏幕与图片取色、框选提色、色卡管理、自动配色、渐变和色觉预览，浏览器本地处理",
     templateId: "page-colors",
     css: ["css/color-tools.css"],
@@ -79,7 +79,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   beads: {
     navSection: "tools",
-    title: "claudeOne · 拼豆工坊",
+    title: "拼豆工坊",
     description: "claudeOne 拼豆工坊 — 图片转拼豆图纸、逐格精修、材质预览与摆豆引导",
     templateId: "page-beads",
     css: ["css/bead-studio.css"],
@@ -88,7 +88,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   scramble: {
     navSection: "tools",
-    title: "claudeOne · 图片加密（混淆）",
+    title: "图片加密（混淆）",
     description: "claudeOne PixelFlux — 可逆图片像素混淆与还原工具",
     templateId: "page-scramble",
     css: ["css/image-scramble.css"],
@@ -97,7 +97,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   game: {
     navSection: "games",
-    title: "claudeOne · 俄罗斯转盘",
+    title: "俄罗斯转盘",
     description: "claudeOne 俄罗斯转盘 — 聚会整活随机转盘游戏",
     templateId: "page-game",
     css: [],
@@ -106,7 +106,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   sokoban: {
     navSection: "games",
-    title: "claudeOne · 推箱子",
+    title: "推箱子",
     description: "claudeOne 推箱子 — 经典益智推箱子游戏",
     templateId: "page-sokoban",
     css: ["css/sokoban.css"],
@@ -115,7 +115,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   minesweeper: {
     navSection: "games",
-    title: "claudeOne · 重力扫雷",
+    title: "重力扫雷",
     description: "claudeOne 重力扫雷 — 翻开 0 格让上方下落、数字平台实时重算的扫雷重制",
     templateId: "page-minesweeper",
     css: ["css/minesweeper.css"],
@@ -124,7 +124,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   snake: {
     navSection: "games",
-    title: "claudeOne · 贪吃蛇竞技场",
+    title: "贪吃蛇竞技场",
     description: "claudeOne 贪吃蛇 — 大战场多人混战，10种能力道具，AI对手抢食围堵",
     templateId: "page-snake",
     css: ["css/snake.css"],
@@ -133,7 +133,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   billiards: {
     navSection: "games",
-    title: "claudeOne · 中式八球",
+    title: "中式八球",
     description: "claudeOne 中式八球 — 单人练习与AI对战，含完整规则讲解",
     templateId: "page-billiards",
     css: ["css/billiards.css"],
@@ -142,7 +142,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   onlyup: {
     navSection: "games",
-    title: "claudeOne · Only Up",
+    title: "Only Up",
     description: "claudeOne Only Up — 像素风垂直攀爬地狱，8 个奇幻场景，无存档无安全网",
     templateId: "page-onlyup",
     css: ["css/onlyup.css"],
@@ -151,7 +151,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   abyss: {
     navSection: "games",
-    title: "claudeOne · 深渊协议",
+    title: "深渊协议",
     description: "claudeOne 深渊协议 — 类吸血鬼幸存者，自动攻击、升级三选一、武器进化、遗物、逻辑模块编程流",
     templateId: "page-abyss",
     css: ["css/abyss.css"],
@@ -160,7 +160,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   lottery: {
     navSection: "tools",
-    title: "claudeOne · 幸运抽奖",
+    title: "幸运抽奖",
     description: "claudeOne 幸运抽奖 — 大屏互动抽奖工具",
     templateId: "page-lottery",
     css: ["css/lottery.css"],
@@ -169,7 +169,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   music: {
     navSection: "tools",
-    title: "claudeOne · 音乐解锁",
+    title: "音乐解锁",
     description: "claudeOne 音乐解锁 — 移除加密音乐文件的保护",
     templateId: "page-music",
     css: ["css/music.css"],
@@ -178,7 +178,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   playlist: {
     navSection: "tools",
-    title: "claudeOne - 播放歌单",
+    title: "播放歌单",
     description: "claudeOne 播放歌单",
     templateId: "page-playlist",
     css: ["css/playlist.css"],
@@ -187,7 +187,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   ai: {
     navSection: "tools",
-    title: "claudeOne · DeepSeek 聊天",
+    title: "DeepSeek 聊天",
     description: "claudeOne DeepSeek — AI 智能对话助手",
     templateId: "page-ai",
     css: [],
@@ -196,7 +196,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   ascii: {
     navSection: "tools",
-    title: "claudeOne · ASCII 艺术",
+    title: "ASCII 艺术",
     description: "claudeOne ASCII — 图片转字符画生成器",
     templateId: "page-ascii",
     css: ["css/ascii.css"],
@@ -205,7 +205,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   pixel: {
     navSection: "tools",
-    title: "claudeOne · 图片像素化",
+    title: "图片像素化",
     description: "claudeOne 像素化 — 图片像素风格处理工具",
     templateId: "page-pixel",
     css: ["css/pixel.css"],
@@ -214,7 +214,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   compress: {
     navSection: "tools",
-    title: "claudeOne · 图片压缩",
+    title: "图片压缩",
     description: "claudeOne 压缩 — 图片压缩与格式转换工具",
     templateId: "page-compress",
     css: ["css/compress.css"],
@@ -223,7 +223,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   "qr-reader": {
     navSection: "tools",
-    title: "claudeOne · 二维码解析",
+    title: "二维码解析",
     description: "拖入二维码图片，在本地识别链接、文本、Wi-Fi 与联系人信息",
     templateId: "page-qr-reader",
     css: ["css/qr-reader.css"],
@@ -232,7 +232,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   qr: {
     navSection: "tools",
-    title: "claudeOne · 二维码制作",
+    title: "二维码制作",
     description: "claudeOne QR — 二维码生成与美化工具",
     templateId: "page-qr",
     css: ["css/qr.css"],
@@ -241,7 +241,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   videogif: {
     navSection: "tools",
-    title: "claudeOne · 视频转 GIF",
+    title: "视频转 GIF",
     description: "claudeOne 视频转 GIF — 本地裁剪、选段、调帧率与画质，浏览器内生成 GIF",
     templateId: "page-videogif",
     css: ["css/videogif.css"],
@@ -250,7 +250,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   },
   doom: {
     navSection: "games",
-    title: "claudeOne · DOOM",
+    title: "DOOM",
     description: "claudeOne DOOM — 1993 经典 FPS，doomgeneric 引擎 WebAssembly 浏览器版，Freedoom 自由数据",
     templateId: "page-doom",
     css: ["css/doom.css"],

@@ -321,7 +321,7 @@ body[data-theme="liquid-glass"] .cube-turn-btn {
 /* Hero wrapper for the homepage */
 .cube-hero {
   display: grid;
-  grid-template-columns: 1.1fr 1fr;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
   gap: var(--space-10);
   align-items: center;
   padding: var(--space-6) var(--space-4);
@@ -332,6 +332,12 @@ body[data-theme="liquid-glass"] .cube-turn-btn {
   flex-direction: column;
   gap: var(--space-4);
   max-width: 480px;
+  min-width: 0;
+}
+
+.cube-hero__copy > .pill {
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .cube-hero__title {
@@ -362,12 +368,18 @@ body[data-theme="liquid-glass"] .cube-turn-btn {
 
 @media (max-width: 880px) {
   .cube-hero {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-8);
     text-align: left;
   }
   .cube-stage {
     --cubelet: 52px;
+  }
+}
+
+@media (max-width: 360px) {
+  .cube-turns {
+    grid-template-columns: repeat(4, 38px);
   }
 }
 
