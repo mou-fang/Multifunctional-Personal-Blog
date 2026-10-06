@@ -134,7 +134,7 @@
     const lowCores = cores > 0 && cores <= 2;
     const modestBoth = memory > 0 && memory <= 4 && cores > 0 && cores <= 4;
     if (lowMemory || lowCores || modestBoth) {
-      showThemeAdvice("设备资源可能偏少");
+      showThemeAdvice("设备性能可能偏弱");
       return;
     }
     if (!themeCheckReady || !themePageActive || document.hidden) return;

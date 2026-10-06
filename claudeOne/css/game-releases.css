@@ -1,3 +1,8 @@
+@property --release-rgb-angle {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 30deg;
+}
 .release-page { color: var(--ink); display: flex; flex-direction: column; gap: 20px; }
 .release-page [hidden] { display: none !important; }
 .release-hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 24px; padding: 20px 24px; border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-out); }
@@ -66,6 +71,52 @@ body[data-theme="liquid-glass"] .release-filter { border: 1px solid var(--border
 body[data-theme="liquid-glass"] .release-search input { border: 1px solid var(--border); }
 body[data-theme="liquid-glass"] .release-card__date,
 body[data-theme="liquid-glass"] .release-card__badge { background: var(--surface-raised); box-shadow: var(--shadow-out-sm); }
+/* The gradient turns inside a fixed rounded badge; its label stays still. */
+.release-card__badge[data-release-state="today"] {
+  --release-rgb-tint: rgba(230, 239, 255, .8);
+  --release-rgb-colors: #ff5277, #58dca0, #4c9aff, #ad72ff, #ff5277;
+  position: relative;
+  isolation: isolate;
+  border-color: transparent;
+  animation: release-rgb-orbit 6s linear infinite;
+}
+.release-card__badge[data-release-state="today"]::before,
+.release-card__badge[data-release-state="today"]::after {
+  content: "";
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.release-card__badge[data-release-state="today"]::before {
+  inset: -3px;
+  z-index: -2;
+  background: conic-gradient(from var(--release-rgb-angle), var(--release-rgb-colors));
+  filter: blur(7px);
+  opacity: .55;
+}
+.release-card__badge[data-release-state="today"]::after {
+  inset: -1px;
+  z-index: -1;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--release-rgb-tint), var(--release-rgb-tint)) padding-box,
+    conic-gradient(from var(--release-rgb-angle), var(--release-rgb-colors)) border-box;
+}
+body[data-theme="liquid-glass"] .release-card__badge[data-release-state="today"] {
+  --release-rgb-tint: rgba(255, 255, 255, .78);
+}
+body[data-theme="liquid-glass"] .release-card__badge[data-release-state="today"]::after {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8);
+}
+.release-page[data-release-motion="paused"] .release-card__badge[data-release-state="today"] {
+  animation-play-state: paused;
+}
+@keyframes release-rgb-orbit {
+  to { --release-rgb-angle: 390deg; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .release-card__badge[data-release-state="today"] { animation: none; }
+}
 /* Reuse the shared Soft UI background's lavender, cyan and warm glow palette. */
 body[data-theme="neumorphism"] .release-card__badge[data-release-state="tomorrow"] {
   background:

@@ -88,6 +88,7 @@
   }
   function watchDate() {
     clearInterval(dateTimer); dateTimer = null;
+    if (root) root.setAttribute("data-release-motion", document.hidden ? "paused" : "running");
     if (document.hidden) return;
     checkDate();
     // Only rebuild cards when the edition's local calendar date changes.

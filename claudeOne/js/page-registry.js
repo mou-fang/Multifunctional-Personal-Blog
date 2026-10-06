@@ -28,8 +28,8 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     description: "未来约 8 周的游戏发售清单，每周二更新，按平台筛选并查看当周速报原图",
     templateId: "page-game-releases",
     // Bump these URLs and the registry URL in index.html when release assets change.
-    css: ["css/game-releases.css?v=20261005-release-badges-4"],
-    js: ["js/game-releases-core.js?v=20261005-release-badges-4", "js/game-releases.js?v=20261005-release-badges-4"],
+    css: ["css/game-releases.css?v=20261006-release-rgb"],
+    js: ["js/game-releases-core.js?v=20261005-release-badges-4", "js/game-releases.js?v=20261006-release-rgb"],
     lifecycle: "__page_game_releases"
   },
   "city-shuttle": {
