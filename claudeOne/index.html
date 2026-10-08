@@ -658,7 +658,7 @@
 
   <!-- Defer preserves dependencies while letting all page templates parse. -->
   <script src="./js/config.js" defer></script>
-  <script src="./js/page-registry.js?v=20261006-release-rgb" defer></script>
+  <script src="./js/page-registry.js?v=20261008-chief-2" defer></script>
   <script src="./js/shell.js?v=20261005-theme-advice-dismiss" defer></script>
   <script src="./js/startup.js?v=20261005-cache" defer></script>
   <script src="./js/router.js?v=20261005-cache" defer></script>
@@ -3324,6 +3324,7 @@
         <div class="ct-row">
           <button class="btn btn-primary" type="button" data-ct-screen><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l3-1 11-11a2.1 2.1 0 0 0-3-3L4 16v4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>屏幕取色</span></button>
           <button class="btn" type="button" data-ct-upload>＋ 上传图片</button>
+          <button class="btn" type="button" data-pm-open>实体颜料调色 ↓</button>
           <span class="ct-hint">也可以拖入图片，或按 Ctrl / ⌘ + V 粘贴</span>
         </div>
         <div class="ct-help" data-ct-help>
@@ -3377,6 +3378,81 @@
         </section>
       </div>
 
+      <details class="card ct-panel pm-shell" data-pm>
+        <summary><span>实体颜料调色</span><span class="ct-help" data-ct-help><button class="btn btn-sm ct-help-button" type="button" data-ct-help-toggle aria-expanded="false" aria-controls="pm-help-panel" aria-label="实体颜料调色使用帮助"><span aria-hidden="true">?</span>使用帮助</button></span><span class="ct-hint">品牌色号 · 比例混色 · 目标色配方</span></summary>
+        <p class="pm-status" data-pm-status role="status" aria-live="polite">打开后加载本地颜料目录。</p>
+        <div data-pm-content hidden>
+          <div class="ct-tabs pm-task-tabs" role="tablist" aria-label="选择调色任务"><button type="button" role="tab" id="pm-tab-mix" aria-controls="pm-panel-mix" aria-selected="true" data-pm-tab="mix"><strong>自己试混色</strong><span>选颜料、调比例，看会混出什么色</span></button><button type="button" role="tab" id="pm-tab-solve" aria-controls="pm-panel-solve" aria-selected="false" tabindex="-1" data-pm-tab="solve"><strong>帮我找配方</strong><span>给一个目标色，计算该怎么调</span></button></div>
+          <div class="pm-flowbar"><p class="ct-hint" data-pm-flow></p><div class="ct-row"><button class="btn btn-sm" type="button" data-pm-undo disabled>撤销</button><button class="btn btn-sm" type="button" data-pm-redo disabled>重做</button></div></div>
+          <details class="pm-source" data-pm-source>
+            <summary><span data-pm-source-title></span><span class="ct-hint">更换计算方式 ↓</span></summary>
+          <div class="pm-settings">
+            <label class="ct-field">用哪种颜料计算？<select class="select" data-pm-mode><option value="measured">实测标定颜料 · 可按克称量</option><option value="estimate">品牌色号估算 · 仅作参考</option></select></label>
+            <label class="ct-field" data-pm-group-field>标定颜料集<select class="select" data-pm-group></select></label>
+            <p class="ct-hint pm-model-note" data-pm-model-note></p>
+          </div>
+          </details>
+          <aside class="pm-chief-guide" data-pm-chief-guide hidden><strong>酋长大陆 · 使用范围</strong><p class="ct-hint"></p><div class="ct-row"><button class="btn btn-sm" type="button" data-pm-action="chief-start">另配一份</button><button class="btn btn-sm" type="button" data-pm-action="chief-template">测量模板</button></div></aside>
+          <div class="pm-layout">
+            <section class="pm-catalogue" aria-labelledby="pm-catalogue-title">
+              <div class="ct-panel-head"><h3 id="pm-catalogue-title" tabindex="-1">颜料目录</h3><span class="ct-badge" data-pm-count></span></div>
+              <div class="pm-brand-shortcut"><button class="btn btn-sm" type="button" data-pm-action="chief">酋长大陆调色</button><span class="ct-hint" data-pm-chief-count></span></div>
+              <label class="ct-field">搜索名称或色号<input class="input" type="search" data-pm-search placeholder="如 Vallejo、71.281、黄、white" maxlength="100" /></label>
+              <div class="pm-filter-row"><label class="ct-field">品牌<select class="select" data-pm-brand><option value="">全部品牌</option></select></label><label class="ct-field">系列<select class="select" data-pm-range><option value="">全部系列</option></select></label></div>
+              <div class="pm-filter-checks"><label><input type="checkbox" data-pm-owned-only />只看我的颜料</label><label><input type="checkbox" data-pm-compatible checked />只看当前可混色号</label></div>
+              <div class="pm-catalogue-tools"><button class="btn btn-sm" type="button" data-pm-action="reset-filters">清除筛选</button><span class="ct-hint" data-pm-selection></span><button class="btn btn-sm" type="button" data-pm-action="go-mix">去调比例 →</button></div>
+              <div class="pm-paints" data-pm-paints></div>
+              <div class="ct-row pm-pagination"><button class="btn btn-sm" type="button" data-pm-prev>上一页</button><span class="ct-hint" data-pm-page></span><button class="btn btn-sm" type="button" data-pm-next>下一页</button></div>
+              <p class="ct-hint" data-pm-inventory-count></p>
+            </section>
+            <section class="pm-workbench" aria-label="调色与配方">
+              <div class="pm-target-area" data-pm-target-area><h3>① 你想调成什么颜色？</h3><div class="pm-target-row"><label class="ct-field">目标颜色<input class="input" data-pm-target value="#D0A36A" maxlength="7" spellcheck="false" aria-describedby="pm-target-help" /></label><input type="color" data-pm-target-picker value="#d0a36a" aria-label="选择目标颜色" /><button class="btn btn-sm" type="button" data-pm-use-current>使用取色结果</button></div><p class="ct-hint" id="pm-target-help">输入 HEX 或点色块选颜色；也可使用上方的取色结果，或把目录色号设为目标。</p></div>
+              <section id="pm-panel-mix" role="tabpanel" aria-labelledby="pm-tab-mix" data-pm-panel="mix" tabindex="-1">
+                <div class="pm-live-preview">
+                <div class="pm-result-head"><h3>混色结果</h3><label><input type="checkbox" data-pm-compare />对照目标色</label></div>
+                <div class="pm-comparison"><div data-pm-target-compare hidden><span>想要的目标色</span><div class="pm-color" data-pm-target-swatch></div></div><div><span>这份配方预计混出的颜色</span><div class="pm-color" data-pm-mix-swatch></div></div></div>
+                <p class="pm-result" data-pm-result role="status"></p>
+                </div>
+                <div class="ct-panel-head"><h3>当前配方</h3><button class="btn btn-sm" type="button" data-pm-action="go-catalogue">＋ 选颜料</button></div>
+                <p class="ct-hint pm-ratio-note">输入或拖动百分比，其余颜料会按原来的相对比例调整，总计保持 100%。</p>
+                <div class="pm-ingredients" data-pm-ingredients></div>
+                <div class="ct-row pm-mix-tools"><button class="btn btn-sm" type="button" data-pm-white>＋ 白色</button><button class="btn btn-sm" type="button" data-pm-black>＋ 黑色</button><button class="btn btn-sm" type="button" data-pm-equal>平均分配</button><button class="btn btn-sm" type="button" data-pm-clear>清空配方</button><button class="btn btn-sm" type="button" data-pm-action="solve-current">用这些颜料找目标色配方</button></div>
+                <label class="ct-field pm-mass" data-pm-mass-field>配制总量（克）<input class="input" type="number" data-pm-mass min="0.01" max="10000" step="0.01" value="10" /></label>
+                <div class="pm-weighing" data-pm-weighing></div>
+                <label class="ct-field pm-name-field">配方名称<input class="input" data-pm-name maxlength="80" value="我的调色配方" /></label>
+                <div class="ct-row pm-output-actions"><button class="btn btn-primary btn-sm" type="button" data-pm-save>保存这份配方</button><button class="btn btn-sm" type="button" data-pm-copy>复制配方</button><button class="btn btn-sm" type="button" data-pm-add-color>混合色加入色卡</button><button class="btn btn-sm" type="button" data-pm-png>导出配方 PNG</button></div>
+              </section>
+              <section id="pm-panel-solve" role="tabpanel" aria-labelledby="pm-tab-solve" data-pm-panel="solve" hidden tabindex="-1">
+                <h3 class="pm-solve-heading">② 用哪些颜料来调？</h3><div class="pm-solve-settings"><label class="ct-field">可用颜料范围<select class="select" data-pm-scope><option value="group">目录当前筛选的颜料</option><option value="owned">我的颜料库存</option><option value="mix">仅当前配方里的颜料</option></select></label><label class="ct-field">最多用几色<select class="select" data-pm-max><option value="1">1 色</option><option value="2">2 色</option><option value="3">3 色</option><option value="4" selected>4 色</option></select></label></div>
+                <p class="pm-scope-note ct-hint" data-pm-scope-note></p><div class="ct-row pm-scope-actions"><button class="btn btn-sm" type="button" data-pm-action="go-catalogue">去目录选颜料</button><button class="btn btn-sm" type="button" data-pm-action="reset-scope" hidden>使用所有可混颜料</button></div>
+                <div class="ct-row"><button class="btn btn-primary" type="button" data-pm-solve>寻找配方</button><button class="btn" type="button" data-pm-cancel hidden>取消计算</button></div>
+                <progress data-pm-progress max="1" value="0" hidden aria-label="配方搜索进度"></progress>
+                <p class="ct-hint" data-pm-solve-note>比较预测色的 CIEDE2000 色差，同时保留用色更少的方案。</p>
+                <div class="pm-recipes" data-pm-results></div>
+              </section>
+            </section>
+          </div>
+          <details class="pm-section"><summary>我的配方与备份 <span class="ct-hint" data-pm-saved-count></span></summary><div class="pm-save-row"><button class="btn btn-sm" type="button" data-pm-backup>导出配方与颜料备份 JSON</button><button class="btn btn-sm" type="button" data-pm-import-backup>导入备份</button></div><div class="pm-saved" data-pm-saved></div></details>
+          <details class="pm-section"><summary>数据来源、精度与自定义标定</summary><div class="pm-data-help"><p>内置目录覆盖 <span data-pm-catalogue-size>多个品牌与色号</span>。品牌和色号持续变化；目录 HEX 为近似色，缺少原厂实测数据时不能据此证明实际混色准确。</p><p>实测模式使用 PaintMixing 的 Kimera 13 色光谱和基准白混合样本，按同一标定基准混合 K、S，以 D65 / CIE 1931 2° 显示。模型针对充分覆盖底材的普通非金属漆层；实际批次、干湿、底材和照明会影响结果。ΔE00 是模型色差，不是成功率。实测模式的质量比例不能换算为等体积滴数。</p><p>色号估算模式使用 Spectral.js，从目录显示色估算光谱；比例为模拟参数，不作为实际克数。酋长大陆的参考色来自商品色卡或瓶照，不能据此保证实际混色准确；缺少参考色的条目只列资料，不填虚构 HEX。金属、荧光、透明漆、补土、喷罐和未知介质不参与此模型计算。BT 与 BTSY 属于酋长笔涂组；SM 喷涂独立成组，不能与其他系列或品牌混用。</p><p>可导入自有 K、S 标定库，或提供每色纯色光谱及与同一基准白的已知质量混合光谱进行标定；手机照片和 HEX 不能替代光谱测量。酋长大陆专用模板预填真实色号，并留有另外试调的独立验证样本；导入后重新计算平均与最大 ΔE00。用户数据仍标为“用户标定”，本站不会据此宣称已核验仪器或全品牌精度。</p><div class="ct-row"><button class="btn btn-sm" type="button" data-pm-template>下载光谱测量模板</button><button class="btn btn-sm" type="button" data-pm-import-model>导入光谱标定数据</button><button class="btn btn-sm" type="button" data-pm-remove-model disabled>移除当前用户标定库</button></div><p class="ct-hint">每库最多 250 色。反射率使用 0–1，至少覆盖 381.2148–719.8746 nm；独立验证不能复用拟合比例。导入全部通过校验后才会生效。</p><p><a href="https://github.com/miciwan/PaintMixing" target="_blank" rel="noopener">PaintMixing · MIT 代码 / CC BY 4.0 数据</a> · <a href="https://github.com/s10-steve/paintdex" target="_blank" rel="noopener">Paintdex · MIT 目录</a> · <a href="https://github.com/rvanwijnen/spectral.js" target="_blank" rel="noopener">Spectral.js · MIT</a> · <a href="libs/paint-data-20261008/README.md" target="_blank" rel="noopener">固定版本与校验说明</a> · <a href="libs/paint-data-20261008/sheik-mainland/README.md" target="_blank" rel="noopener">酋长大陆来源与精度</a></p></div></details>
+          <p class="ct-hint pm-storage-note" data-pm-storage>颜料、配方和标定库只保存在本浏览器，请导出 JSON 备份。</p>
+          <p class="ct-hint" data-pm-download-row hidden>导出文件已生成：<a data-pm-download>再次下载</a></p>
+          <input type="file" data-pm-file accept=".json,application/json" hidden />
+        </div>
+      </details>
+      <aside class="ct-help-panel" id="pm-help-panel" data-ct-help-panel popover="auto" hidden tabindex="-1" aria-labelledby="pm-help-title">
+        <div class="ct-help-heading"><h2 id="pm-help-title">实体颜料调色 · 使用帮助</h2><button class="ct-help-close" type="button" data-ct-help-close aria-label="关闭实体颜料调色使用帮助">×</button></div>
+        <div class="ct-help-content">
+          <p><strong>选择计算方式</strong>任务下方始终显示当前模式，点“更换计算方式”展开设置。“实测标定”使用内置 Kimera 13 色或导入的标定库，可按克数配制；质量比例不能当作滴数。“品牌色号估算”可参考更多品牌的普通色号，比例是模拟参数，不提供实体克数。</p>
+          <p><strong>自己试混色</strong>在目录中点“加入配方”，再点“去调比例”。拖动滑块或输入百分比，其余颜料自动分配，总计 100%。结果实时显示；需要比较目标色时，开启“对照目标色”。最多 8 色，比例和计算方式的改动可撤销。</p>
+          <p><strong>帮我找配方</strong>输入目标 HEX、点颜色选择器，或点“使用取色结果”。选可用颜料范围和最多用几色，再点“帮我计算配方”；选中方案点“采用并微调”，即可称量、调整和保存。</p>
+          <p><strong>目标颜色、预测色和色差</strong>目标是你想要的颜色，预测色是当前配方预计混出的颜色。ΔE00 越接近 0，两者越接近；模型色差小不代表实物一定一致。</p>
+          <p><strong>品牌或系列为什么没有颜色？</strong>品牌和系列显示可混数量与目录总数。“只看当前可混色号”会隐藏不支持的色号；空列表可点“查看这些色号”或“改用品牌估算”。旧化特效、金属、荧光、透明漆、喷罐等不参与此模型的混色计算。</p>
+          <p><strong>用自己已有的颜料找配方</strong>在目录中点“我有这色”登记库存，再将范围设为“我的颜料库存”。目录范围和库存范围遵循品牌、系列、搜索词及库存筛选；“仅当前配方里的颜料”只用已加入的颜色，不受目录筛选影响。一份配方须使用同一种介质。</p>
+          <p><strong>酋长大陆怎么用？</strong>点目录里的“酋长大陆调色”，会进入该品牌的参考估算，原配方可撤销恢复。选 BT 笔涂、BTSY 色之源或 SM 喷涂系列；BT 和 BTSY 可组成笔涂配方，SM 独立计算。瓶照参考色和商品色卡都不是实体标定，估算比例不能当作克数或滴数。需要实物校验时可下载专用测量模板，填仪器数据后导入，并用另外配制的样本验证误差。</p>
+          <p><strong>保存、导出与备份</strong>给配方命名后点“保存这份配方”，同名保存会更新。可复制文字、导出 PNG，或把混合色加入上方色卡。JSON 备份包含库存、配方和标定库，导入会替换本机数据。</p>
+          <p class="ct-help-note">结果是模型预测，实物会受颜料批次、干湿、底材和照明影响。数据只保存在本浏览器，请定期导出 JSON；更多说明见工具底部“数据来源、精度与自定义标定”。</p>
+        </div>
+      </aside>
       <details class="card ct-panel ct-tools" data-ct-tools><summary><span>更多颜色工具</span><span class="ct-hint">自动配色 · 渐变 · 可读性 · 色觉预览</span></summary>
         <div class="ct-tabs" role="tablist" aria-label="更多颜色工具"><button type="button" id="ct-tab-harmony" role="tab" aria-controls="ct-panel-harmony" aria-selected="true" data-ct-tab="harmony">自动配色</button><button type="button" id="ct-tab-gradient" role="tab" aria-controls="ct-panel-gradient" aria-selected="false" tabindex="-1" data-ct-tab="gradient">渐变</button><button type="button" id="ct-tab-contrast" role="tab" aria-controls="ct-panel-contrast" aria-selected="false" tabindex="-1" data-ct-tab="contrast">可读性</button><button type="button" id="ct-tab-vision" role="tab" aria-controls="ct-panel-vision" aria-selected="false" tabindex="-1" data-ct-tab="vision">色觉预览</button></div>
         <section id="ct-panel-harmony" role="tabpanel" aria-labelledby="ct-tab-harmony" data-ct-tool="harmony"><div class="ct-row"><label class="ct-field">以当前颜色为主色<select class="select" data-ct-harmony-type><option value="analogous">相近色 · 柔和统一</option><option value="complement">互补色 · 突出点缀</option><option value="triad">三色搭配 · 活泼丰富</option><option value="mono">同色深浅 · 层次变化</option></select></label><button class="btn btn-sm" type="button" data-ct-harmony-add>全部加入色卡</button></div><div class="ct-suggestions" data-ct-harmony></div><p class="ct-hint">以色相和深浅关系生成搭配，点色块查看；是否适合涂装可以继续微调。</p></section>

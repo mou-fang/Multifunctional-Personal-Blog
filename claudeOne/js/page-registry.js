@@ -71,10 +71,10 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   colors: {
     navSection: "tools",
     title: "颜色工具",
-    description: "屏幕与图片取色、框选提色、色卡管理、自动配色、渐变和色觉预览，浏览器本地处理",
+    description: "取色、色卡管理、品牌颜料目录、光谱混色和目标色配方，浏览器本地处理",
     templateId: "page-colors",
-    css: ["css/color-tools.css"],
-    js: ["js/color-tools-core.js", "js/color-tools.js"],
+    css: ["css/color-tools.css?v=20261008-paint-1", "css/paint-mixer.css?v=20261008-chief-2"],
+    js: ["js/color-tools-core.js", "libs/spectral-3.0.0/spectral.js", "js/paint-mixer-core.js?v=20261008-chief-2", "js/paint-mixer.js?v=20261008-chief-2", "js/color-tools.js?v=20261008-paint-help-2"],
     lifecycle: "__page_colors"
   },
   beads: {

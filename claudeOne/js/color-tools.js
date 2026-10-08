@@ -5,6 +5,7 @@
   let root, ac, state, saved, deleted, screenController, bitmap, worker, extractTimer;
   let imageJob = 0, extractJob = 0, undo = [], redo = [], imageMode = "pick", crop = null, drag = null, point = { x: .5, y: .5 };
   let extracted = [], gradientStops = [], gradientValid = true, draggedIndex = -1;
+  let helps = [];
   const urls = new Set();
   const $ = selector => root.querySelector(selector), $$ = selector => [...root.querySelectorAll(selector)];
   const listen = (target, event, fn) => target.addEventListener(event, fn, { signal: ac.signal });
@@ -16,27 +17,31 @@
   }
   function button(text, action) { const b = element("button", "btn btn-sm", text); b.type = "button"; if (action) b.dataset.ctAction = action; return b; }
   function message(text, error = false) { if (!root) return; $("[data-ct-status]").textContent = text; $("[data-ct-status]").dataset.error = String(error); }
-  function positionHelp() {
-    const panel = $("[data-ct-help-panel]"); if (panel.hidden) return;
+  function positionHelp(help) {
+    const { panel, toggle } = help; if (panel.hidden) return;
     panel.style.width = Math.min(360, document.documentElement.clientWidth - 32) + "px";
-    const rect = $("[data-ct-help-toggle]").getBoundingClientRect(), width = panel.getBoundingClientRect().width;
-    if (rect.bottom < 0 || rect.top >= window.innerHeight) { closeHelp(); return; }
-    panel.style.left = Math.max(16, Math.min(rect.right - width, document.documentElement.clientWidth - width - 16)) + "px";
-    panel.style.top = rect.bottom + 10 + "px";
-    panel.style.maxHeight = Math.min(440, Math.max(100, window.innerHeight - rect.bottom - 26)) + "px";
+    const rect = toggle.getBoundingClientRect(), width = panel.getBoundingClientRect().width;
+    if (rect.bottom < 0 || rect.top >= window.innerHeight) { closeHelp(help); return; }
+    panel.style.left = Math.max(16, Math.min(rect.left, document.documentElement.clientWidth - width - 16)) + "px";
+    const below = window.innerHeight - rect.bottom - 26, above = rect.top - 26;
+    const showBelow = below >= Math.min(240, window.innerHeight - 32) || below >= above;
+    panel.style.maxHeight = Math.min(440, Math.max(0, showBelow ? below : above)) + "px";
+    panel.style.top = (showBelow ? rect.bottom + 10 : Math.max(16, rect.top - 10 - panel.getBoundingClientRect().height)) + "px";
   }
-  function closeHelp(restoreFocus = false) {
-    const panel = $("[data-ct-help-panel]"), toggle = $("[data-ct-help-toggle]");
+  function closeHelp(help, restoreFocus = false) {
+    const { panel, toggle } = help;
     if (typeof panel.hidePopover === "function" && panel.matches(":popover-open")) panel.hidePopover();
     panel.hidden = true; toggle.setAttribute("aria-expanded", "false");
     if (restoreFocus) toggle.focus({ preventScroll: true });
   }
-  function toggleHelp() {
-    const panel = $("[data-ct-help-panel]");
-    if (!panel.hidden) { closeHelp(); return; }
-    panel.hidden = false; positionHelp();
-    if (typeof panel.showPopover === "function") { panel.showPopover(); positionHelp(); }
-    $("[data-ct-help-toggle]").setAttribute("aria-expanded", "true"); panel.focus({ preventScroll: true });
+  function toggleHelp(help) {
+    const { panel, toggle } = help;
+    if (!panel.hidden) { closeHelp(help); return; }
+    helps.filter(item => item !== help).forEach(item => closeHelp(item));
+    panel.hidden = false; positionHelp(help);
+    if (typeof panel.showPopover === "function") { panel.showPopover(); positionHelp(help); }
+    panel.scrollTop = 0;
+    toggle.setAttribute("aria-expanded", "true"); panel.focus({ preventScroll: true });
   }
   function readStorage(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch (_) { return fallback; } }
   function writeStorage(key, value) {
@@ -377,13 +382,18 @@
     $$('[data-ct-tool]').forEach(panel => { panel.hidden = panel.dataset.ctTool !== name; });
   }
   function bindActions() {
-    listen($("[data-ct-help-toggle]"), "click", toggleHelp);
-    listen($("[data-ct-help-close]"), "click", () => closeHelp(true));
-    listen($("[data-ct-help-panel]"), "toggle", event => { if (event.newState === "closed") { $("[data-ct-help-panel]").hidden = true; $("[data-ct-help-toggle]").setAttribute("aria-expanded", "false"); } });
-    listen(document, "pointerdown", event => { if (!$("[data-ct-help-panel]").hidden && !$("[data-ct-help]").contains(event.target)) closeHelp(); });
-    listen(document, "focusin", event => { if (!$("[data-ct-help-panel]").hidden && !$("[data-ct-help]").contains(event.target)) closeHelp(); });
-    listen(document, "keydown", event => { if (event.key === "Escape" && !$("[data-ct-help-panel]").hidden) { event.preventDefault(); closeHelp(true); } });
-    listen(window, "resize", positionHelp); listen(window, "scroll", positionHelp);
+    helps = $$('[data-ct-help-toggle]').map(toggle => ({ toggle, panel: $("#" + toggle.getAttribute("aria-controls")) }));
+    for (const help of helps) {
+      listen(help.toggle, "click", event => { event.preventDefault(); event.stopPropagation(); toggleHelp(help); });
+      listen(help.panel.querySelector("[data-ct-help-close]"), "click", () => closeHelp(help, true));
+      listen(help.panel, "toggle", event => { if (event.newState === "closed") { help.panel.hidden = true; help.toggle.setAttribute("aria-expanded", "false"); } });
+    }
+    const inside = (help, target) => help.toggle.contains(target) || help.panel.contains(target);
+    listen(document, "pointerdown", event => helps.filter(help => !help.panel.hidden && !inside(help, event.target)).forEach(help => closeHelp(help)));
+    listen(document, "focusin", event => helps.filter(help => !help.panel.hidden && !inside(help, event.target)).forEach(help => closeHelp(help)));
+    listen(document, "keydown", event => { if (event.key === "Escape") { const open = helps.find(help => !help.panel.hidden); if (open) { event.preventDefault(); closeHelp(open, true); } } });
+    const positionHelps = () => helps.forEach(positionHelp);
+    listen(window, "resize", positionHelps); listen(window, "scroll", positionHelps);
     listen(root, "click", event => {
       const b = event.target.closest("button"); if (!b || !root.contains(b)) return;
       if (b.hasAttribute("data-ct-select")) selectIndex(Number(b.dataset.ctSelect));
@@ -550,11 +560,22 @@
     gradientStops = [{ hex: "#80D0C7", pos: 0 }, { hex: "#13547A", pos: 100 }];
     if (!window.isSecureContext || typeof window.EyeDropper !== "function") { $("[data-ct-screen]").disabled = true; $("[data-ct-screen]").title = "当前浏览器不支持，请使用图片取色"; message("此浏览器可使用图片取色；屏幕取色请用桌面 Chrome / Edge，在 HTTPS 或 localhost 上打开。"); }
     bindActions(); bindTransfers(); renderCurrent(); renderPalette(); renderGradient(); renderContrast();
+    window.PaintMixer.mount(root, {
+      getColor: () => state.current,
+      addColor: (hex, label) => {
+        setColor(hex, label, "颜料混色结果");
+        if (state.palette.colors.length >= C.MAX_COLORS) { message("色卡已满，请先移除一个颜色。", true); return false; }
+        commit(() => { state.palette.colors.push({ hex, label }); state.selected = -1; });
+        message("混合色已加入色卡。"); return true;
+      }
+    });
   }
   function unmount() {
+    window.PaintMixer?.unmount();
     imageJob++; screenController?.abort(); screenController = null;
-    if (root) { closeHelp(); clearImage(); $("[data-ct-dialog]").close(); }
+    if (root) { helps.forEach(help => closeHelp(help)); clearImage(); $("[data-ct-dialog]").close(); }
     if (ac) ac.abort();
+    helps = [];
     for (const url of urls) URL.revokeObjectURL(url); urls.clear();
     root = ac = state = saved = deleted = bitmap = null; undo = []; redo = []; extracted = []; drag = null; draggedIndex = -1;
   }
