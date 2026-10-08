@@ -99,7 +99,7 @@ go install github.com/TheZoraiz/ascii-image-converter@latest
 
 | 游戏 | 路由 | 玩法 |
 | --- | --- | --- |
-| 无界穿梭：天际城 | `#/city-shuttle` | 程序生成城市中的高速飞行与空中任务，支持第一 / 第三人称；需要 PC 键鼠与 WebGL2 |
+| 无界穿梭：天际城 | `#/city-shuttle` | 原创固定布局彩色 ASCII 城市中的自由飞行；需要 PC 键鼠、WebAssembly 与 WebGL2 |
 | DOOM | `#/doom` | 基于 doomgeneric 与 Freedoom 数据的 WebAssembly 射击游戏 |
 | 推箱子 | `#/sokoban` | 固定关卡与随机生成关卡 |
 | 重力扫雷 | `#/minesweeper` | 翻开空格后方块下落，结合数字和重力变化推理 |
@@ -110,6 +110,10 @@ go install github.com/TheZoraiz/ascii-image-converter@latest
 | 俄罗斯转盘 | `#/game` | 自定义玩家、弹巢和结束规则的聚会小游戏 |
 
 `#/anomaly-bureau` 和 `#/ascii-void` 是天际城的兼容入口，不是另外两款游戏。
+
+天际城采用逐处设计的固定原创地图，包含 56 处场景、1,153 个带唯一标识的物件和 12 个出发位置。W / S 前后移动、A / D 平移、Q / E 升降、鼠标或方向键转向，松开移动键减速悬停；Shift + W 快速前行，P / Esc 暂停，H 隐藏信息，F 切换全屏。可沿街、越过楼顶、穿过弦桥下方，或探索通光廊和六处中空空间：光环楼贯穿环心，折环总部留有高空门洞，抬起的庭院可向上飞出，通风大窗连通前后街道，云桥室内街连接分翼塔，垂直光井有可通行的大窗与竖向空间。场景包括窗灯、招牌、屋顶设施、独立树形、座椅与室内陈设。城市布局和建筑组成在 `js/city-shuttle-scene.js` 中逐处定义；Rust / Wasm 在 Worker 中处理飞行、扫掠碰撞、空间索引和字符表面采样，WebGL2 通过字符图集绘制。页面隐藏或失焦会暂停，切页释放 Worker 与显卡资源。外围界面适配两套主题；屏幕小于 600px 或使用触控指针时提示使用 PC。画面已按参考视频的字符稳定性、立面细节、近远遮挡、体积对象与室内连通进行实际检查，记录见美术方向文档。
+
+运行网站不需要 Rust。修改底层后，在仓库根目录执行 `node claudeOne/scripts/build-city-shuttle.js` 重建；开发工具链为 Rust 1.97.0 与 `wasm32-unknown-unknown` 目标，无外部 crate 依赖。第一方源码、编译产物哈希与加载说明见 [核心说明](claudeOne/libs/city-shuttle-20261008/README.md)，完整目标和画面验收要求见 [美术方向](docs/city-shuttle-art-direction.md)。
 
 深渊协议的轨道炮按可见光束范围贯穿敌人，同一束对每个敌人仅结算一次伤害；恒星射线按射击周期持续结算。火焰灼烧、力场击退、黑洞锯盘吸引和永冻领域冻结均参与战斗计算，临时增益会在持续时间结束后消失，角色升级加成保留到本局结束。普通、困难与噩梦在击败最终 Boss 后结算；无限模式继续运行并增强后续敌人。外围菜单与弹层适配两套主题，窄屏弹层可滚动，升级卡片支持 Tab、Enter / 空格及数字键选择。战斗与结算回归检查随服务端 `test` 命令运行。
 

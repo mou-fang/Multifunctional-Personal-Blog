@@ -35,10 +35,10 @@ window.__CLAUDEONE_PAGES = Object.freeze({
   "city-shuttle": {
     navSection: "games",
     title: "无界穿梭：天际城",
-    description: "无界穿梭：天际城 — 驾驶穿梭机高速飞越无限生成的彩色 ASCII 近未来城市",
+    description: "无界穿梭：天际城 — 在原创彩色 ASCII 城市中自由飞行与探索",
     templateId: "page-city-shuttle",
-    css: ["css/city-shuttle.css"],
-    js: ["js/city-shuttle-core.js", "js/city-shuttle.js"],
+    css: ["css/city-shuttle.css?v=20261008-flight-2"],
+    js: ["js/city-shuttle-engine-url.js?v=20261008-flight-2", "js/city-shuttle-core.js?v=20261008-flight-2", "js/city-shuttle-scene.js?v=20261008-flight-2", "js/city-shuttle.js?v=20261008-flight-2"],
     lifecycle: "__page_city_shuttle"
   },
   "anomaly-bureau": {
@@ -46,8 +46,8 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     title: "无界穿梭：天际城",
     description: "无界穿梭：天际城 — 旧游戏地址兼容入口",
     templateId: "page-city-shuttle",
-    css: ["css/city-shuttle.css"],
-    js: ["js/city-shuttle-core.js", "js/city-shuttle.js"],
+    css: ["css/city-shuttle.css?v=20261008-flight-2"],
+    js: ["js/city-shuttle-engine-url.js?v=20261008-flight-2", "js/city-shuttle-core.js?v=20261008-flight-2", "js/city-shuttle-scene.js?v=20261008-flight-2", "js/city-shuttle.js?v=20261008-flight-2"],
     lifecycle: "__page_city_shuttle"
   },
   "ascii-void": {
@@ -55,8 +55,8 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     title: "无界穿梭：天际城",
     description: "无界穿梭：天际城 — 字符禁区旧地址兼容入口",
     templateId: "page-city-shuttle",
-    css: ["css/city-shuttle.css"],
-    js: ["js/city-shuttle-core.js", "js/city-shuttle.js"],
+    css: ["css/city-shuttle.css?v=20261008-flight-2"],
+    js: ["js/city-shuttle-engine-url.js?v=20261008-flight-2", "js/city-shuttle-core.js?v=20261008-flight-2", "js/city-shuttle-scene.js?v=20261008-flight-2", "js/city-shuttle.js?v=20261008-flight-2"],
     lifecycle: "__page_city_shuttle"
   },
   tools: {

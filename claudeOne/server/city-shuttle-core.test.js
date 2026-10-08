@@ -1,242 +1,138 @@
-const test = require("node:test");
-const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
-const Core = require("../js/city-shuttle-core.js");
+const test=require("node:test");
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const path=require("node:path");
+const crypto=require("node:crypto");
+const Core=require("../js/city-shuttle-core.js");
+const Scene=require("../js/city-shuttle-scene.js");
+const root=path.resolve(__dirname,"..");
+const assetSource=fs.readFileSync(path.join(root,"js/city-shuttle-engine-url.js"),"utf8");
+const wasm=fs.readFileSync(path.join(root,assetSource.match(/"([^\"]+\.wasm)"/)[1]));
 
-const root = path.resolve(__dirname, "..");
+async function createEngine(scene) {
+  const {instance}=await WebAssembly.instantiate(wasm,{});const e=instance.exports;
+  if(scene){const count=scene.length/Scene.STRIDE;const ptr=e.scene_buffer(count);new Float32Array(e.memory.buffer,ptr,scene.length).set(scene);assert.equal(e.scene_commit(count),count);}
+  return e;
+}
+function state(e){return Array.from(new Float32Array(e.memory.buffer,e.state_ptr(),8));}
+function object(x,y,z,w,h,d,shape=0,yaw=0) {return new Float32Array([x,y,z,w/2,h/2,d/2,yaw,.3,.7,.5,1,35,.1,3,4,53215,shape,1,0,.2,.3,.4,0,0,0,0]);}
+function render(e,columns=180,rows=80){const ptr=e.render_ascii(columns,rows,1.7);return Buffer.from(new Uint8Array(e.memory.buffer,ptr,columns*rows*4));}
 
-test("world configuration locks the authored flight and streaming scale", () => {
-  assert.equal(Core.WORLD_CONFIG.chunkSize, 320);
-  assert.equal(Core.WORLD_CONFIG.metroChunks, 24);
-  assert.equal(Core.WORLD_CONFIG.minSpeed, 45);
-  assert.equal(Core.WORLD_CONFIG.maxSpeed, 145);
-  assert.equal(Core.WORLD_CONFIG.boostSpeed, 210);
-  assert.equal(Core.DISTRICT_CATALOG.length, 10);
-  assert.equal(Core.MISSION_CATALOG.length, 7);
-  assert.deepEqual(Core.CONTENT_COUNTS, {
-    towerVariants: 24,
-    towerClusters: 12,
-    villaVariants: 12,
-    commercialVariants: 10,
-    parkVariants: 6,
-    roadVariants: 6,
-    interchangeVariants: 4,
-    landmarkVariants: 8,
-    treeVariants: 5,
-    missionTypes: 7
-  });
-});
-
-test("same seed and coordinates always describe the same chunk", () => {
-  const a = Core.describeChunk(Core.createWorld("SKY-ALPHA"), 143, -87);
-  const b = Core.describeChunk(Core.createWorld("SKY-ALPHA"), 143, -87);
-  assert.deepEqual(a, b);
-  assert.equal(a.key, "143,-87");
-});
-
-test("different seeds produce meaningfully different cities", () => {
-  const a = Core.describeChunk(Core.createWorld("SKY-ALPHA"), 12, 12);
-  const b = Core.describeChunk(Core.createWorld("SKY-BETA"), 12, 12);
-  assert.notDeepEqual({ city: a.city, tower: a.towerVariant }, { city: b.city, tower: b.towerVariant });
-});
-
-test("road and rail connectors remain continuous across chunk boundaries", () => {
-  const world = Core.createWorld("CONNECTORS");
-  for (let z = -30; z <= 30; z += 1) {
-    const current = Core.describeChunk(world, 0, z);
-    const next = Core.describeChunk(world, 0, z + 1);
-    assert.equal(current.roads.north, next.roads.south);
+test("authored composition has stable identities, finite geometry and distinct building silhouettes",()=>{
+  const a=Scene.build(),b=Scene.build();assert.deepEqual(a.packed,b.packed);
+  assert.equal(new Set(a.objects.map(o=>o.id)).size,a.objects.length);
+  assert.ok(a.sites.length>=30);assert.ok(a.objects.length>=600);
+  for(const site of a.sites){assert.ok(site.description.length>10);assert.ok(site.count>0);}
+  const silhouettes=new Set();
+  for(const site of a.sites.filter(s=>!['ground','streets','street-life'].includes(s.id))){
+    const geometry=a.objects.slice(site.start,site.start+site.count).map(o=>[...o.values.slice(0,7).map((v,i)=>i===0?v-site.x:i===2?v-site.z:v),o.values[16],...o.values.slice(24,26)]);
+    const signature=JSON.stringify(geometry);assert.ok(!silhouettes.has(signature),"duplicate composition: "+site.name);silhouettes.add(signature);
   }
-  for (let x = -30; x <= 30; x += 1) {
-    assert.equal(Core.describeChunk(world, x, 8).rail.eastWest, true);
+  assert.doesNotMatch(fs.readFileSync(path.join(root,"js/city-shuttle-scene.js"),"utf8"),/Math\.random|describeChunk|towerVariant/);
+});
+
+test("runtime loads the built first-party Wasm and content hash matches build manifest",async()=>{
+  const metadata=JSON.parse(fs.readFileSync(path.join(root,"libs/city-shuttle-20261008/build.json"),"utf8"));
+  assert.equal(crypto.createHash("sha256").update(wasm).digest("hex"),metadata.sha256);
+  assert.equal(wasm.length,metadata.bytes);
+  const module=await WebAssembly.compile(wasm);assert.deepEqual(WebAssembly.Module.imports(module),[]);
+  assert.equal((await createEngine()).engine_version(),2);
+});
+
+test("each actual starting view renders coloured characters and roofs use the same scene",async()=>{
+  const scene=Scene.build();const e=await createEngine(scene.packed);
+  for(const spawn of Scene.SPAWNS){e.reset_flight(spawn.x,spawn.y,spawn.z,spawn.yaw,spawn.pitch);const pixels=render(e);let visible=0;let colours=new Set();
+    for(let i=0;i<pixels.length;i+=4){if(pixels[i]!==32){visible++;colours.add(pixels.subarray(i+1,i+4).toString("hex"));}}
+    assert.ok(visible>1200,spawn.name+" has insufficient visible geometry");assert.ok(colours.size>15,spawn.name+" lacks colour detail");
+    assert.deepEqual(render(e),pixels,"stationary view must be stable");
   }
 });
 
-test("every sampled metropolis has one landmark and a non-overlapping airport", () => {
-  const world = Core.createWorld("AIRSPACE");
-  for (let metroZ = -2; metroZ <= 2; metroZ += 1) {
-    for (let metroX = -2; metroX <= 2; metroX += 1) {
-      let landmarks = 0;
-      let airports = 0;
-      for (let z = 0; z < 24; z += 1) {
-        for (let x = 0; x < 24; x += 1) {
-          const chunk = Core.describeChunk(world, metroX * 24 + x, metroZ * 24 + z);
-          if (chunk.special === "landmark") landmarks += 1;
-          if (chunk.special === "airport") airports += 1;
-          assert.notEqual(chunk.special === "landmark" && chunk.airport.inside, true);
-        }
+test("flight moves, stops smoothly, can rise and turn without missions or automatic propulsion",async()=>{
+  const e=await createEngine();e.reset_flight(0,10,100,0,0);
+  for(let i=0;i<60;i++)e.flight_tick(1/60,1,0,0);
+  const moved=state(e);assert.ok(moved[2]<80);assert.ok(moved[6]>30);
+  for(let i=0;i<300;i++)e.flight_tick(1/60,0,0,0);
+  const stop=state(e);assert.ok(Math.abs(stop[6])<.001);
+  for(let i=0;i<60;i++)e.flight_tick(1/60,32,1,.1);
+  const risen=state(e);assert.ok(risen[1]>25);assert.ok(risen[3]>1);assert.ok(risen[4]>0);
+});
+
+test("swept collision prevents fast flight through a thin wall and allows parallel sliding",async()=>{
+  const e=await createEngine(object(0,10,0,40,40,.4));e.reset_flight(0,10,10,0,0);
+  for(let i=0;i<120;i++)e.flight_tick(1/60,17,0,0);
+  assert.ok(state(e)[2]>=.9,"must remain in front of thin wall");
+  const before=state(e);for(let i=0;i<30;i++)e.flight_tick(1/60,9,0,0);
+  assert.ok(state(e)[0]>before[0]+4,"sideways motion should slide along the wall");
+});
+
+test("oblique geometry and ellipsoids produce different directional ray hits",async()=>{
+  const flat=await createEngine(object(0,10,0,20,20,3));const rotated=await createEngine(object(0,10,0,20,20,3,0,.65));
+  flat.reset_flight(0,10,28,0,0);rotated.reset_flight(0,10,28,0,0);assert.notDeepEqual(render(flat),render(rotated));
+  const sphere=await createEngine(object(0,10,0,20,20,20,1));sphere.reset_flight(0,10,28,0,0);assert.notDeepEqual(render(flat),render(sphere));
+});
+
+test("interior gallery is traversable and its rear wall prevents leaving through solid masonry",async()=>{
+  const e=await createEngine(Scene.build().packed);const spawn=Scene.SPAWNS.find(s=>s.id==="arcade");e.reset_flight(spawn.x,spawn.y,spawn.z,spawn.yaw,spawn.pitch);
+  e.reset_flight(spawn.x,spawn.y,-190,spawn.yaw,spawn.pitch);
+  for(let i=0;i<60;i++)e.flight_tick(1/60,1,0,0);assert.ok(state(e)[2]<-210,"entrance should be open");
+  for(let i=0;i<240;i++)e.flight_tick(1/60,17,0,0);assert.ok(state(e)[2]>-270.5,"solid rear wall should stop flight");
+});
+
+test("window apertures reveal actual objects outside while retaining physical glass collision",async()=>{
+  const front=object(0,10,0,20,20,1);const back=object(0,10,-20,20,20,3);back[7]=1;back[8]=.15;back[9]=.05;back[10]=0;
+  const opaque=await createEngine(new Float32Array([...front,...back]));front[10]=10;
+  const open=await createEngine(new Float32Array([...front,...back]));opaque.reset_flight(0,10,25,0,0);open.reset_flight(0,10,25,0,0);
+  const index=(40*181+90)*4;const a=render(opaque,181,81),b=render(open,181,81);
+  assert.ok(a[index+2]>a[index+1],"opaque facade should appear green");assert.ok(b[index+1]>b[index+2],"window should reveal the red object behind it");
+  for(let i=0;i<180;i++)open.flight_tick(1/60,17,0,0);assert.ok(state(open)[2]>.9,"glass must remain a physical boundary");
+});
+
+test("desktop grid stays within Wasm limits and input expresses only free-flight movement",()=>{
+  for(const size of [[1280,720],[1920,1080],[900,600],[3840,2160]])for(const detailed of [false,true]){const g=Core.grid(...size,detailed);assert.ok(g.columns>=32&&g.columns<=420);assert.ok(g.rows>=24&&g.rows<=240);}
+  assert.equal(Core.flags({}),0);assert.equal(Core.flags({KeyW:true,ShiftLeft:true,KeyE:true}),49);
+  assert.equal(Core.flags({ShiftLeft:true}),0);
+});
+
+test("every authored portal can actually be flown through, including ascending and inclined interior streets",async()=>{
+  const scene=Scene.build();const e=await createEngine(scene.packed);
+  for(const spawn of Scene.SPAWNS)assert.equal(e.is_space_clear(spawn.x,spawn.y,spawn.z,.8),1,spawn.name+" starts inside a structure");
+  for(const passage of Scene.PASSAGES){
+    for(let i=0;i<passage.points.length-1;i++){
+      const a=passage.points[i],b=passage.points[i+1],delta=b.map((v,j)=>v-a[j]),length=Math.hypot(...delta),horizontal=Math.hypot(delta[0],delta[2]);
+      const yaw=Math.atan2(delta[0],-delta[2]),pitch=Math.atan2(delta[1],horizontal),flags=horizontal<.01?(delta[1]>0?32:64):1;
+      e.reset_flight(...a,yaw,horizontal<.01?0:pitch);
+      let travelled=0;
+      for(let frame=0;frame<1800&&travelled<length;frame++){
+        e.flight_tick(1/60,flags,0,0);const position=state(e);travelled=Math.hypot(position[0]-a[0],position[1]-a[1],position[2]-a[2]);
+        assert.equal(position[7],0,passage.id+" hits a structure in segment "+i);
+        assert.equal(e.is_space_clear(...position.slice(0,3),.79),1,passage.id+" clips through geometry");
       }
-      assert.equal(landmarks, 1);
-      assert.ok(airports >= 12);
+      assert.ok(travelled>=length,passage.id+" cannot traverse the planned space");
     }
   }
 });
 
-test("metropolis edges form low-density transition belts", () => {
-  const world = Core.createWorld("GREEN-EDGE");
-  const edge = Core.describeChunk(world, 0, 0);
-  const center = Core.describeChunk(world, 11, 11);
-  assert.ok(edge.transition > 0.7);
-  assert.ok(edge.density < center.density);
-  assert.ok(edge.greenery > 0.5);
+test("pitch and roll geometry keeps collision in the actual rotated space",async()=>{
+  const ramp=object(0,10,0,50,1,20);ramp[25]=Math.PI/4;
+  const e=await createEngine(ramp);assert.equal(e.is_space_clear(5,15,0,.8),0);assert.equal(e.is_space_clear(5,4,0,.8),1);
+  e.reset_flight(5,2,0,0,0);let firstHit=null;
+  for(let i=0;i<120;i++){e.flight_tick(1/60,32,0,0);const p=state(e);if(p[7]&&!firstHit)firstHit=p;assert.equal(e.is_space_clear(...p.slice(0,3),.79),1,"sliding must not enter the rotated slab");}
+  assert.ok(firstHit&&firstHit[1]>12&&firstHit[1]<15,"first contact must occur at the inclined local surface");
 });
 
-test("a representative world exposes every district and authored variant family", () => {
-  const world = Core.createWorld("CONTENT-COVERAGE");
-  const districts = new Set();
-  const towers = new Set();
-  const clusters = new Set();
-  const villas = new Set();
-  const commerce = new Set();
-  const parks = new Set();
-  const landmarks = new Set();
-  for (let z = -48; z < 72; z += 1) {
-    for (let x = -48; x < 72; x += 1) {
-      const chunk = Core.describeChunk(world, x, z);
-      districts.add(chunk.district.id);
-      towers.add(chunk.towerVariant);
-      clusters.add(chunk.clusterVariant);
-      villas.add(chunk.villaVariant);
-      commerce.add(chunk.commercialVariant);
-      parks.add(chunk.parkVariant);
-      if (chunk.special === "landmark") landmarks.add(chunk.city.landmarkVariant);
-    }
-  }
-  assert.equal(districts.size, Core.DISTRICT_CATALOG.length);
-  assert.equal(towers.size, Core.CONTENT_COUNTS.towerVariants);
-  assert.equal(clusters.size, Core.CONTENT_COUNTS.towerClusters);
-  assert.equal(villas.size, Core.CONTENT_COUNTS.villaVariants);
-  assert.equal(commerce.size, Core.CONTENT_COUNTS.commercialVariants);
-  assert.equal(parks.size, Core.CONTENT_COUNTS.parkVariants);
-  assert.ok(landmarks.size >= 6);
+test("world signs have shaped lettering instead of repeating one glyph across a rectangle",async()=>{
+  const front=object(0,10,0,20,20,1);front[10]=8;front[11]="O".charCodeAt(0);front[17]=0;
+  const back=object(0,10,-20,20,20,3);back[7]=1;back[8]=.15;back[9]=.05;back[10]=0;
+  const e=await createEngine(new Float32Array([...front,...back]));const index=(40*181+90)*4;
+  e.reset_flight(0,10,25,0,0);const hole=render(e,181,81);assert.ok(hole[index+1]>hole[index+2],"letter O must reveal the red background at its centre");
+  e.reset_flight(-8,10,25,0,0);const stroke=render(e,181,81);assert.ok(stroke[index+2]>stroke[index+1],"letter O must keep the green side stroke");assert.equal(stroke[index],35);
 });
 
-test("flight never drops below cruise floor or exceeds boost cap", () => {
-  let state = Core.createFlightState("FLIGHT");
-  for (let index = 0; index < 1200; index += 1) state = Core.stepFlight(state, { brake: true }, 1 / 120);
-  assert.equal(state.speed, 45);
-  for (let index = 0; index < 1200; index += 1) state = Core.stepFlight(state, { boost: true }, 1 / 120);
-  assert.ok(state.speed <= 210);
-  assert.ok(state.speed >= 45);
-  assert.ok(state.distance > 0);
-});
-
-test("fixed-step flight turns, banks and respects altitude steering", () => {
-  let state = Core.createFlightState("CONTROL");
-  const start = { ...state.position };
-  for (let index = 0; index < 120; index += 1) state = Core.stepFlight(state, { turnX: 0.7, turnY: 0.25, bank: 1, thrust: true }, 1 / 120);
-  assert.notEqual(state.yaw, 0);
-  assert.ok(state.roll > 0);
-  assert.notDeepEqual(state.position, start);
-});
-
-test("third-person shuttle nose follows flight yaw and pitch", () => {
-  const samples = [
-    { yaw: 0, pitch: 0, roll: 0 },
-    { yaw: 0.8, pitch: 0.35, roll: 0.5 },
-    { yaw: -1.4, pitch: -0.42, roll: -0.7 },
-    { yaw: Math.PI, pitch: 0.18, roll: 1.1 }
-  ];
-  for (const sample of samples) {
-    const flightForward = Core.forwardVector(sample.yaw, sample.pitch);
-    const modelForward = Core.rotateModelVector(
-      { x: 0, y: 0, z: -1 },
-      { x: sample.pitch, y: sample.yaw, z: -sample.roll }
-    );
-    assert.ok(Math.abs(modelForward.x - flightForward.x) < 1e-12);
-    assert.ok(Math.abs(modelForward.y - flightForward.y) < 1e-12);
-    assert.ok(Math.abs(modelForward.z - flightForward.z) < 1e-12);
-  }
-});
-
-test("positive shuttle bank lowers its right wing", () => {
-  const modelRight = Core.rotateModelVector(
-    { x: 1, y: 0, z: 0 },
-    { x: 0, y: 0, z: -0.6 }
-  );
-  assert.ok(modelRight.y < 0);
-});
-
-test("swept-sphere collision catches thin structures at boost speed", () => {
-  const hit = Core.sweepSphere(
-    { x: -100, y: 30, z: 0 },
-    { x: 100, y: 30, z: 0 },
-    2.4,
-    [{ x: 0, y: 30, z: 0, hx: 0.4, hy: 20, hz: 20, tag: "thin-wall" }]
-  );
-  assert.ok(hit);
-  assert.equal(hit.collider.tag, "thin-wall");
-  assert.ok(hit.time < 0.6);
-});
-
-test("all seven mission types create forward, completable checkpoint routes", () => {
-  const world = Core.createWorld("MISSIONS");
-  for (const definition of Core.MISSION_CATALOG) {
-    let mission = Core.createMission(world, definition.id, { x: 160, y: 110, z: 160 }, 0);
-    assert.equal(mission.checkpoints.length, definition.checkpointCount);
-    assert.ok(mission.checkpoints.every((point) => point.radius >= 15 && point.y >= 24));
-    assert.equal(Core.missionHasClearance(mission, [], 10), true);
-    for (const point of mission.checkpoints) mission = Core.advanceMission(mission, point, 0.1);
-    assert.equal(mission.complete, true);
-    assert.ok(Core.scoreMission(mission, 2) > mission.baseScore);
-  }
-});
-
-test("crash recovery preserves total score while clearing combo", () => {
-  const state = Core.createFlightState("CRASH");
-  state.totalScore = 9876;
-  state.combo = 4.8;
-  state.crashes = 2;
-  state.checkpoint = { x: 800, y: 40, z: -500, yaw: 1.2 };
-  const recovered = Core.resolveCrash(state);
-  assert.equal(recovered.totalScore, 9876);
-  assert.equal(recovered.combo, 1);
-  assert.equal(recovered.crashes, 3);
-  assert.deepEqual(recovered.position, { x: 800, y: 72, z: -500 });
-});
-
-test("twenty minutes of fixed-step flight crosses many metros without a world edge", () => {
-  const world = Core.createWorld("ENDLESS-RUN");
-  let state = Core.createFlightState(world.seed);
-  const metros = new Set();
-  for (let frame = 0; frame < 1200 * 120; frame += 1) {
-    state = Core.stepFlight(state, { thrust: true }, 1 / 120);
-    if (frame % 120 === 0) {
-      const chunk = Core.describeChunk(world, Core.floorDiv(state.position.x, 320), Core.floorDiv(state.position.z, 320));
-      metros.add(chunk.city.metroX + "," + chunk.city.metroZ);
-    }
-  }
-  assert.ok(Number.isFinite(state.position.x) && Number.isFinite(state.position.z));
-  assert.ok(state.distance > 150000);
-  assert.ok(metros.size >= 18);
-});
-
-test("city shuttle replaces the old page while preserving route aliases", () => {
-  const registry = fs.readFileSync(path.join(root, "js/page-registry.js"), "utf8");
-  const cards = fs.readFileSync(path.join(root, "js/tool-cards.js"), "utf8");
-  const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-  const game = fs.readFileSync(path.join(root, "js/city-shuttle.js"), "utf8");
-  assert.match(registry, /"city-shuttle"/);
-  assert.match(registry, /"anomaly-bureau"/);
-  assert.match(registry, /"ascii-void"/);
-  assert.match(registry, /__page_city_shuttle/);
-  assert.match(cards, /无界穿梭：天际城/);
-  assert.match(cards, /#\/city-shuttle/);
-  assert.match(html, /template id="page-city-shuttle"/);
-  assert.match(html, /data-cs-seed/);
-  assert.match(html, /PC 键鼠/);
-  assert.match(game, /getContext\("webgl2"/);
-  assert.match(game, /drawElementsInstanced/);
-  assert.match(game, /ASCII_SCALE\s*=\s*3/);
-  assert.match(game, /mat3 rotY\(float a\).*mat3\(c,0,s,0,1,0,-s,0,c\)/);
-  assert.doesNotMatch(game, /rx:-pitch,ry:yaw/);
-  assert.match(game, /window\.__page_city_shuttle/);
-});
-
-test("procedural generation contains no nondeterministic Math.random calls", () => {
-  const core = fs.readFileSync(path.join(root, "js/city-shuttle-core.js"), "utf8");
-  const game = fs.readFileSync(path.join(root, "js/city-shuttle.js"), "utf8");
-  assert.doesNotMatch(core, /Math\.random/);
-  assert.doesNotMatch(game, /Math\.random/);
+test("route aliases load the new core and obsolete mission controls are removed",()=>{
+  const registry=fs.readFileSync(path.join(root,"js/page-registry.js"),"utf8");const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
+  const template=html.slice(html.indexOf('<template id="page-city-shuttle">'),html.indexOf('</template>',html.indexOf('<template id="page-city-shuttle">')));
+  assert.match(registry,/"anomaly-bureau"/);assert.match(registry,/"ascii-void"/);assert.match(registry,/city-shuttle-scene\.js/);
+  assert.doesNotMatch(template,/data-cs-score|data-cs-mission|data-cs-seed|随机城市|任务/);
+  assert.match(template,/data-cs-startpoint/);
 });

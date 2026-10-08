@@ -658,7 +658,7 @@
 
   <!-- Defer preserves dependencies while letting all page templates parse. -->
   <script src="./js/config.js" defer></script>
-  <script src="./js/page-registry.js?v=20261008-chief-2" defer></script>
+  <script src="./js/page-registry.js?v=20261008-city-flight-2" defer></script>
   <script src="./js/shell.js?v=20261005-theme-advice-dismiss" defer></script>
   <script src="./js/startup.js?v=20261005-cache" defer></script>
   <script src="./js/router.js?v=20261005-cache" defer></script>
@@ -2841,77 +2841,54 @@
     <section class="cs-root" data-cs-root>
       <header class="cs-hero page-chunk" data-reveal-order="2">
         <div>
-          <p class="cs-kicker">INFINITE CITY SHUTTLE // PROCEDURAL SKYWAYS</p>
+          <p class="cs-kicker">SKYLINE CITY // A PLACE TO WANDER</p>
           <h1>无界穿梭<span> // 天际城</span></h1>
-          <p>驾驶高速穿梭机越过永不结束的城市群。摩天楼、公园、游乐园、别墅区、高铁与机场全部由城市种子实时构建。</p>
+          <p>沿着霓虹街道慢飞，穿过中庭，越过楼顶，再去看看河对岸。这里只有一座城市，和你选择的方向。</p>
         </div>
         <div class="cs-hero__telemetry" aria-label="游戏特性">
-          <div><small>WORLD</small><strong>无限区块</strong></div>
-          <div><small>VELOCITY</small><strong>45–210 m/s</strong></div>
-          <div><small>RENDER</small><strong>彩色 ASCII 3×</strong></div>
+          <div><small>WORLD</small><strong>原创城市</strong></div>
+          <div><small>FLIGHT</small><strong>自由探索</strong></div>
+          <div><small>VIEW</small><strong>彩色字符</strong></div>
         </div>
       </header>
 
       <section class="cs-shell page-chunk" data-reveal-order="3">
-        <div class="cs-stage" data-cs-stage data-crashing="false" role="application" aria-label="无界穿梭彩色 ASCII 飞行游戏">
-          <canvas class="cs-canvas" data-cs-canvas tabindex="0" aria-label="程序生成城市飞行画面"></canvas>
-          <div class="cs-speed-lines" aria-hidden="true"></div>
-          <div class="cs-scanlines" aria-hidden="true"></div>
-          <div class="cs-vignette" aria-hidden="true"></div>
+        <div class="cs-stage" data-cs-stage role="application" aria-label="天际城自由飞行">
+          <canvas class="cs-canvas" data-cs-canvas tabindex="0" aria-label="城市飞行画面。W 前行、S 后退、A D 平移、Q E 升降，方向键转向，P 暂停。"></canvas>
 
           <div class="cs-stage-actions" aria-label="画面控制">
-            <button type="button" data-cs-camera-button>切换视角 (C)</button>
-            <button type="button" data-cs-char>字符：标准</button>
+            <button type="button" data-cs-hud-toggle>显示 / 隐藏信息 (H)</button>
+            <button type="button" data-cs-quality aria-pressed="false">字符：标准</button>
             <button type="button" data-cs-fullscreen aria-label="进入全屏">全屏 (F)</button>
           </div>
 
           <div class="cs-hud" aria-hidden="true">
             <div class="cs-hud__location">
-              <small>CURRENT METROPOLIS</small>
-              <strong data-cs-city>--</strong>
-              <span data-cs-district>--</span>
+              <small>SKYLINE CITY</small>
+              <strong data-cs-district>雨巷大道</strong>
             </div>
             <div class="cs-hud__flight">
-              <div><small>VELOCITY</small><strong data-cs-speed>92 m/s</strong></div>
-              <div><small>ALTITUDE</small><strong data-cs-altitude>118 m</strong></div>
+              <div><small>VELOCITY</small><strong data-cs-speed>0 m/s</strong></div>
+              <div><small>ALTITUDE</small><strong data-cs-altitude>12 m</strong></div>
             </div>
-            <div class="cs-objective" data-cs-objective>飞入金色航线门开始任务</div>
-            <div class="cs-reticle"></div>
-            <div class="cs-heading" data-cs-heading>000°</div>
-            <div class="cs-mission">
-              <small>AIR ROUTE</small>
-              <strong data-cs-mission>自由飞行</strong>
-              <span data-cs-mission-progress>航线待命</span><span data-cs-mission-time>--</span>
-            </div>
-            <div class="cs-score"><small>SESSION SCORE</small><strong data-cs-score>0</strong><span data-cs-combo>×1.0</span></div>
-            <div class="cs-boost" data-cs-boost><small><span>THRUST RESERVE</span><span>SHIFT</span></small><div></div></div>
-            <span class="cs-seed">CITY SEED // <b data-cs-seed-hud>--</b></span>
-            <span class="cs-camera" data-cs-camera>尾随视角</span>
+            <span class="cs-flight-status" data-cs-status>自由飞行</span>
+            <span class="cs-flight-hint">W 前行 · 松开悬停 · 鼠标 / 方向键转向 · Q / E 升降</span>
           </div>
-
-          <div class="cs-toast" data-cs-toast data-visible="false" aria-live="polite"></div>
 
           <div class="cs-overlay" data-cs-overlay>
             <div class="cs-overlay__card">
-              <span class="cs-overlay__kicker">SKYWAY SYSTEM // READY</span>
-              <h2 data-cs-overlay-title>进入无界天际城</h2>
-              <p data-cs-overlay-text>穿梭机不会停下。飞入金色航线门接取任务，撞击后将从最近安全航线重新出发。</p>
-              <div class="cs-seed-form" aria-label="城市种子">
-                <input data-cs-seed maxlength="32" aria-label="城市种子" autocomplete="off" spellcheck="false">
-                <button type="button" data-cs-random>随机城市</button>
-                <button type="button" data-cs-copy>复制链接</button>
-              </div>
+              <span class="cs-overlay__kicker">TAKE YOUR TIME // LOOK AROUND</span>
+              <h2 data-cs-overlay-title>城市正在载入</h2>
+              <p data-cs-overlay-text role="status">正在准备街道、立面与字符渲染核心…</p>
               <div class="cs-controls" aria-label="操作说明">
-                <span>鼠标 · 俯仰 / 偏航</span><span>A / D · 横滚</span><span>W / S · 加速 / 减速</span><span>Shift · 高速推进</span>
-                <span>C · 切换视角</span><span>R · 重置航线</span><span>F · 全屏</span><span>Esc / P · 暂停</span>
+                <span>鼠标 / 方向键 · 转向</span><span>W / S · 前行 / 后退</span><span>A / D · 左右平移</span><span>Q / E · 下降 / 上升</span>
+                <span>Shift + W · 快速前行</span><span>松开移动键 · 悬停</span><span>H · 隐藏信息</span><span>Esc / P · 暂停</span>
               </div>
               <div class="cs-settings">
-                <label>操控灵敏度 <input data-cs-sensitivity type="range" min="0.5" max="1.8" step="0.1" value="1"></label>
-                <label>引擎音量 <input data-cs-volume type="range" min="0" max="1" step="0.05" value="0.6"></label>
+                <label>鼠标灵敏度 <input data-cs-sensitivity type="range" min="0.3" max="2" step="0.1" value="1"></label>
               </div>
               <div class="cs-overlay__actions">
-                <button type="button" data-cs-start>启动穿梭机</button>
-                <button type="button" data-cs-start-full>全屏起飞</button>
+                <button type="button" data-cs-start disabled>进入城市</button>
               </div>
             </div>
           </div>
@@ -2919,18 +2896,18 @@
 
         <div class="cs-toolbar" aria-label="飞行设置">
           <button type="button" data-cs-pause>暂停 / 继续 (P)</button>
-          <button type="button" data-cs-new-city>生成新城市</button>
-          <button type="button" data-cs-camera-button>切换视角 (C)</button>
-          <button type="button" data-cs-char>字符：标准</button>
+          <label class="cs-startpoint">从这里看看 <select data-cs-startpoint aria-label="城市出发位置"></select></label>
+          <button type="button" data-cs-reset>返回出发位置</button>
+          <button type="button" data-cs-quality aria-pressed="false">字符：标准</button>
           <button type="button" data-cs-fullscreen aria-label="进入全屏">全屏 (F)</button>
-          <span>PC 键鼠 · WebGL2 · 本次分数不会保存</span>
+          <span>PC 键鼠 · 自由飞行</span>
         </div>
       </section>
 
       <section class="cs-info page-chunk" data-reveal-order="4">
-        <article><span>01 / 无限都市</span><h3>每个种子都是一片完整城市群</h3><p>高楼核心、别墅外围、城市绿带、机场与交通走廊连续过渡，不会出现地图边界。</p></article>
-        <article><span>02 / 高速航线</span><h3>七类任务全部在飞行中完成</h3><p>竞速、穿楼、桥洞特技、高铁追随、机场尾流、地标扫描与游乐园穿越随时加入。</p></article>
-        <article><span>03 / 原创生成</span><h3>建筑、交通与声音全部本地生成</h3><p>不下载模型，不上传数据；分享城市种子即可让其他玩家进入相同世界。</p></article>
+        <article><span>01 / 沿街</span><h3>窗灯、店面与街角</h3><p>从雨巷大道开始，放慢速度，看一看各栋建筑的立面、招牌和门廊。</p></article>
+        <article><span>02 / 向上</span><h3>屋顶上还有另一座城</h3><p>退台、观景层、设备舱与空中连廊，都在同一个可飞行的空间中。</p></article>
+        <article><span>03 / 穿行</span><h3>从中庭到河岸</h3><p>通光廊留有开放的内庭；镜河两岸由弦桥连接，桥下也可以慢慢飞过。</p></article>
       </section>
     </section>
   </template>
