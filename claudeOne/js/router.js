@@ -21,6 +21,8 @@
   var isNavigating = false;
   var pendingNavigation = null;
   var readyResolvers = {};
+  var preparingLifecycle = null;
+  var navigatingPage = null;
 
   var TRANSITION_MS = 260;  // must match CSS exit animation duration
 
@@ -54,6 +56,7 @@
 
   function finishNavigation() {
     isNavigating = false;
+    navigatingPage = null;
     if (!pendingNavigation) return;
 
     var next = pendingNavigation;
@@ -157,7 +160,11 @@
     }
 
     if (isNavigating) {
+      if (pageName === navigatingPage) return;
       pendingNavigation = { pageName: pageName, opts: opts };
+      if (preparingLifecycle && typeof preparingLifecycle.cancelPrepare === "function") {
+        preparingLifecycle.cancelPrepare();
+      }
       return;
     }
     if (pageName === currentPage) {
@@ -166,86 +173,104 @@
     }
 
     isNavigating = true;
+    navigatingPage = pageName;
 
-    // 1. Unmount current page
-    if (currentLifecycle && typeof currentLifecycle.unmount === "function") {
-      try { currentLifecycle.unmount(); } catch (e) { console.warn("[router] unmount error:", e); }
-    }
-
-    // The initial page has nothing to animate out. Start resource requests
-    // during later exit transitions rather than after the animation ends.
+    // Data-backed pages can prepare before the current page fades away.
+    // Other routes keep their existing resource/exit overlap.
     var hasCurrentPage = currentPage !== null;
-    if (hasCurrentPage) document.body.removeAttribute("data-initial-route");
-    document.body.setAttribute("data-route-state", hasCurrentPage ? "exiting" : "loading");
     (meta.css || []).forEach(function (url) { loadCSS(url); });
     var scriptsReady = loadJSSeq(meta.js || []);
+    var preparationReady = Promise.resolve();
+    if (meta.prepare) {
+      document.body.setAttribute("data-route-state", hasCurrentPage ? "preparing" : "loading");
+      preparationReady = scriptsReady.then(function () {
+        if (pendingNavigation) return;
+        preparingLifecycle = getLifecycle(meta);
+        if (preparingLifecycle && typeof preparingLifecycle.prepare === "function") return preparingLifecycle.prepare();
+      }).catch(function (error) { console.warn("[router] prepare error:", error); });
+    }
 
-    sleep(hasCurrentPage ? TRANSITION_MS : 0).then(function () {
-      // 3. Load CSS
-      (meta.css || []).forEach(function (url) { loadCSS(url); });
-
-      // 4. Inject page content from template
-      var main = document.querySelector("[data-content-slot]");
-      if (!main) {
-        console.error("[router] Content slot missing");
+    preparationReady.then(function () {
+      preparingLifecycle = null;
+      if (pendingNavigation && pendingNavigation.pageName !== pageName) {
+        document.body.setAttribute("data-route-state", "idle");
         finishNavigation();
         return;
       }
-      main.innerHTML = "";
-      var template = document.getElementById(meta.templateId);
-      if (template) {
-        var clone = template.content.cloneNode(true);
-        main.appendChild(clone);
-      } else {
-        main.innerHTML = '<div class="page-chunk" style="text-align:center;padding:60px"><p>页面内容加载中...</p></div>';
-        console.warn("[router] Template not found:", meta.templateId);
+      // Keep the outgoing page intact until preparation finishes or is cancelled.
+      if (currentLifecycle && typeof currentLifecycle.unmount === "function") {
+        try { currentLifecycle.unmount(); } catch (e) { console.warn("[router] unmount error:", e); }
       }
+      if (hasCurrentPage) document.body.removeAttribute("data-initial-route");
+      document.body.setAttribute("data-route-state", hasCurrentPage ? "exiting" : "loading");
 
-      // 5. Load JS and mount
-      scriptsReady.then(function () {
-        // Give scripts a microtask to register their lifecycle
-        setTimeout(function () {
-          currentLifecycle = getLifecycle(meta);
+      return sleep(hasCurrentPage ? TRANSITION_MS : 0).then(function () {
+        // 3. Load CSS
+        (meta.css || []).forEach(function (url) { loadCSS(url); });
 
-          if (currentLifecycle && typeof currentLifecycle.mount === "function") {
-            try { currentLifecycle.mount(main); } catch (e) { console.warn("[router] mount error:", e); }
-          }
-
-          // 6. Update metadata
-          document.title = meta.title;
-          document.body.setAttribute("data-page", pageName);
-          updateMetaDescription(meta.description);
-
-          // 7. Update hash (without triggering hashchange)
-          if (!opts.replace) {
-            updateHash(pageName);
-          } else {
-            history.replaceState(null, "", "#/" + pageName);
-          }
-
-          // 8. Re-render nav
-          if (window.ClaudeOne && window.ClaudeOne.renderNav) {
-            window.ClaudeOne.renderNav();
-          }
-
-          // 9. Refresh reveal observer for new .page-chunk elements
-          if (window.ClaudeOne && window.ClaudeOne.refreshReveal) {
-            window.ClaudeOne.refreshReveal();
-          }
-
-          // 10. Enter transition
-          document.body.setAttribute("data-route-state", "idle");
-
-          // Scroll to top
-          window.scrollTo({ top: 0, behavior: "instant" });
-
-          currentPage = pageName;
-          resolveReady(pageName);
+        // 4. Inject page content from template
+        var main = document.querySelector("[data-content-slot]");
+        if (!main) {
+          console.error("[router] Content slot missing");
           finishNavigation();
-        }, 10);
-      }).catch(function () {
-        document.body.setAttribute("data-route-state", "idle");
-        finishNavigation();
+          return;
+        }
+        main.innerHTML = "";
+        var template = document.getElementById(meta.templateId);
+        if (template) {
+          var clone = template.content.cloneNode(true);
+          main.appendChild(clone);
+        } else {
+          main.innerHTML = '<div class="page-chunk" style="text-align:center;padding:60px"><p>页面内容加载中...</p></div>';
+          console.warn("[router] Template not found:", meta.templateId);
+        }
+
+        // 5. Load JS and mount
+        scriptsReady.then(function () {
+          // Give scripts a microtask to register their lifecycle
+          setTimeout(function () {
+            currentLifecycle = getLifecycle(meta);
+
+            if (currentLifecycle && typeof currentLifecycle.mount === "function") {
+              try { currentLifecycle.mount(main); } catch (e) { console.warn("[router] mount error:", e); }
+            }
+
+            // 6. Update metadata
+            document.title = meta.title;
+            document.body.setAttribute("data-page", pageName);
+            updateMetaDescription(meta.description);
+
+            // 7. Update hash (without triggering hashchange)
+            if (!opts.replace) {
+              updateHash(pageName);
+            } else {
+              history.replaceState(null, "", "#/" + pageName);
+            }
+
+            // 8. Re-render nav
+            if (window.ClaudeOne && window.ClaudeOne.renderNav) {
+              window.ClaudeOne.renderNav();
+            }
+
+            // 9. Refresh reveal observer for new .page-chunk elements
+            if (window.ClaudeOne && window.ClaudeOne.refreshReveal) {
+              window.ClaudeOne.refreshReveal();
+            }
+
+            // 10. Enter transition
+            document.body.setAttribute("data-route-state", "idle");
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: "instant" });
+
+            currentPage = pageName;
+            resolveReady(pageName);
+            finishNavigation();
+          }, 10);
+        }).catch(function () {
+          document.body.setAttribute("data-route-state", "idle");
+          finishNavigation();
+        });
       });
     });
 

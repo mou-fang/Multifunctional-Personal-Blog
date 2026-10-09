@@ -19,7 +19,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     description: "claudeOne 游戏中心 — 益智与聚会小游戏合集",
     templateId: "page-games",
     css: ["css/games.css"],
-    js: ["js/tool-cards.js"],
+    js: ["js/tool-cards.js?v=20261009-character-city"],
     lifecycle: "__page_games"
   },
   "game-releases": {
@@ -27,36 +27,37 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     title: "游戏发售",
     description: "未来约 8 周的游戏发售清单，每周二更新，按平台筛选并查看当周速报原图",
     templateId: "page-game-releases",
+    prepare: true,
     // Bump these URLs and the registry URL in index.html when release assets change.
-    css: ["css/game-releases.css?v=20261006-release-rgb"],
-    js: ["js/game-releases-core.js?v=20261005-release-badges-4", "js/game-releases.js?v=20261006-release-rgb"],
+    css: ["css/game-releases.css?v=20261009-smooth-entry"],
+    js: ["js/game-releases-core.js?v=20261005-release-badges-4", "js/game-releases.js?v=20261009-smooth-entry"],
     lifecycle: "__page_game_releases"
   },
   "city-shuttle": {
     navSection: "games",
-    title: "无界穿梭：天际城",
-    description: "无界穿梭：天际城 — 在原创彩色 ASCII 城市中自由飞行与探索",
+    title: "字符城市",
+    description: "字符城市 — 在原创彩色 ASCII 城市中自由飞行与探索",
     templateId: "page-city-shuttle",
     css: ["css/city-shuttle.css?v=20261009-live-5"],
-    js: ["js/city-shuttle-engine-url.js?v=20261009-live-5", "js/city-shuttle-core.js?v=20261009-live-5", "js/city-shuttle-geometry.js?v=20261009-live-5", "js/city-shuttle-streets.js?v=20261009-live-5", "js/city-shuttle-neighborhoods.js?v=20261009-live-5", "js/city-shuttle-actors.js?v=20261009-live-5", "js/city-shuttle-transit.js?v=20261009-live-5", "js/city-shuttle-city.js?v=20261009-live-5", "js/city-shuttle-scene.js?v=20261009-live-5", "js/city-shuttle-audio.js?v=20261009-live-5", "js/city-shuttle.js?v=20261009-live-5"],
+    js: ["js/city-shuttle-engine-url.js?v=20261009-resolution-2x", "js/city-shuttle-core.js?v=20261009-resolution-2x", "js/city-shuttle-geometry.js?v=20261009-live-5", "js/city-shuttle-streets.js?v=20261009-live-5", "js/city-shuttle-neighborhoods.js?v=20261009-live-5", "js/city-shuttle-actors.js?v=20261009-live-5", "js/city-shuttle-transit.js?v=20261009-live-5", "js/city-shuttle-city.js?v=20261009-live-5", "js/city-shuttle-scene.js?v=20261009-live-5", "js/city-shuttle-audio.js?v=20261009-live-5", "js/city-shuttle.js?v=20261009-live-5"],
     lifecycle: "__page_city_shuttle"
   },
   "anomaly-bureau": {
     navSection: "games",
-    title: "无界穿梭：天际城",
-    description: "无界穿梭：天际城 — 旧游戏地址兼容入口",
+    title: "字符城市",
+    description: "字符城市 — 旧游戏地址兼容入口",
     templateId: "page-city-shuttle",
     css: ["css/city-shuttle.css?v=20261009-live-5"],
-    js: ["js/city-shuttle-engine-url.js?v=20261009-live-5", "js/city-shuttle-core.js?v=20261009-live-5", "js/city-shuttle-geometry.js?v=20261009-live-5", "js/city-shuttle-streets.js?v=20261009-live-5", "js/city-shuttle-neighborhoods.js?v=20261009-live-5", "js/city-shuttle-actors.js?v=20261009-live-5", "js/city-shuttle-transit.js?v=20261009-live-5", "js/city-shuttle-city.js?v=20261009-live-5", "js/city-shuttle-scene.js?v=20261009-live-5", "js/city-shuttle-audio.js?v=20261009-live-5", "js/city-shuttle.js?v=20261009-live-5"],
+    js: ["js/city-shuttle-engine-url.js?v=20261009-resolution-2x", "js/city-shuttle-core.js?v=20261009-resolution-2x", "js/city-shuttle-geometry.js?v=20261009-live-5", "js/city-shuttle-streets.js?v=20261009-live-5", "js/city-shuttle-neighborhoods.js?v=20261009-live-5", "js/city-shuttle-actors.js?v=20261009-live-5", "js/city-shuttle-transit.js?v=20261009-live-5", "js/city-shuttle-city.js?v=20261009-live-5", "js/city-shuttle-scene.js?v=20261009-live-5", "js/city-shuttle-audio.js?v=20261009-live-5", "js/city-shuttle.js?v=20261009-live-5"],
     lifecycle: "__page_city_shuttle"
   },
   "ascii-void": {
     navSection: "games",
-    title: "无界穿梭：天际城",
-    description: "无界穿梭：天际城 — 字符禁区旧地址兼容入口",
+    title: "字符城市",
+    description: "字符城市 — 字符禁区旧地址兼容入口",
     templateId: "page-city-shuttle",
     css: ["css/city-shuttle.css?v=20261009-live-5"],
-    js: ["js/city-shuttle-engine-url.js?v=20261009-live-5", "js/city-shuttle-core.js?v=20261009-live-5", "js/city-shuttle-geometry.js?v=20261009-live-5", "js/city-shuttle-streets.js?v=20261009-live-5", "js/city-shuttle-neighborhoods.js?v=20261009-live-5", "js/city-shuttle-actors.js?v=20261009-live-5", "js/city-shuttle-transit.js?v=20261009-live-5", "js/city-shuttle-city.js?v=20261009-live-5", "js/city-shuttle-scene.js?v=20261009-live-5", "js/city-shuttle-audio.js?v=20261009-live-5", "js/city-shuttle.js?v=20261009-live-5"],
+    js: ["js/city-shuttle-engine-url.js?v=20261009-resolution-2x", "js/city-shuttle-core.js?v=20261009-resolution-2x", "js/city-shuttle-geometry.js?v=20261009-live-5", "js/city-shuttle-streets.js?v=20261009-live-5", "js/city-shuttle-neighborhoods.js?v=20261009-live-5", "js/city-shuttle-actors.js?v=20261009-live-5", "js/city-shuttle-transit.js?v=20261009-live-5", "js/city-shuttle-city.js?v=20261009-live-5", "js/city-shuttle-scene.js?v=20261009-live-5", "js/city-shuttle-audio.js?v=20261009-live-5", "js/city-shuttle.js?v=20261009-live-5"],
     lifecycle: "__page_city_shuttle"
   },
   tools: {
@@ -65,7 +66,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     description: "claudeOne 工具箱 — 实用在线工具合集",
     templateId: "page-tools",
     css: ["css/tools.css"],
-    js: ["js/tool-cards.js"],
+    js: ["js/tool-cards.js?v=20261009-character-city"],
     lifecycle: "__page_tools"
   },
   colors: {

@@ -33,7 +33,8 @@
 .release-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; }
 .release-card { padding: 0; overflow: hidden; min-width: 0; display: flex; flex-direction: column; }
 .release-card__media { aspect-ratio: 460 / 215; position: relative; overflow: hidden; background: var(--surface-sunken); }
-.release-card__cover { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+.release-card__cover { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; opacity: 0; transition: opacity var(--dur-slow) var(--ease-out); }
+.release-card__cover[data-loaded="true"] { opacity: 1; }
 .release-card__fallback { padding: 24px; display: flex; flex-direction: column; justify-content: center; gap: 8px; height: 100%; }
 .release-card__fallback span { font-size: .6rem; letter-spacing: .2em; color: var(--ink-soft); }
 .release-card__fallback strong { font-size: 1.15rem; }

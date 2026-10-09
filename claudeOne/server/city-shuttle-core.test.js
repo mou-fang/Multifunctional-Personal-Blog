@@ -89,9 +89,22 @@ test("window apertures reveal actual objects outside while retaining physical gl
 });
 
 test("desktop grid stays within Wasm limits and input expresses only free-flight movement",()=>{
-  for(const size of [[1280,720],[1920,1080],[900,600],[3840,2160]])for(const detailed of [false,true]){const g=Core.grid(...size,detailed);assert.ok(g.columns>=32&&g.columns<=420);assert.ok(g.rows>=24&&g.rows<=240);}
+  for(const size of [[1280,720],[1920,1080],[900,600],[3840,2160],[900,1800]])for(const detailed of [false,true]){const g=Core.grid(...size,detailed);assert.ok(g.columns>=32&&g.columns<=840);assert.ok(g.rows>=24&&g.rows<=480);}
   assert.equal(Core.flags({}),0);assert.equal(Core.flags({KeyW:true,ShiftLeft:true,KeyE:true}),49);
   assert.equal(Core.flags({ShiftLeft:true}),0);
+});
+
+test("doubled character grids render complete Wasm frames beyond the former size limits",async()=>{
+  const e=await createEngine(object(0,10,0,20,20,3));e.reset_flight(0,10,28,0,0);
+  for(const detailed of [false,true]){
+    const g=Core.grid(1920,1080,detailed);
+    assert.deepEqual([g.columns,g.rows],detailed?[640,244]:[480,184]);
+    const pixels=render(e,g.columns,g.rows);
+    assert.equal(pixels.length,g.columns*g.rows*4);
+    assert.ok(pixels[(g.rows*g.columns-1)*4]>=32,"last cell must contain a rendered glyph");
+    const index=(Math.floor(g.rows/2)*g.columns+Math.floor(g.columns/2))*4;
+    assert.notEqual(pixels[index],32,"centre must show the actual foreground geometry");
+  }
 });
 
 test("every authored portal can actually be flown through, including ascending and inclined interior streets",async()=>{

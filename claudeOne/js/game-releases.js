@@ -2,6 +2,7 @@
   "use strict";
   var core = window.GameReleasesCore;
   var root, data, controller, timeout, dateTimer, renderedDate, generation = 0, platform = "all", query = "", includeReleased = true, dialog, opener;
+  var cachedData = null, preparation = null, preparationController = null, preparationTimeout = null, preparationFailed = false, preparedFresh = false;
   function find(selector) { return root.querySelector(selector); }
   function node(tag, className, value) {
     var el = document.createElement(tag);
@@ -15,17 +16,21 @@
   }
   function showEmpty(title, message) {
     var list = find("[data-release-list]"); list.replaceChildren();
-    var box = node("div", "release-empty card");
+    var box = node("div", "release-empty card page-chunk"); box.setAttribute("data-reveal-order", "4");
     box.append(node("span", "release-empty__icon", "◈"), node("h2", "", title), node("p", "", message));
-    list.append(box);
+    list.append(box); reveal();
+  }
+  function reveal() {
+    if (window.ClaudeOne && window.ClaudeOne.refreshReveal) window.ClaudeOne.refreshReveal();
   }
   function card(item, date) {
-    var el = node("article", "release-card card");
+    var el = node("article", "release-card card page-chunk"); el.setAttribute("data-reveal-order", "4");
     var media = node("div", "release-card__media");
     var fallback = node("div", "release-card__fallback"); fallback.append(node("span", "", "GAME RELEASE"), node("strong", "", item.title));
     media.append(fallback);
     if (item.cover) {
       var img = node("img", "release-card__cover"); img.alt = item.title + " 游戏封面"; img.loading = "lazy"; img.decoding = "async";
+      img.addEventListener("load", function () { img.setAttribute("data-loaded", "true"); }, { once: true });
       img.addEventListener("error", function () { img.remove(); }, { once: true }); img.src = item.cover; media.append(img);
     }
     var countdown = core.daysBetween(date, item.releaseDate);
@@ -76,11 +81,13 @@
       if (item.releaseDate.slice(0, 7) !== month) {
         month = item.releaseDate.slice(0, 7);
         var section = node("section", "release-month");
-        section.append(node("h2", "release-month__title", month.slice(0, 4) + " / " + month.slice(5) + " 月发售"));
+        var heading = node("h2", "release-month__title page-chunk", month.slice(0, 4) + " / " + month.slice(5) + " 月发售");
+        heading.setAttribute("data-reveal-order", "3"); section.append(heading);
         grid = node("div", "release-grid"); section.append(grid); list.append(section);
       }
       grid.append(card(item, date));
     });
+    reveal();
   }
   function checkDate() {
     if (!root || !data || document.hidden) return;
@@ -94,20 +101,46 @@
     // Only rebuild cards when the edition's local calendar date changes.
     dateTimer = setInterval(checkDate, 60000);
   }
-  async function load() {
+  async function readSnapshot(signal) {
+    var base = window.CLAUDE_ONE_CONFIG.api.baseUrl || "";
+    var response = await fetch(base + "/api/game-releases", { signal: signal, cache: "no-cache" });
+    if (!response.ok) throw new Error("http");
+    var next = await response.json();
+    if (!core.valid(next)) throw new Error("data");
+    return next;
+  }
+  function cancelPrepare() {
+    if (preparationController) preparationController.abort();
+  }
+  function prepare() {
+    preparedFresh = false;
+    if (cachedData) return Promise.resolve();
+    if (preparation) return preparation;
+    preparationFailed = false;
+    var request = new AbortController(); preparationController = request;
+    preparationTimeout = setTimeout(function () { request.abort(); }, 12000);
+    preparation = readSnapshot(request.signal).then(function (next) {
+      if (!request.signal.aborted) { cachedData = next; preparedFresh = true; }
+    }).catch(function () { preparationFailed = true; }).finally(function () {
+      clearTimeout(preparationTimeout); preparationTimeout = null;
+      preparationController = null; preparation = null;
+    });
+    return preparation;
+  }
+  async function load(quiet) {
     if (controller) controller.abort(); clearTimeout(timeout);
     var token = ++generation, request = new AbortController(); controller = request;
-    find("[data-release-refresh]").disabled = true; status("正在读取发售清单…");
+    find("[data-release-refresh]").disabled = true;
+    if (!quiet) status("正在读取发售清单…");
     if (!data) showEmpty("正在加载", "马上为你带来本期发售清单。");
     timeout = setTimeout(function () { request.abort(); }, 12000);
     try {
-      var base = window.CLAUDE_ONE_CONFIG.api.baseUrl || "";
-      var response = await fetch(base + "/api/game-releases", { signal: request.signal, cache: "no-cache" });
-      if (!response.ok) throw new Error("http");
-      var next = await response.json();
-      if (!core.valid(next)) throw new Error("data");
+      var next = await readSnapshot(request.signal);
       if (generation !== token || !root) return;
-      data = next; render();
+      cachedData = next;
+      if (quiet && data && data.revision === next.revision) {
+        data = next; checkDate(); find("[data-release-refresh]").disabled = false;
+      } else { data = next; render(); }
     } catch (_) {
       if (generation !== token || !root) return;
       if (!data) showEmpty("暂时无法读取速报", "请点击刷新重试。");
@@ -122,7 +155,7 @@
       platform = button.dataset.releasePlatform;
       root.querySelectorAll("[data-release-platform]").forEach(function (el) { el.setAttribute("aria-pressed", String(el === button)); }); render();
     }
-    if (event.target.closest("[data-release-refresh]")) load();
+    if (event.target.closest("[data-release-refresh]")) load(false);
     if (event.target.closest("[data-release-poster-close]")) closePoster();
     if (event.target === dialog) closePoster();
     if (event.target.closest("[data-release-poster-open]") && data && data.weeklyPoster) {
@@ -139,14 +172,19 @@
   function onPosterError() { find("[data-release-poster-error]").hidden = false; }
   function mount(container) {
     unmount(); root = container.querySelector("[data-releases]"); if (!root) return;
-    platform = "all"; query = ""; includeReleased = true; data = null; renderedDate = null;
+    platform = "all"; query = ""; includeReleased = true; data = cachedData; renderedDate = null;
     find("[data-release-history]").checked = true;
     dialog = find("[data-release-dialog]");
     root.addEventListener("click", onClick); root.addEventListener("input", onInput); root.addEventListener("change", onChange);
     dialog.addEventListener("close", onClose); find("[data-release-poster]").addEventListener("error", onPosterError);
     document.addEventListener("visibilitychange", watchDate); window.addEventListener("focus", checkDate);
     watchDate();
-    load();
+    if (data) { render(); if (!preparedFresh) load(true); preparedFresh = false; }
+    else if (preparationFailed) {
+      showEmpty("暂时无法读取速报", "请点击刷新重试。");
+      status("发售清单读取失败，请稍后重试。", true);
+      find("[data-release-refresh]").disabled = false;
+    } else load(false);
   }
   function unmount() {
     ++generation; if (controller) controller.abort(); clearTimeout(timeout); controller = null;
@@ -160,5 +198,5 @@
     }
     root = null; data = null; dialog = null; opener = null; renderedDate = null;
   }
-  window.__page_game_releases = { mount: mount, unmount: unmount };
+  window.__page_game_releases = { prepare: prepare, cancelPrepare: cancelPrepare, mount: mount, unmount: unmount };
 })();

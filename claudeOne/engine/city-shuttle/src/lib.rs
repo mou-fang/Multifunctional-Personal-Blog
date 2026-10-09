@@ -410,7 +410,7 @@ impl Engine {
     e.state[0]=end.x.clamp(-4200.0,4200.0);e.state[1]=end.y.clamp(1.1,1500.0);e.state[2]=end.z.clamp(-4500.0,4200.0);
 })}
 #[no_mangle] pub extern "C" fn state_ptr()->*const f32 {ENGINE.with(|e|e.borrow().state.as_ptr())}
-#[no_mangle] pub extern "C" fn render_ascii(columns:u32,rows:u32,aspect:f32)->*const u8 {ENGINE.with(|e|{let mut e=e.borrow_mut();e.render(columns.clamp(32,420) as usize,rows.clamp(24,240) as usize,aspect.clamp(0.5,4.0));e.pixels.as_ptr()})}
+#[no_mangle] pub extern "C" fn render_ascii(columns:u32,rows:u32,aspect:f32)->*const u8 {ENGINE.with(|e|{let mut e=e.borrow_mut();e.render(columns.clamp(32,840) as usize,rows.clamp(24,480) as usize,aspect.clamp(0.5,4.0));e.pixels.as_ptr()})}
 #[no_mangle] pub extern "C" fn engine_version()->u32 {3}
 #[no_mangle] pub extern "C" fn scene_stride()->u32 {STRIDE as u32}
 #[no_mangle] pub extern "C" fn is_space_clear(x:f32,y:f32,z:f32,radius:f32)->u32 {ENGINE.with(|e|{let e=e.borrow();let p=V::new(x,y,z);let r=radius.clamp(0.0,10.0);u32::from(!occupied_tree(&e.objects,&e.order,&e.nodes,p,r)&&!occupied_tree(&e.dynamic_objects,&e.dynamic_order,&e.dynamic_nodes,p,r))})}

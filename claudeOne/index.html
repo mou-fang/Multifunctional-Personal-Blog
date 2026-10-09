@@ -99,7 +99,7 @@
 
   <template id="page-game-releases">
     <div class="release-page" data-releases>
-      <section class="release-hero">
+      <section class="release-hero page-chunk" data-reveal-order="2">
         <div>
           <p class="release-kicker">RELEASE RADAR · 游戏发售</p>
           <h1>下一款，玩什么？</h1>
@@ -114,7 +114,7 @@
           <div class="release-stat"><strong data-release-next>—</strong><span>最近发售日</span></div>
         </div>
       </section>
-      <div class="release-toolbar" data-release-filters hidden>
+      <div class="release-toolbar page-chunk" data-reveal-order="3" data-release-filters hidden>
         <label class="release-search">找一款游戏<input type="search" placeholder="搜索中文名、英文名或简介" maxlength="160" data-release-search></label>
         <div class="release-filters" role="group" aria-label="筛选游戏平台">
           <button class="release-filter" type="button" aria-pressed="true" data-release-platform="all">全部平台</button>
@@ -126,7 +126,7 @@
         </div>
         <label class="release-history"><input type="checkbox" data-release-history checked>显示本期已发售游戏</label>
       </div>
-      <div class="release-status-row">
+      <div class="release-status-row page-chunk" data-reveal-order="3">
         <p class="release-status" role="status" aria-live="polite" data-release-status>正在读取发售清单…</p>
         <span class="release-result" aria-live="polite" data-release-result></span>
         <button class="btn" type="button" data-release-refresh>刷新清单</button>
@@ -658,10 +658,10 @@
 
   <!-- Defer preserves dependencies while letting all page templates parse. -->
   <script src="./js/config.js" defer></script>
-  <script src="./js/page-registry.js?v=20261009-live-city-5" defer></script>
+  <script src="./js/page-registry.js?v=20261009-smooth-entry" defer></script>
   <script src="./js/shell.js?v=20261005-theme-advice-dismiss" defer></script>
   <script src="./js/startup.js?v=20261005-cache" defer></script>
-  <script src="./js/router.js?v=20261005-cache" defer></script>
+  <script src="./js/router.js?v=20261009-preparation" defer></script>
   <script src="./js/visitor-stats.js" defer></script>
   <template id="page-pixel">
 <!-- Hero -->
@@ -2841,8 +2841,8 @@
     <section class="cs-root" data-cs-root>
       <header class="cs-hero page-chunk" data-reveal-order="2">
         <div>
-          <p class="cs-kicker">SKYLINE CITY // A PLACE TO WANDER</p>
-          <h1>无界穿梭<span> // 天际城</span></h1>
+          <p class="cs-kicker">CHARACTER CITY // A PLACE TO WANDER</p>
+          <h1>字符城市</h1>
           <p>地标、住宅、街市、公园和车流组成一座可以自由飞行的城市。沿街看看人车，穿过中庭，或越过天际线。</p>
         </div>
         <div class="cs-hero__telemetry" aria-label="游戏特性">
@@ -2853,7 +2853,7 @@
       </header>
 
       <section class="cs-shell page-chunk" data-reveal-order="3">
-        <div class="cs-stage" data-cs-stage role="application" aria-label="天际城自由飞行">
+        <div class="cs-stage" data-cs-stage role="application" aria-label="字符城市自由飞行">
           <canvas class="cs-canvas" data-cs-canvas tabindex="0" aria-label="城市飞行画面。W 前行、S 后退、A D 平移、Q E 升降，方向键转向，P 暂停。"></canvas>
 
           <div class="cs-stage-actions" aria-label="画面控制">
@@ -2864,7 +2864,7 @@
 
           <div class="cs-hud" aria-hidden="true">
             <div class="cs-hud__location">
-              <small>SKYLINE CITY</small>
+              <small>CHARACTER CITY</small>
               <strong data-cs-district>雨巷大道</strong>
             </div>
             <div class="cs-hud__flight">
