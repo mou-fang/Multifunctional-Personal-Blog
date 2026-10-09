@@ -2,11 +2,11 @@
 (function () {
   "use strict";
   var Core=window.CityShuttleCore,Scene=window.CityShuttleScene;
-  var workerUrl=new URL("city-shuttle-worker.js?v=20261008-authored-2",document.currentScript.src).href;
-  var root=null,canvas=null,stage=null,worker=null,renderer=null,controller=null,observer=null;
+  var workerUrl=new URL("city-shuttle-worker.js?v=20261009-living-5",document.currentScript.src).href;
+  var root=null,canvas=null,stage=null,worker=null,renderer=null,audio=null,controller=null,observer=null;
   var ready=false,active=false,paused=false,busy=false,raf=0,lastTime=0,serial=0,ticket=0;
   var keys=Object.create(null),pressedFlags=0,look={x:0,y:0},detailed=false,hudVisible=true,sensitivity=1;
-  var state=null,pendingSpawn=null,pendingRefresh=false,ui={},lastFrame=null,pendingDt=0;
+  var state=null,pendingSpawn=null,pendingRefresh=false,ui={},lastFrame=null,pendingDt=0,soundVolume=.55,soundMuted=false,soundBlocked=false;
   var SETTINGS_KEY="claudeOne:city-shuttle-flight:v2";
 
   function compile(gl,type,source) {
@@ -26,7 +26,7 @@
       void main(){vec2 view=vec2(uv.x,1.0-uv.y);vec2 cell=floor(view*grid);vec2 local=fract(view*grid);
         vec4 data=texelFetch(cells,ivec2(clamp(cell,vec2(0),grid-1.0)),0);float code=floor(data.r*255.0+.5);
         vec2 tile=vec2(mod(code,16.0),floor(code/16.0));float ink=texture(glyphs,(tile+local)/16.0).r;
-        vec3 rgb=data.gba;vec3 surface=rgb*ink; color=vec4(surface+rgb*.025,1.0);}`);
+        vec3 rgb=data.gba;vec3 surface=code==32.0?rgb*.9:rgb*(.16+ink*.84); color=vec4(surface,1.0);}`);
     program=gl.createProgram();gl.attachShader(program,vertex);gl.attachShader(program,fragment);gl.linkProgram(program);
     gl.deleteShader(vertex);gl.deleteShader(fragment);vertex=null;fragment=null;
     if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(program)||"字符渲染程序链接失败");
@@ -62,7 +62,10 @@
   function listen(target,type,fn){target.addEventListener(type,fn,{signal:controller.signal});}
   function text(node,value){if(node)node.textContent=value;}
   function clearInput(){keys=Object.create(null);pressedFlags=0;look.x=0;look.y=0;}
-  function save(){try{localStorage.setItem(SETTINGS_KEY,JSON.stringify({detailed:detailed,hud:hudVisible,sensitivity:sensitivity}));}catch(ignore){}}
+  function save(){try{localStorage.setItem(SETTINGS_KEY,JSON.stringify({detailed:detailed,hud:hudVisible,sensitivity:sensitivity,volume:soundVolume,muted:soundMuted}));}catch(ignore){}}
+  function syncSound(){if(ui.sound){text(ui.sound,audio&&audio.available?(soundMuted?"声音：静音 (M)":soundBlocked?"声音：点按重试":"声音：开启 (M)"):"声音不可用");ui.sound.disabled=!audio||!audio.available;ui.sound.setAttribute("aria-pressed",String(!soundMuted));}if(ui.volume){ui.volume.value=String(Math.round(soundVolume*100));ui.volume.disabled=!audio||!audio.available;}if(stage)stage.dataset.sound=!audio||!audio.available?"unavailable":soundMuted?"muted":soundBlocked?"blocked":active&&!paused?"active":"waiting";}
+  function startSound(){if(!audio||soundMuted)return;var current=ticket;audio.start().then(function(ok){if(current!==ticket||!root)return;soundBlocked=!ok;syncSound();});}
+  function toggleSound(){if(soundBlocked&&!soundMuted&&active&&!paused){startSound();return;}soundMuted=!soundMuted;if(audio)audio.setMuted(soundMuted);if(!soundMuted&&active&&!paused)startSound();syncSound();save();}
   function syncHud(){root.dataset.hud=String(hudVisible);var button=root.querySelector("[data-cs-hud-toggle]");text(button,hudVisible?"隐藏信息 (H)":"显示信息 (H)");button.setAttribute("aria-pressed",String(hudVisible));}
   function showOverlay(title,message,visible) {
     text(ui.title,title);text(ui.message,message);ui.overlay.hidden=!visible;
@@ -75,6 +78,7 @@
     text(ui.status,state[7]>0.5?"贴近建筑 · 请转向":"自由飞行");
     canvas.dataset.position=state.slice(0,3).map(function(v){return v.toFixed(2);}).join(",");canvas.dataset.engineMs=frame.elapsed.toFixed(2);
     stage.dataset.engine="rust-wasm";
+    if(frame.life){stage.dataset.people=String(frame.life.people);stage.dataset.vehicles=String(frame.life.vehicles);canvas.dataset.worldTime=frame.time.toFixed(2);}
   }
   function requestFrame(dt) {
     if(!root||!ready||document.hidden)return;
@@ -96,8 +100,9 @@
   function beginLoop(){lastTime=0;if(!raf&&active&&!paused&&!document.hidden)raf=requestAnimationFrame(loop);}
   function pause(value) {
     if(!ready)return;paused=value;pendingDt=0;clearInput();cancelAnimationFrame(raf);raf=0;
+    if(audio)audio.setPaused(paused);syncSound();
     if(paused){if(document.pointerLockElement===canvas)document.exitPointerLock();showOverlay("停在这一刻","城市飞行已暂停。继续后从当前位置出发。",true);ui.start.focus();}
-    else {showOverlay("","",false);canvas.focus();beginLoop();}
+    else {showOverlay("","",false);canvas.focus();startSound();beginLoop();}
     text(ui.pause,paused?"继续飞行 (P)":"暂停 (P)");
   }
   function start() {
@@ -110,9 +115,9 @@
     if(!busy)requestFrame(0);
   }
   function fail(message) {
-    ready=false;active=false;paused=true;busy=false;cancelAnimationFrame(raf);raf=0;
+    ++ticket;ready=false;active=false;paused=true;busy=false;pendingDt=0;pendingSpawn=null;pendingRefresh=false;lastFrame=null;cancelAnimationFrame(raf);raf=0;
     clearInput();if(document.pointerLockElement===canvas&&document.exitPointerLock)document.exitPointerLock();
-    if(worker){worker.terminate();worker=null;}showOverlay("城市暂时无法启动",message,true);ui.start.disabled=true;
+    if(worker){worker.terminate();worker=null;}if(observer){observer.disconnect();observer=null;}if(renderer){renderer.dispose();renderer=null;}if(audio){audio.dispose();audio=null;}syncSound();showOverlay("城市暂时无法启动",message,true);ui.start.disabled=true;
   }
   async function fullscreen() {
     try{if(document.fullscreenElement===stage)await document.exitFullscreen();else await stage.requestFullscreen();}
@@ -123,12 +128,13 @@
   function mount(scope) {
     unmount();root=scope.querySelector("[data-cs-root]");if(!root||!Core||!Scene)return;
     var current=++ticket;stage=root.querySelector("[data-cs-stage]");canvas=root.querySelector("[data-cs-canvas]");controller=new AbortController();
-    ui={overlay:root.querySelector("[data-cs-overlay]"),title:root.querySelector("[data-cs-overlay-title]"),message:root.querySelector("[data-cs-overlay-text]"),start:root.querySelector("[data-cs-start]"),pause:root.querySelector("[data-cs-pause]"),district:root.querySelector("[data-cs-district]"),altitude:root.querySelector("[data-cs-altitude]"),speed:root.querySelector("[data-cs-speed]"),status:root.querySelector("[data-cs-status]")};
+    ui={overlay:root.querySelector("[data-cs-overlay]"),title:root.querySelector("[data-cs-overlay-title]"),message:root.querySelector("[data-cs-overlay-text]"),start:root.querySelector("[data-cs-start]"),pause:root.querySelector("[data-cs-pause]"),district:root.querySelector("[data-cs-district]"),altitude:root.querySelector("[data-cs-altitude]"),speed:root.querySelector("[data-cs-speed]"),status:root.querySelector("[data-cs-status]"),sound:root.querySelector("[data-cs-sound]"),volume:root.querySelector("[data-cs-volume]")};
     ready=false;active=false;paused=false;busy=false;state=null;lastFrame=null;pendingSpawn=null;pendingRefresh=false;clearInput();
-    detailed=false;hudVisible=true;sensitivity=1;
-    try{var settings=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}");detailed=!!settings.detailed;hudVisible=settings.hud!==false;sensitivity=Core.clamp(Number(settings.sensitivity)||1,.3,2);}catch(ignore){}
-    syncHud();syncQuality();syncFullscreen();document.body.classList.add("city-shuttle-route");
-    delete stage.dataset.engine;delete stage.dataset.objects;delete canvas.dataset.engineMs;delete canvas.dataset.position;
+    detailed=false;hudVisible=true;sensitivity=1;soundVolume=.55;soundMuted=false;soundBlocked=false;
+    try{var settings=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}");detailed=!!settings.detailed;hudVisible=settings.hud!==false;sensitivity=Core.clamp(Number(settings.sensitivity)||1,.3,2);if(Number.isFinite(settings.volume))soundVolume=Core.clamp(settings.volume,0,1);soundMuted=settings.muted===true;}catch(ignore){}
+    audio=window.CityShuttleAudio?new window.CityShuttleAudio.Sound({volume:soundVolume,muted:soundMuted}):null;
+    syncHud();syncQuality();syncFullscreen();syncSound();document.body.classList.add("city-shuttle-route");
+    delete stage.dataset.engine;delete stage.dataset.objects;delete stage.dataset.people;delete stage.dataset.vehicles;delete canvas.dataset.worldTime;delete canvas.dataset.engineMs;delete canvas.dataset.position;
     var sensitivityInput=root.querySelector("[data-cs-sensitivity]");sensitivityInput.value=String(sensitivity);
     var select=root.querySelector("[data-cs-startpoint]");select.replaceChildren();Scene.SPAWNS.forEach(function(spawn){var option=document.createElement("option");option.value=spawn.id;option.textContent=spawn.name;select.appendChild(option);});
     var unsupported=window.matchMedia("(pointer: coarse)").matches||window.innerWidth<600;
@@ -137,18 +143,20 @@
     root.dataset.unsupported="false";
     try{renderer=createRenderer(canvas);}catch(error){fail(error.message);return;}
     showOverlay("城市正在载入","正在准备街道、立面与字符渲染核心…",true);
-    try{var scene=Scene.build();worker=new Worker(workerUrl);worker.postMessage({type:"init",wasmUrl:new URL(window.CityShuttleEngineUrl,document.baseURI).href,scene:scene.packed,stride:scene.stride,spawn:Scene.SPAWNS[0]},[scene.packed.buffer]);}
+    try{worker=new Worker(workerUrl);worker.postMessage({type:"init",wasmUrl:new URL(window.CityShuttleEngineUrl,document.baseURI).href,stride:Scene.STRIDE,spawn:Scene.SPAWNS[0]});}
     catch(error){fail(error.message);return;}
     listen(worker,"message",function(event){
       if(!root||current!==ticket)return;var message=event.data;
       if(message.type==="ready"){ready=true;stage.dataset.objects=String(message.objects);var startPoint=Scene.SPAWNS.find(function(p){return p.id===select.value;})||Scene.SPAWNS[0];worker.postMessage({type:"reset",spawn:startPoint});showOverlay("起飞，只为看这座城","按 W 前行，松开悬停；鼠标或方向键转向，Q / E 升降。你可以沿街慢飞，也可以越过屋顶。",true);requestFrame(0);}
-      else if(message.type==="frame"){busy=false;lastFrame=message;renderer.draw(message);hud(message);if(pendingSpawn||pendingRefresh){pendingSpawn=null;pendingRefresh=false;requestFrame(0);}}
+      else if(message.type==="frame"){busy=false;lastFrame=message;renderer.draw(message);hud(message);if(audio)audio.update(message);if(pendingSpawn||pendingRefresh){pendingSpawn=null;pendingRefresh=false;requestFrame(0);}}
       else if(message.type==="error")fail(message.message);
     });
     listen(worker,"error",function(event){fail(event.message||"城市 Worker 启动失败");});
     listen(ui.start,"click",start);listen(ui.pause,"click",function(){if(active)pause(!paused);else start();});
     listen(select,"change",function(){var spawn=Scene.SPAWNS.find(function(p){return p.id===select.value;});if(spawn)reset(spawn);});
     listen(sensitivityInput,"input",function(){sensitivity=Number(sensitivityInput.value);save();});
+    if(ui.sound)listen(ui.sound,"click",toggleSound);
+    if(ui.volume)listen(ui.volume,"input",function(){soundVolume=Number(ui.volume.value)/100;if(audio)audio.setVolume(soundVolume);save();});
     root.querySelectorAll("[data-cs-quality]").forEach(function(button){listen(button,"click",function(){detailed=!detailed;syncQuality();save();requestFrame(0);});});
     root.querySelectorAll("[data-cs-fullscreen]").forEach(function(button){listen(button,"click",fullscreen);});
     listen(document,"fullscreenchange",syncFullscreen);
@@ -159,13 +167,13 @@
       if(event.ctrlKey||event.metaKey||event.altKey)return;
       if(event.target.matches("input,select,textarea"))return;
       if(!active||!ready)return;
-      if(event.target.matches("button")&&!["KeyP","Escape","KeyF","KeyH"].includes(event.code))return;
-      if(paused&&!["KeyP","Escape","KeyF","KeyH"].includes(event.code))return;
+      if(event.target.matches("button")&&!["KeyP","Escape","KeyF","KeyH","KeyM"].includes(event.code))return;
+      if(paused&&!["KeyP","Escape","KeyF","KeyH","KeyM"].includes(event.code))return;
       keys[event.code]=true;
       pressedFlags|=Core.flags(keys);
       if(["KeyW","KeyS","KeyA","KeyD","KeyQ","KeyE","Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(event.code))event.preventDefault();
       if(event.repeat)return;if(event.code==="KeyP"||event.code==="Escape")pause(!paused);
-      else if(event.code==="KeyF")fullscreen();else if(event.code==="KeyH"){hudVisible=!hudVisible;syncHud();save();}
+      else if(event.code==="KeyF")fullscreen();else if(event.code==="KeyH"){hudVisible=!hudVisible;syncHud();save();}else if(event.code==="KeyM")toggleSound();
     });
     listen(window,"keyup",function(event){keys[event.code]=false;});
     listen(document,"mousemove",function(event){if(active&&!paused&&document.pointerLockElement===canvas){look.x=Core.clamp(look.x+event.movementX*.09*sensitivity,-2,2);look.y=Core.clamp(look.y-event.movementY*.09*sensitivity,-2,2);}});
@@ -179,8 +187,8 @@
     ++ticket;cancelAnimationFrame(raf);raf=0;if(controller)controller.abort();if(observer)observer.disconnect();
     if(worker)worker.terminate();if(document.pointerLockElement===canvas&&document.exitPointerLock)document.exitPointerLock();
     if(document.fullscreenElement===stage&&document.exitFullscreen)document.exitFullscreen().catch(function(){});
-    if(renderer)renderer.dispose();document.body.classList.remove("city-shuttle-route");
-    root=null;canvas=null;stage=null;worker=null;renderer=null;controller=null;observer=null;lastFrame=null;ui={};ready=false;active=false;busy=false;clearInput();
+    if(renderer)renderer.dispose();if(audio)audio.dispose();document.body.classList.remove("city-shuttle-route");
+    root=null;canvas=null;stage=null;worker=null;renderer=null;audio=null;controller=null;observer=null;lastFrame=null;ui={};ready=false;active=false;busy=false;clearInput();
   }
   window.__page_city_shuttle={mount:mount,unmount:unmount};
 })();

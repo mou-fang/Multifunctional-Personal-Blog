@@ -44,6 +44,9 @@
 .cs-toolbar>span { margin-left:auto;opacity:.6;font-size:11px; }
 .cs-startpoint { display:flex;align-items:center;gap:8px; }
 .cs-startpoint select { min-height:37px;padding:6px 10px; }
+.cs-volume { display:flex;align-items:center;gap:7px;padding:5px 9px;min-height:37px;border-radius:10px;background:var(--surface);box-shadow:var(--shadow-in); }
+.cs-volume input { width:88px;min-width:0;accent-color:var(--accent);cursor:pointer; }
+.cs-volume input:disabled { opacity:.45;cursor:default; }
 .cs-info { display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:10px; }
 .cs-info article { background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:19px 21px;box-shadow:var(--shadow-out); }
 .cs-info article>span { color:var(--accent);font:10px/1.4 Consolas,monospace;letter-spacing:.08em; }
@@ -57,6 +60,7 @@ body[data-theme="neumorphism"] .cs-stage-actions button { box-shadow:4px 5px 12p
 body[data-theme="liquid-glass"] .cs-hero,body[data-theme="liquid-glass"] .cs-info article,body[data-theme="liquid-glass"] .cs-overlay__card { background:rgba(242,249,255,.83);backdrop-filter:blur(18px);box-shadow:0 13px 34px rgba(48,77,110,.12),inset 0 1px 0 rgba(255,255,255,.95);border-color:rgba(255,255,255,.75); }
 body[data-theme="liquid-glass"] .cs-stage-actions button,body[data-theme="liquid-glass"] .cs-toolbar button,body[data-theme="liquid-glass"] .cs-startpoint select { background:rgba(244,250,255,.83);backdrop-filter:blur(12px);box-shadow:0 4px 12px rgba(48,77,110,.11),inset 0 1px 0 #fff;border-color:rgba(255,255,255,.8); }
 body[data-theme="liquid-glass"] .cs-controls span,body[data-theme="liquid-glass"] .cs-hero__telemetry div { background:rgba(221,235,247,.43);box-shadow:inset 0 1px 4px rgba(56,77,102,.08); }
+body[data-theme="liquid-glass"] .cs-volume { background:rgba(244,250,255,.76);border:1px solid rgba(255,255,255,.8);box-shadow:inset 0 1px 5px rgba(48,77,110,.09);backdrop-filter:blur(12px); }
 .cs-root[data-unsupported="true"] .cs-controls,.cs-root[data-unsupported="true"] .cs-settings,.cs-root[data-unsupported="true"] .cs-overlay__actions,.cs-root[data-unsupported="true"] .cs-stage-actions,.cs-root[data-unsupported="true"] .cs-toolbar,.cs-root[data-unsupported="true"] .cs-hud { display:none; }
 @media(max-width:1100px){.cs-hero{align-items:flex-start;flex-direction:column;gap:17px}.cs-stage-actions button{font-size:10px}.cs-toolbar>span{width:100%;margin-left:0}}
 @media(max-width:850px){.cs-stage{aspect-ratio:auto;min-height:310px}.cs-hero{padding:20px}.cs-info{grid-template-columns:1fr}.cs-hero__telemetry{width:100%}.cs-hero__telemetry div{flex:1;min-width:0}.cs-overlay{padding:16px}.cs-overlay__card{padding:22px}.cs-overlay h2{font-size:23px}}

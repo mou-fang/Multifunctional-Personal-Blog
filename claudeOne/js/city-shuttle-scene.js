@@ -2,18 +2,19 @@
  * Helpers describe geometry; they never select, scatter, or clone building variants.
  */
 (function (root, factory) {
-  var scene = factory();
+  var city=typeof module==="object"&&module.exports?require("./city-shuttle-city.js"):root.CityShuttleCity;
+  var scene = factory(city);
   if (typeof module === "object" && module.exports) module.exports = scene;
   if (root) root.CityShuttleScene = scene;
-})(typeof window !== "undefined" ? window : globalThis, function () {
+})(typeof window !== "undefined" ? window : globalThis, function (City) {
   "use strict";
   var STRIDE = 26;
   var PALETTE = {
     ink: [0.075, 0.12, 0.14], concrete: [0.27, 0.32, 0.34], steel: [0.18, 0.29, 0.34],
-    blue: [0.16, 0.47, 0.70], cyan: [0.17, 0.72, 0.69], teal: [0.10, 0.47, 0.39],
-    green: [0.27, 0.55, 0.21], leaf: [0.15, 0.41, 0.20], amber: [0.72, 0.51, 0.20],
-    gold: [0.63, 0.62, 0.23], coral: [0.66, 0.27, 0.20], violet: [0.42, 0.33, 0.66],
-    rose: [0.66, 0.25, 0.45], white: [0.56, 0.64, 0.61], water: [0.055, 0.22, 0.26]
+    blue: [0.21, 0.45, 0.61], cyan: [0.24, 0.49, 0.48], teal: [0.18, 0.43, 0.40],
+    green: [0.22, 0.40, 0.19], leaf: [0.19, 0.37, 0.23], amber: [0.65, 0.53, 0.28],
+    gold: [0.65, 0.53, 0.28], coral: [0.59, 0.28, 0.22], violet: [0.39, 0.34, 0.54],
+    rose: [0.64, 0.29, 0.46], white: [0.67, 0.72, 0.68], water: [0.08, 0.27, 0.33]
   };
   var SPAWNS = Object.freeze([
     { id: "avenue", name: "雨巷大道", x: 0, y: 10, z: 335, yaw: 0, pitch: 0.025 },
@@ -39,6 +40,8 @@
     {id:"gold-window",site:"gold-lattice",points:[[60,100,-405],[60,100,-515]]},
     {id:"underbridge",site:"canal-bridge",points:[[365,3,225],[365,4.6,145]]}
   ]);
+  if(!City)throw new Error("City definition was not loaded");
+  SPAWNS=Object.freeze(City.SPAWNS.concat(SPAWNS));
   function build() {
     var objects = [], sites = [], current = null;
     function site(id, name, description, x, z, draw) {
@@ -83,11 +86,12 @@
       part("quay-green",568,.04,207,154,.2,127,[.18,.31,.15],{material:7});
     });
     site("streets", "街道骨架", "雨巷大道、三道横街、旧城区窄巷、滨水慢行路",0,0,function(){
-      part("rain-avenue",0,.04,-230,29,.13,1280,[.13,.17,.20],{material:2,wx:4,wy:8});
-      part("south-cross",-74,.05,183,510,.15,26,[.12,.16,.17],{material:2,wx:7,wy:6});
-      part("market-cross",-105,.05,-73,651,.15,24,[.13,.17,.20],{material:2,wx:6,wy:8});
-      part("station-cross",-44,.05,-359,557,.15,32,[.14,.17,.19],{material:2,wx:5,wy:6});
-      part("west-lane",-215,.04,-128,18,.14,935,[.11,.14,.16],{material:2,wx:3,wy:9});
+      part("rain-avenue",0,.04,-230,29,.38,1280,[.13,.17,.20],{material:11});
+      part("south-cross",-74,.05,183,510,.38,26,[.12,.16,.17],{material:11});
+      part("market-cross",-105,.05,-73,651,.38,24,[.13,.17,.20],{material:11});
+      part("station-cross",-44,.05,-359,557,.38,32,[.14,.17,.19],{material:11});
+      part("west-lane-north",-215,.04,-367.75,18,.38,455.5,[.11,.14,.16],{material:11});
+      part("west-lane-south",-215,.04,163.75,18,.38,351.5,[.11,.14,.16],{material:11});
       part("quay-walk",273,.05,-217,25,.15,1260,[.25,.31,.30],{material:2,wx:2.5,wy:4});
       rail("avenue-west-curb",-15.4,.2,-240,.8,1260,"white");rail("avenue-east-curb",15.4,.2,-240,.8,1260,"steel");
       rail("west-bank-wall",290,1.2,-210,1.8,1250,"concrete");rail("east-bank-wall",440,1.3,-240,2,1310,"steel");
@@ -585,14 +589,14 @@
       tree("canal-willow",266,244,[[0,3.5,0,.7,7,.7],[2,5,0,.3,5,.3]],[[0,8,0,10,4,8],[-5,5,0,4,7,5],[4,4,2,4,6,4],[-1,4,-4,6,7,4],[2,9,1,5,3,5]],"teal");
       tree("cinema-tree",169,-222,[[0,3,0,.45,6,.45]],[[0,7,0,7,4,7],[3,6,-2,5,3,4],[-3,7,1,4,3,5],[1,9,1,4,2,4]], [.25,.48,.25]);
       tree("north-tree",-97,-526,[[0,5,0,.65,10,.65],[-1,8,-1,.3,5,.3]],[[0,12,0,8,5,7],[-4,10,1,5,4,6],[3,11,-2,6,5,5],[-1,14,-1,5,3,6],[4,8,3,4,3,4]],"green");
-      part("copper-tram",-8,1.8,245,3.2,3.6,10,"coral",{material:1,wx:2.3,wy:2.0,mask:65535,trim:"steel"});
-      part("blue-cab",7,1.25,113,3.1,2.5,5.7,"blue",{material:1,wx:2.4,wy:2.0,mask:65535,trim:"ink"});
-      part("market-cart",92,1.2,33,2.2,2.4,4.2,"amber",{material:5,glyph:"H"});
-      part("news-kiosk",-83,2.9,185,5.8,5.8,4.4,"teal",{material:1,wx:2.5,wy:2.2,mask:65535});part("kiosk-roof",-83,6,185,7.2,.7,5.5,"coral");text("kiosk-sign","NEWS",-83,4.6,188,"amber",1);
+      part("news-kiosk",-83,2.9,202,5.8,5.8,4.4,"teal",{material:1,wx:2.5,wy:2.2,mask:65535});part("kiosk-roof",-83,6,202,7.2,.7,5.5,"coral");text("kiosk-sign","NEWS",-83,4.6,205,"amber",1);
       part("phone-booth",-25,2.7,116,2.3,5.4,2.3,"cyan",{material:1,wx:2,wy:4.5,mask:65535,trim:"steel"});
       part("market-planter",23,1.1,-48,2.7,2.2,5,"concrete");part("market-fern",23,3,-48,3.5,2.7,5.7,"leaf",{shape:1,material:4,solid:false});
       text("avenue-wayfinding","RAIN AVE",-20,3.8,191,"white",.85);text("canal-wayfinding","MIRROR",264,4.4,173,"cyan",.9);
     });
+    var extension=City.build(),offset=objects.length;
+    extension.sites.forEach(function(site){sites.push(Object.assign({},site,{start:site.start+offset}));});
+    objects=objects.concat(extension.objects);
     var ids = new Set();
     objects.forEach(function(object) {
       if (ids.has(object.id)) throw new Error("Duplicate authored object: " + object.id);

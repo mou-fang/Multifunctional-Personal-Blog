@@ -658,7 +658,7 @@
 
   <!-- Defer preserves dependencies while letting all page templates parse. -->
   <script src="./js/config.js" defer></script>
-  <script src="./js/page-registry.js?v=20261008-city-flight-2" defer></script>
+  <script src="./js/page-registry.js?v=20261009-live-city-5" defer></script>
   <script src="./js/shell.js?v=20261005-theme-advice-dismiss" defer></script>
   <script src="./js/startup.js?v=20261005-cache" defer></script>
   <script src="./js/router.js?v=20261005-cache" defer></script>
@@ -2843,7 +2843,7 @@
         <div>
           <p class="cs-kicker">SKYLINE CITY // A PLACE TO WANDER</p>
           <h1>无界穿梭<span> // 天际城</span></h1>
-          <p>沿着霓虹街道慢飞，穿过中庭，越过楼顶，再去看看河对岸。这里只有一座城市，和你选择的方向。</p>
+          <p>地标、住宅、街市、公园和车流组成一座可以自由飞行的城市。沿街看看人车，穿过中庭，或越过天际线。</p>
         </div>
         <div class="cs-hero__telemetry" aria-label="游戏特性">
           <div><small>WORLD</small><strong>原创城市</strong></div>
@@ -2898,6 +2898,8 @@
           <button type="button" data-cs-pause>暂停 / 继续 (P)</button>
           <label class="cs-startpoint">从这里看看 <select data-cs-startpoint aria-label="城市出发位置"></select></label>
           <button type="button" data-cs-reset>返回出发位置</button>
+          <button type="button" data-cs-sound aria-pressed="true">声音：开启 (M)</button>
+          <label class="cs-volume">音量 <input data-cs-volume type="range" min="0" max="100" step="1" value="55" aria-label="城市音量"></label>
           <button type="button" data-cs-quality aria-pressed="false">字符：标准</button>
           <button type="button" data-cs-fullscreen aria-label="进入全屏">全屏 (F)</button>
           <span>PC 键鼠 · 自由飞行</span>
@@ -2905,7 +2907,7 @@
       </section>
 
       <section class="cs-info page-chunk" data-reveal-order="4">
-        <article><span>01 / 沿街</span><h3>窗灯、店面与街角</h3><p>从雨巷大道开始，放慢速度，看一看各栋建筑的立面、招牌和门廊。</p></article>
+        <article><span>01 / 沿街</span><h3>行人、车流与城市声音</h3><p>沿着生活街慢飞，看看行人的动作、透过车窗看看乘客；越过街区，还能找到公园、市场和交通枢纽。</p></article>
         <article><span>02 / 向上</span><h3>屋顶上还有另一座城</h3><p>退台、观景层、设备舱与空中连廊，都在同一个可飞行的空间中。</p></article>
         <article><span>03 / 穿行</span><h3>从中庭到河岸</h3><p>通光廊留有开放的内庭；镜河两岸由弦桥连接，桥下也可以慢慢飞过。</p></article>
       </section>

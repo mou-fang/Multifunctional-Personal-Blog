@@ -24,7 +24,7 @@ test("authored composition has stable identities, finite geometry and distinct b
   assert.ok(a.sites.length>=30);assert.ok(a.objects.length>=600);
   for(const site of a.sites){assert.ok(site.description.length>10);assert.ok(site.count>0);}
   const silhouettes=new Set();
-  for(const site of a.sites.filter(s=>!['ground','streets','street-life'].includes(s.id))){
+  for(const site of a.sites.filter(s=>!['ground','streets','street-life'].includes(s.id)&&!['road','junction'].includes(s.kind))){
     const geometry=a.objects.slice(site.start,site.start+site.count).map(o=>[...o.values.slice(0,7).map((v,i)=>i===0?v-site.x:i===2?v-site.z:v),o.values[16],...o.values.slice(24,26)]);
     const signature=JSON.stringify(geometry);assert.ok(!silhouettes.has(signature),"duplicate composition: "+site.name);silhouettes.add(signature);
   }
@@ -36,7 +36,7 @@ test("runtime loads the built first-party Wasm and content hash matches build ma
   assert.equal(crypto.createHash("sha256").update(wasm).digest("hex"),metadata.sha256);
   assert.equal(wasm.length,metadata.bytes);
   const module=await WebAssembly.compile(wasm);assert.deepEqual(WebAssembly.Module.imports(module),[]);
-  assert.equal((await createEngine()).engine_version(),2);
+  assert.equal((await createEngine()).engine_version(),3);
 });
 
 test("each actual starting view renders coloured characters and roofs use the same scene",async()=>{

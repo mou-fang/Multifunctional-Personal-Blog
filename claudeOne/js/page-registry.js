@@ -37,8 +37,8 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     title: "无界穿梭：天际城",
     description: "无界穿梭：天际城 — 在原创彩色 ASCII 城市中自由飞行与探索",
     templateId: "page-city-shuttle",
-    css: ["css/city-shuttle.css?v=20261008-flight-2"],
-    js: ["js/city-shuttle-engine-url.js?v=20261008-flight-2", "js/city-shuttle-core.js?v=20261008-flight-2", "js/city-shuttle-scene.js?v=20261008-flight-2", "js/city-shuttle.js?v=20261008-flight-2"],
+    css: ["css/city-shuttle.css?v=20261009-live-5"],
+    js: ["js/city-shuttle-engine-url.js?v=20261009-live-5", "js/city-shuttle-core.js?v=20261009-live-5", "js/city-shuttle-geometry.js?v=20261009-live-5", "js/city-shuttle-streets.js?v=20261009-live-5", "js/city-shuttle-neighborhoods.js?v=20261009-live-5", "js/city-shuttle-actors.js?v=20261009-live-5", "js/city-shuttle-transit.js?v=20261009-live-5", "js/city-shuttle-city.js?v=20261009-live-5", "js/city-shuttle-scene.js?v=20261009-live-5", "js/city-shuttle-audio.js?v=20261009-live-5", "js/city-shuttle.js?v=20261009-live-5"],
     lifecycle: "__page_city_shuttle"
   },
   "anomaly-bureau": {
@@ -46,8 +46,8 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     title: "无界穿梭：天际城",
     description: "无界穿梭：天际城 — 旧游戏地址兼容入口",
     templateId: "page-city-shuttle",
-    css: ["css/city-shuttle.css?v=20261008-flight-2"],
-    js: ["js/city-shuttle-engine-url.js?v=20261008-flight-2", "js/city-shuttle-core.js?v=20261008-flight-2", "js/city-shuttle-scene.js?v=20261008-flight-2", "js/city-shuttle.js?v=20261008-flight-2"],
+    css: ["css/city-shuttle.css?v=20261009-live-5"],
+    js: ["js/city-shuttle-engine-url.js?v=20261009-live-5", "js/city-shuttle-core.js?v=20261009-live-5", "js/city-shuttle-geometry.js?v=20261009-live-5", "js/city-shuttle-streets.js?v=20261009-live-5", "js/city-shuttle-neighborhoods.js?v=20261009-live-5", "js/city-shuttle-actors.js?v=20261009-live-5", "js/city-shuttle-transit.js?v=20261009-live-5", "js/city-shuttle-city.js?v=20261009-live-5", "js/city-shuttle-scene.js?v=20261009-live-5", "js/city-shuttle-audio.js?v=20261009-live-5", "js/city-shuttle.js?v=20261009-live-5"],
     lifecycle: "__page_city_shuttle"
   },
   "ascii-void": {
@@ -55,8 +55,8 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     title: "无界穿梭：天际城",
     description: "无界穿梭：天际城 — 字符禁区旧地址兼容入口",
     templateId: "page-city-shuttle",
-    css: ["css/city-shuttle.css?v=20261008-flight-2"],
-    js: ["js/city-shuttle-engine-url.js?v=20261008-flight-2", "js/city-shuttle-core.js?v=20261008-flight-2", "js/city-shuttle-scene.js?v=20261008-flight-2", "js/city-shuttle.js?v=20261008-flight-2"],
+    css: ["css/city-shuttle.css?v=20261009-live-5"],
+    js: ["js/city-shuttle-engine-url.js?v=20261009-live-5", "js/city-shuttle-core.js?v=20261009-live-5", "js/city-shuttle-geometry.js?v=20261009-live-5", "js/city-shuttle-streets.js?v=20261009-live-5", "js/city-shuttle-neighborhoods.js?v=20261009-live-5", "js/city-shuttle-actors.js?v=20261009-live-5", "js/city-shuttle-transit.js?v=20261009-live-5", "js/city-shuttle-city.js?v=20261009-live-5", "js/city-shuttle-scene.js?v=20261009-live-5", "js/city-shuttle-audio.js?v=20261009-live-5", "js/city-shuttle.js?v=20261009-live-5"],
     lifecycle: "__page_city_shuttle"
   },
   tools: {

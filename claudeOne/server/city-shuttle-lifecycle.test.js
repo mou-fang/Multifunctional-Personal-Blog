@@ -5,9 +5,18 @@ const path = require("node:path");
 const vm = require("node:vm");
 const Core = require("../js/city-shuttle-core.js");
 const Scene = require("../js/city-shuttle-scene.js");
+test("the page starts audio from entry, pauses on blur, resumes after unmuting while paused and disposes on exit",async()=>{
+  const f=fixture({audio:true});f.api.mount(f.scope);const sound=f.sounds[0];assert.equal(sound.starts,0);f.ready(f.workers[0]);assert.equal(sound.starts,0);f.nodes.get("[data-cs-start]").dispatchEvent(new Event("click"));await Promise.resolve();assert.equal(sound.starts,1);
+  f.window.dispatchEvent(new Event("blur"));assert.equal(sound.paused,true);f.key("keydown","KeyM");assert.equal(sound.muted,true);f.key("keydown","KeyM");assert.equal(sound.muted,false);assert.equal(sound.starts,1);f.key("keydown","KeyP");await Promise.resolve();assert.equal(sound.starts,2);assert.equal(sound.paused,false);
+  const volume=f.nodes.get("[data-cs-volume]");volume.value="0";volume.dispatchEvent(new Event("input"));assert.equal(sound.volume,0);f.api.unmount();assert.equal(sound.disposed,true);
+});
+test("a worker or WebGL failure releases sound, GPU and observers and ignores a queued frame",()=>{
+  const f=fixture({audio:true});f.api.mount(f.scope);f.ready(f.workers[0]);f.nodes.get("[data-cs-start]").dispatchEvent(new Event("click"));f.workers[0].emit({type:"error",message:"test"});assert.equal(f.sounds[0].disposed,true);assert.equal(f.nodes.get("[data-cs-volume]").disabled,true);assert.equal(f.deletedTextures(),2);assert.equal(f.observers[0].disconnected,true);assert.doesNotThrow(()=>f.reply(f.workers[0]));f.api.unmount();assert.equal(f.deletedTextures(),2);
+});
 
-function fixture() {
-  const frames = new Map(), workers = [], observers = [];
+function fixture(options = {}) {
+  const frames = new Map(), workers = [], observers = [], sounds = [];
+  class Sound {constructor(){this.available=true;this.paused=true;this.starts=0;this.volume=.55;sounds.push(this);}start(){this.starts++;this.paused=false;return Promise.resolve(true);}setPaused(value){this.paused=value;}setMuted(value){this.muted=value;}setVolume(value){this.volume=value;}update(){}dispose(){this.disposed=true;}}
   let nextFrame = 0, deletedTextures = 0;
   class Element extends EventTarget {
     constructor() { super(); this.dataset = {}; this.hidden = false; this.disabled = false; this.value = "1"; this.children = []; }
@@ -26,6 +35,7 @@ function fixture() {
   window.devicePixelRatio = 1;
   window.CityShuttleCore = Core;
   window.CityShuttleScene = Scene;
+  if(options.audio)window.CityShuttleAudio={Sound};
   window.CityShuttleEngineUrl = "libs/test-engine.wasm";
   document.currentScript = { src: "http://localhost/js/city-shuttle.js" };
   document.baseURI = "http://localhost/";
@@ -43,7 +53,7 @@ function fixture() {
     return element;
   };
   const nodes = new Map();
-  const selectors = ["stage", "canvas", "overlay", "overlay-title", "overlay-text", "start", "pause", "district", "altitude", "speed", "status", "sensitivity", "startpoint", "hud-toggle", "reset"];
+  const selectors = ["stage", "canvas", "overlay", "overlay-title", "overlay-text", "start", "pause", "district", "altitude", "speed", "status", "sensitivity", "startpoint", "hud-toggle", "reset", "sound", "volume"];
   selectors.forEach(name => nodes.set(`[data-cs-${name}]`, new Element()));
   const canvas = nodes.get("[data-cs-canvas]");
   canvas.getContext = () => gl;
@@ -80,7 +90,7 @@ function fixture() {
   function reply(worker) { worker.emit({ type: "frame", pixels: new Uint8Array(144 * 55 * 4), columns: 144, rows: 55, state: [0, 10, 335, 0, 0, 0, 0, 0], elapsed: 3 }); }
   function step(time) { const [id, callback] = frames.entries().next().value; frames.delete(id); callback(time); }
   function ready(worker) { worker.emit({ type: "ready", objects: 965 }); reply(worker); }
-  return { api: window.__page_city_shuttle, scope, root, nodes, qualities, fullscreens, window, document, frames, workers, observers, key, reply, step, ready, classes, deletedTextures: () => deletedTextures };
+  return { api: window.__page_city_shuttle, scope, root, nodes, qualities, fullscreens, window, document, frames, workers, observers, sounds, key, reply, step, ready, classes, deletedTextures: () => deletedTextures };
 }
 
 test("leaving the page stops its worker, animation, observer and input listeners", () => {
