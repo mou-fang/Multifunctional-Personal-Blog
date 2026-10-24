@@ -10,6 +10,9 @@
 .release-hero h1 { font-size: clamp(1.65rem, 2.6vw, 2.35rem); letter-spacing: -.04em; margin: 8px 0; line-height: 1.18; }
 .release-hero__intro { color: var(--ink-soft); font-size: .88rem; line-height: 1.6; }
 .release-hero__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+.release-hero__actions .btn { display: inline-flex; align-items: center; justify-content: center; }
+.release-page[data-release-view="archive"] .release-toolbar { grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); }
+.release-more { align-self: center; }
 .release-updated { color: var(--ink-soft); font-size: .78rem; }
 .release-stats { display: flex; align-items: center; gap: 26px; }
 .release-stat { min-width: 80px; display: flex; flex-direction: column; gap: 4px; }
@@ -138,6 +141,7 @@ body[data-theme="liquid-glass"] .release-card__badge[data-release-state="release
   .release-page { gap: 18px; } .release-hero { grid-template-columns: 1fr; padding: 18px; gap: 16px; }
   .release-stats { gap: 26px; } .release-stat strong { font-size: 1.65rem; }
   .release-toolbar { grid-template-columns: 1fr; padding: 16px; gap: 14px; }
+  .release-page[data-release-view="archive"] .release-toolbar { grid-template-columns: 1fr; }
   .release-history { grid-column: auto; justify-self: start; }
   .release-grid { grid-template-columns: 1fr; gap: 20px; }
   .release-status-row { flex-direction: column; gap: 6px; } .release-filter { padding: 9px 12px; }

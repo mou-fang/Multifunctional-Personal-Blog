@@ -1,0 +1,58 @@
+/* Material and motion only. No layout, font, spacing, size or breakpoint rules. */
+.lens-world { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.lens-world > .lg-canvas,
+.lens-preview [data-lens-overlay] > .lg-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;
+  z-index: 0; border-radius: inherit;
+}
+.lens-preview [data-lens-skin] { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
+.lens-preview [data-lens-overlay] > .lg-canvas { z-index: -1; }
+.lens-preview [data-lens-overlay] { isolation: isolate; }
+/* Focused controls must not scroll the clipped player during its spring morph. */
+.lens-preview .global-player { overflow: clip; }
+.lens-preview[data-theme="liquid-glass"][data-lens-ready] [data-lens-optic],
+.lens-preview[data-theme="liquid-glass"] [data-lens-overlay].webgl-ready {
+  background: transparent !important; box-shadow: none !important;
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important; filter: none !important;
+}
+.lens-preview[data-theme="liquid-glass"][data-lens-ready] [data-lens-tint] { background: var(--lens-original-tint) !important; }
+/* A thin contact reflection keeps clear glass legible on this near-white page.
+   Refraction and deformation still use the Lens optical material. */
+.lens-preview[data-theme="liquid-glass"][data-lens-ready] :is(.site-nav,.theme-toggle,.github-link,.cube-controls,.cube-turn-btn,.pill,.btn,.visitor-pulse,.visitor-pulse__metrics),
+.lens-preview[data-theme="liquid-glass"] :is(.global-player,.site-assistant,.modal-card).webgl-ready {
+  border-color: rgba(255,255,255,.72);
+  box-shadow: inset 0 1px .5px rgba(255,255,255,.92), inset 0 -1px .7px rgba(63,83,108,.23), inset 1px 0 .5px rgba(255,255,255,.48), 0 5px 12px -9px rgba(37,54,76,.38) !important;
+}
+.lens-preview[data-theme="liquid-glass"][data-lens-ready] :is(.assistant-think,.assistant-tool-toggle)[data-active="true"] {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #111 30%)) !important;
+}
+.lens-preview[data-theme="liquid-glass"][data-lens-ready] [data-lens-optic]::before,
+.lens-preview[data-theme="liquid-glass"][data-lens-ready] [data-lens-optic]::after,
+.lens-preview[data-theme="liquid-glass"] [data-lens-overlay].webgl-ready::before,
+.lens-preview[data-theme="liquid-glass"] [data-lens-overlay].webgl-ready::after { opacity: 0 !important; }
+.lens-preview[data-theme="liquid-glass"] .lens-nav-indicator { position: absolute; pointer-events: none; z-index: 0; }
+.lens-preview[data-theme="neumorphism"] .lens-nav-indicator,
+.lens-preview[data-theme="neumorphism"] .lens-world,
+.lens-preview[data-theme="neumorphism"] [data-lens-volume-thumb] { display: none; }
+.lens-preview[data-theme="liquid-glass"][data-lens-ready] .site-nav a[aria-current="page"] { background: transparent; box-shadow: none; }
+.lens-preview[data-theme="liquid-glass"][data-lens-active] [data-lens-motion] {
+  transform: var(--lens-base-transform, translate(0,0)) var(--jelly-matrix, matrix(1,0,0,1,0,0)) !important;
+}
+.lens-preview .global-player[data-minimized] .global-player__btn--play { --lens-base-transform: translate(-50%,-50%); position: absolute; }
+.lens-preview .global-player:not([data-minimized]) .global-player__btn--play { --lens-base-transform: translate(0,0); }
+.lens-preview[data-theme="liquid-glass"][data-lens-ready] .global-player__progress-fill,
+.lens-preview[data-theme="liquid-glass"][data-lens-ready] .global-player__progress-thumb { background: transparent; box-shadow: none; }
+.lens-preview[data-theme="liquid-glass"][data-lens-ready] .global-player__volume-slider::-webkit-slider-thumb { background: transparent; box-shadow: none; }
+.lens-preview[data-theme="liquid-glass"][data-lens-ready] .global-player__volume-slider::-moz-range-thumb { background: transparent; box-shadow: none; }
+.lens-preview [data-lens-volume-thumb] { position: absolute; pointer-events: none; border-radius: 50%; transform: var(--jelly-matrix, matrix(1,0,0,1,0,0)); }
+.lens-preview .global-player__volume-group:has([data-lens-volume-thumb]) { position: relative; }
+/* Keep the original narrow-screen button sizes and make the rest reachable.
+   Only the control strip scrolls; focus cannot displace the player or canvas. */
+@media (max-width: 520px) {
+  .lens-preview .global-player:not([data-minimized]):not([data-lens-player-morph]) .global-player__controls {
+    min-width: 0; flex-shrink: 1; overflow-x: auto; overflow-y: hidden;
+    overscroll-behavior-x: contain; scrollbar-width: none;
+  }
+  .lens-preview .global-player:not([data-minimized]):not([data-lens-player-morph]) .global-player__volume-group { flex-shrink: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .lens-preview [data-lens-motion] { transition-duration: .001ms !important; } }

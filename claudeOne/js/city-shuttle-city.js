@@ -46,7 +46,12 @@
     {id:"port-cranes",name:"东港 · 岸吊与集装箱",x:2790,y:56,z:-1100,yaw:-.076,pitch:-.04},
     {id:"river-ferry",name:"滨江 · 水上巴士",x:1290,y:8,z:1000,yaw:-.62,pitch:-.15},
     {id:"green-tunnel",name:"北城绿顶隧道 · 可穿行",x:-1750,y:4.5,z:-1792,yaw:0,pitch:0},
-    {id:"garden-cafe",name:"邻里花园 · 咖啡座与喷泉",x:1023,y:2.1,z:1652,yaw:Math.PI,pitch:-.06}
+    {id:"garden-cafe",name:"邻里花园 · 咖啡座与喷泉",x:1023,y:2.1,z:1652,yaw:Math.PI,pitch:-.06},
+    {id:"highway-link",name:"高速接驳 · 匝道与跨区公交",x:1480,y:28,z:2407,yaw:.55,pitch:-.08},
+    {id:"rail-depot",name:"铁路车辆段 · 检修与道岔",x:-2320,y:20,z:-2100,yaw:Math.PI/2,pitch:-.08},
+    {id:"canal-neighbours",name:"运河社区桥 · 两岸街区",x:365,y:15,z:-1090,yaw:0,pitch:-.10},
+    {id:"science-street",name:"科创生活街 · 连续街墙",x:-545,y:3,z:-1050,yaw:-Math.PI/2,pitch:.08},
+    {id:"river-street",name:"南岸滨江 · 住宅与店面",x:-1050,y:4,z:1180,yaw:0,pitch:.1}
   ]);
   function landmark(b,id,name,x,z,description,draw,source){b.site("landmark-"+id,name,x,z,description,draw,{kind:"landmark",source:source});}
   function publicBase(b,label,w,d,tint){

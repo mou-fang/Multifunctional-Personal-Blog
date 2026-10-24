@@ -34,11 +34,11 @@ function element(tag = "div") {
 function harness() {
   let now = "2026-10-05T15:59:59Z"; // One second before midnight in Shanghai.
   const controls = new Map();
-  for (const name of ["status", "list", "count", "next", "result", "updated", "poster-open", "refresh", "filters", "history", "dialog", "poster", "poster-error", "poster-download"]) {
+  for (const name of ["status", "list", "count", "next", "result", "updated", "poster-open", "refresh", "filters", "history", "history-label", "dialog", "poster", "poster-error", "poster-download", "heading", "intro", "count-label", "next-label", "view-link", "more", "search"]) {
     const selector = `[data-release-${name}]`, control = element();
     control.selector = selector; controls.set(selector, control);
   }
-  const root = Object.assign(element(), { querySelector: selector => controls.get(selector) });
+  const root = Object.assign(element(), { querySelector: selector => controls.get(selector), querySelectorAll: () => [], contains: () => true });
   const document = Object.assign(target(), { hidden: false, createElement: element });
   const intervals = new Map(), timeouts = new Map(); let timerId = 0, fetches = 0, fetchImpl;
   const items = ["2026-10-05", "2026-10-06"].map((releaseDate, index) => ({
@@ -65,7 +65,7 @@ function harness() {
     function visit(el) { if (el.className === "release-card__badge") result.push(el.textContent); el.children.forEach(visit); }
     visit(get("list")); return result;
   }
-  return { window, document, root, get, badges, intervals, timeouts, snapshot, setFetch: fn => { fetchImpl = fn; }, page: window.__page_game_releases,
+  return { window, document, root, get, badges, intervals, timeouts, snapshot, setFetch: fn => { fetchImpl = fn; }, page: window.__page_game_releases, archive: window.__page_game_releases_archive,
     container: { querySelector: () => root }, setNow: value => { now = value; },
     tick: () => [...intervals.values()].forEach(timer => timer.callback()), fetches: () => fetches };
 }
@@ -162,5 +162,36 @@ test("hidden tabs stop date checks, resume immediately, retain the checkbox choi
   assert.equal(h.get("history").checked, true);
   assert.deepEqual(h.badges(), ["已发售", "已发售"]);
   assert.equal(h.intervals.size, 1);
+  h.page.unmount();
+});
+
+test("archive has its own prepared cache, filters and paginates records, and rechecks after midnight", async () => {
+  const h = harness();
+  const archive = { schemaVersion: 1, date: "2026-10-01", timeZone: "Asia/Shanghai", revision: "b".repeat(64), items: Array.from({ length: 65 }, (_, index) => ({ ...h.snapshot.items[0], id: index.toString(16).padStart(24, "0"), title: "往期游戏 " + index, searchName: "Archive " + index, releaseDate: "2026-10-01" })) };
+  const requested = [];
+  h.setFetch(async url => { requested.push(url); return { ok: true, json: async () => url.endsWith("/archive") ? structuredClone(archive) : h.snapshot }; });
+  await h.archive.prepare(); h.archive.mount(h.container);
+  assert.equal(h.get("heading").textContent, "往期已发售游戏");
+  assert.equal(h.get("view-link").href, "#/game-releases");
+  assert.equal(h.get("poster-open").hidden, true); assert.equal(h.get("history-label").hidden, true);
+  assert.equal(h.badges().length, 60); assert.equal(h.get("more").hidden, false);
+  h.root.emit("click", { target: { closest: selector => selector === "[data-release-more]" ? h.get("more") : null } });
+  assert.equal(h.badges().length, 65); assert.equal(h.get("more").hidden, true);
+  h.get("search").value = "Archive 64"; h.root.emit("input", { target: h.get("search") });
+  assert.equal(h.badges().length, 1);
+  h.get("search").value = "no match"; h.root.emit("input", { target: h.get("search") });
+  assert.match(h.get("list").textContent, /没有匹配/);
+  assert.doesNotMatch(h.get("list").textContent, /勾选/);
+  h.get("search").value = ""; h.root.emit("input", { target: h.get("search") });
+  archive.revision = "c".repeat(64); archive.items.unshift({ ...h.snapshot.items[0] });
+  h.setNow("2026-10-05T16:00:00Z"); h.tick(); await new Promise(setImmediate);
+  assert.equal(h.get("count").textContent, "66");
+  assert.deepEqual(requested, ["/api/game-releases/archive", "/api/game-releases/archive"]);
+  h.archive.unmount(); assert.equal(h.intervals.size, 0); assert.equal(h.window.listeners.size, 0);
+  await h.page.prepare(); h.page.mount(h.container);
+  assert.equal(h.get("heading").textContent, "下一款，玩什么？");
+  assert.equal(h.get("view-link").href, "#/game-releases-archive");
+  assert.equal(h.get("poster-open").hidden, false);
+  assert.deepEqual(h.badges(), ["已发售", "今日发售"]);
   h.page.unmount();
 });

@@ -113,6 +113,58 @@ async function readSnapshot(dir) {
   try { return validateSnapshot(await readJson(path.join(dir, "current.json"))); }
   catch (error) { if (error.code === "ENOENT") return emptySnapshot(); throw error; }
 }
+async function previousSnapshot(dir) {
+  try { return validateSnapshot(await readJson(path.join(dir, "previous.json"))); }
+  catch (error) { if (error.code === "ENOENT") return null; throw error; }
+}
+async function historyDirectory(dir, create = false) {
+  const target = path.join(dir, "history");
+  if (create) await fs.mkdir(target, { recursive: true, mode: 0o700 });
+  try {
+    const actual = await fs.realpath(target);
+    if (!inside(dir, actual)) fail("history 目录不能指向外部");
+    return actual;
+  } catch (error) { if (!create && error.code === "ENOENT") return null; throw error; }
+}
+// Keep every outgoing edition, including entries that mature after leaving the weekly list.
+// On upgrade, previous.json also seeds the history before the next publish replaces it.
+async function readHistory(dir) {
+  const directory = await historyDirectory(dir);
+  const names = directory ? (await fs.readdir(directory)).filter(name => /^[a-f0-9]{64}\.json$/.test(name)) : [];
+  const editions = [];
+  for (const name of names) {
+    const edition = validateSnapshot(await readJson(path.join(directory, name)));
+    if (name !== edition.revision + ".json") fail("历史快照文件名与内容不符");
+    editions.push(edition);
+  }
+  const previous = await previousSnapshot(dir), current = await readSnapshot(dir);
+  if (previous) editions.push(previous);
+  if (current.revision) editions.push(current);
+  editions.sort((a, b) => a.date.localeCompare(b.date) || Date.parse(a.generatedAt) - Date.parse(b.generatedAt));
+  // A later announcement corrects an earlier date for the same game/platform.
+  // Separate platform launches remain separate when they have different dates.
+  const latest = new Map();
+  for (const edition of editions) for (const item of edition.items) {
+    for (const platform of item.platforms) {
+      const key = item.id + ":" + platform;
+      // Move updated platforms to the end so grouped metadata uses the latest edition.
+      latest.delete(key); latest.set(key, { ...item, platforms: [platform] });
+    }
+  }
+  const grouped = new Map();
+  for (const item of latest.values()) {
+    const key = item.id + ":" + item.releaseDate, existing = grouped.get(key);
+    grouped.set(key, { ...item, platforms: existing ? [...existing.platforms, ...item.platforms] : item.platforms.slice() });
+  }
+  const items = [...grouped.values()].map(item => ({ ...item, platforms: PLATFORMS.filter(p => item.platforms.includes(p)) }))
+    .sort((a, b) => b.releaseDate.localeCompare(a.releaseDate) || a.searchName.localeCompare(b.searchName));
+  return { schemaVersion: 1, timeZone: current.revision ? current.timeZone : editions.at(-1)?.timeZone || "Asia/Shanghai", date: current.date || editions.at(-1)?.date || null, items };
+}
+function releasedHistory(catalogue, now = new Date()) {
+  const date = today(now, catalogue.timeZone);
+  const items = catalogue.items.filter(item => item.releaseDate < date);
+  return { ...catalogue, revision: hash(JSON.stringify({ timeZone: catalogue.timeZone, date: catalogue.date, items })), items };
+}
 function imageExtension(buffer, poster = false) {
   const png = buffer.length >= 33 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) && buffer.toString("ascii", 12, 16) === "IHDR";
   if (poster) {
@@ -211,9 +263,14 @@ async function publish({ inputFile, cardFile, imageFile, coversDir, dataDir, tim
     if (current.date && current.date > date) fail("拒绝覆盖较新的速报");
     if (current.revision === snapshot.revision) return { ok: true, unchanged: true, revision: current.revision, date, count: items.length, covers: items.filter(item => item.cover).length };
     for (const [name, buffer] of assets) await atomicFile(path.join(assetDir, name), buffer);
+    const historyDir = await historyDirectory(dir, true);
+    const previous = await previousSnapshot(dir);
+    for (const edition of [previous, current]) {
+      if (edition?.revision) await atomicFile(path.join(historyDir, edition.revision + ".json"), JSON.stringify(edition, null, 2) + "\n");
+    }
     if (current.revision) await atomicFile(path.join(dir, "previous.json"), JSON.stringify(current, null, 2) + "\n");
     await atomicFile(path.join(dir, "current.json"), JSON.stringify(snapshot, null, 2) + "\n");
     return { ok: true, unchanged: false, revision: snapshot.revision, date, count: items.length, covers: items.filter(item => item.cover).length };
   } finally { await lock.close(); await fs.unlink(lockPath); }
 }
-module.exports = { PLATFORMS, ASSET_NAME, MAX_ASSET, DEFAULT_DATA_DIR, inside, storageDir, readLimited, readSnapshot, validateSnapshot, emptySnapshot, publish, isoDate, addDays, today, sourceUrl };
+module.exports = { PLATFORMS, ASSET_NAME, MAX_ASSET, DEFAULT_DATA_DIR, inside, storageDir, readLimited, readSnapshot, readHistory, releasedHistory, validateSnapshot, emptySnapshot, publish, isoDate, addDays, today, sourceUrl };

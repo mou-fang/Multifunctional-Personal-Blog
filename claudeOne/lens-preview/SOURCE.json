@@ -1,0 +1,10 @@
+{
+  "source": "claudeOne/index.html",
+  "homepage_sha256": "3fa21e4043babdedbba8d370a00b9b2b1d4b211ce3d3dd3df721548ee3d9398c",
+  "copies": {
+    "shell.js": "fb93ea6b94ff52690427fbb5b88611225ab3ee9a84e0c8716fdf2cb3260f92b6",
+    "player.js": "6f166d8663c99f80bc1090025e907c2dc9cb2814ba642b9254c20af81c9ee6d8",
+    "assistant.js": "ac707c2d88107a591815315b82b862bd664bea0655b110465d3890a2f3f58712",
+    "startup.js": "68dbf9f8ba0923657de6329d18fd0617800ea41df70af8ce7185105ed7dd464c"
+  }
+}

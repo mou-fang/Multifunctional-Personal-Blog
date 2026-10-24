@@ -213,7 +213,7 @@
   ];
 
   // Independent navigation section: keep this entry outside the game/tool grids.
-  var RELEASE_CARDS = [{ icon: "📅", title: "游戏发售", desc: "未来约 8 周的发售清单，每周二更新。", tags: ["发售日历"], href: "#/game-releases" }];
+  var RELEASE_CARDS = [{ icon: "📅", title: "游戏发售", desc: "每周二更新未来约 8 周的发售清单，也可回看往期已发售游戏。", tags: ["发售日历", "往期回顾"], href: "#/game-releases" }];
 
   function renderCards(cards) {
     var html = "";

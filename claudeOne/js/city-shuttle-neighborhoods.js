@@ -30,7 +30,7 @@
       balconies(b,"south-balconies",30,76.5,5.4,[-9,9],[9,15.6,22.2,28.8],1);b.part("courtyard-shade",-13,4.7,28,35,.3,25,"gold",{pitch:.04});
       storefront(b,"bakery",-2,-54,28,"BAKERY","gold");storefront(b,"books",31,73,27,"BOOKS","teal");roofService(b,"service",30,-50,31.6,[9,7]);ac(b,"north-ac",-5,19,-53,0);
       b.part("drying-rack",31,34.1,36,14,.14,.14,"silver");b.part("white-linen",27,32.8,36,3.1,2.4,.06,"white",{solid:false});b.part("blue-linen",33,33.3,36,2.5,1.5,.06,"blue",{solid:false});
-      plant(b,"courtyard-plane",-10,-3,9.3,4.6,4.1,-.3);bench(b,"garden-seat",-10,8,0);bin(b,"south-bin",-19,81);
+      [[-27,17],[2,17],[-27,39],[2,39]].forEach(function(p,i){b.cylinder("shade-support-"+i,p[0],2.47,p[1],.14,4.22,.14,"silver");});plant(b,"courtyard-plane",-10,-3,9.3,4.6,4.1,-.3);bench(b,"garden-seat",-10,8,0);bin(b,"south-bin",-19,81);
     });
     site(b,"flower-west-gateway","花城西路 · 双翼公寓",719,1494,"两翼高低不同的公寓与斜面塔冠沿社区路布置，入口有雨棚和便利店",function(b){
       paving(b,"base",0,0,154,202);volume(b,"west-apartment",-38,-31,43,95,.36,76,"stone");volume(b,"east-apartment",30,38,49,92,.36,91,"ivory");
@@ -48,9 +48,9 @@
     },"market");
     site(b,"flower-east-housing","花城东路 · 空中花园住区",1258,1859,"三个不同轮廓的住宅、屋顶共享花园和穿行的架空院落构成完整东侧街墙",function(b){
       paving(b,"court",0,0,176,362);volume(b,"north-slim-house",-36,-118,48,87,.36,112,"silver");volume(b,"centre-L-west",-35,-2,50,100,6.6,68,"ivory");volume(b,"centre-L-east",23,29,66,38,6.6,68,"ivory");volume(b,"south-round-house",31,128,65,62,.36,82,"teal");
-      [-54,-6,50].forEach(function(x,i){b.cylinder("raised-court-pillar-"+i,x,3.4,12,.65,6,.65,"stone");});b.part("court-covered-floor",-13,6.3,0,100,.5,100,"silver");
+      [-54,-6].forEach(function(x,i){[-42,12,43].forEach(function(z,j){b.cylinder("raised-court-pillar-"+i+"-"+j,x,3.35,z,.65,6,.65,"stone");});});[10,48].forEach(function(z,i){b.cylinder("east-court-pillar-"+i,50,3.35,z,.65,6,.65,"stone");});b.part("court-covered-floor",-13,6.35,0,100,.5,100,"silver");b.part("east-covered-floor",23,6.35,29,66,.5,38,"silver");
       balconies(b,"north-terraces",-36,-74.5,6.8,[-14,14],[12,24,36,48,60,72,84,96,108],1);balconies(b,"south-terraces",31,159,7.4,[-20,0,20],[9,19,29,39,49,59,69,79],1);
-      cornice(b,"north-roof",-36,-118,50,90,113);roofService(b,"north-services",-39,-137,113,[9,11]);roofPlant(b,"L-garden",-18,25,75.3,67,22);b.part("garden-pergola",17,79.8,27,19,.35,18,"gold");
+      cornice(b,"north-roof",-36,-118,50,90,113);roofService(b,"north-services",-39,-137,113.3,[9,11]);roofPlant(b,"L-garden",-18,25,74.65,67,22);b.part("garden-pergola",17,79.8,27,19,.35,18,"gold");[[9,20],[25,20],[9,34],[25,34]].forEach(function(p,i){b.cylinder("pergola-leg-"+i,p[0],77.12,p[1],.12,4.98,.12,"silver");});
       storefront(b,"east-cafe",-27,52,40,"GARDEN CAFE","gold");paving(b,"entry",-76,36,20,70);plant(b,"courtyard-oak",15,-70,12,5.8,5.3,.6,"green");plant(b,"south-camphor",-49,158,10.4,5,4.5,-.7);bench(b,"under-house-seat",-5,18,1.2);bin(b,"under-house-bin",-13,13);
     });
     site(b,"flower-east-hotel","花城东街 · 退台酒店",1280,1480,"低层餐饮面向东街，高层酒店向广州塔逐段退开并以弧冠收束",function(b){
@@ -64,10 +64,10 @@
       plant(b,"central-elm",-3,22,12.2,6.4,5.7,.7);plant(b,"nursery-tree",42,73,8.1,4.2,4.7,-.3,"green");b.part("sandpit",43,28/100,57,22,.3,16,"warm",{material:7});b.part("nursery-slide",50,1.8,54,1.8,.25,5,"red",{pitch:.55});bench(b,"parent-seat",29,45,0);bin(b,"courtyard-bin",10,54);b.text("nursery-title","KIDS",46,9,15,"white",1.3);
     });
     site(b,"flower-south-crescent","南岸社区 · 弧形住宅",1377,2290,"椭圆住宅与低层阶梯住居之间保留口袋公园，轮廓衔接高速而不挡住匝道",function(b){
-      paving(b,"community-court",0,0,317,205);b.cylinder("elliptic-apartment",72,48,16,39,95,61,"ivory",{material:1,wx:4.1,wy:3.5,parameter:.92});b.cylinder("elliptic-coping",72,96,16,37,1.3,58,"silver");
-      volume(b,"terrace-base",-87,-12,120,84,.36,24,"brick");volume(b,"terrace-second",-99,-30,96,48,24.36,18,"ivory");volume(b,"terrace-top",-116,-34,61,36,42.36,18,"silver");
-      balconies(b,"brick-apartment-front",-87,30,7.3,[-42,-21,0,21,42],[7,14,21],1);roofPlant(b,"stepped-garden",-51,-8,42.8,19,31);roofService(b,"terrace-services",-126,-36,60.7,[9,6]);
-      plant(b,"garden-tree",-16,31,10.6,5.3,5.1,.2);plant(b,"garden-flowering-tree",13,-56,7.5,4.1,3.9,-.5,"pink");bench(b,"garden-seat",-2,54,0);storefront(b,"laundry",-91,31,31,"LAUNDRY","teal");
+      paving(b,"community-court",106,8,147,187);paving(b,"terrace-court",-330,-7,166,136);b.cylinder("elliptic-apartment",106,47.86,16,39,95,61,"ivory",{material:1,wx:4.1,wy:3.5,parameter:.92});b.cylinder("elliptic-coping",106,95.7,16,37,1.3,58,"silver");
+      volume(b,"terrace-base",-330,-12,120,84,.36,24,"brick");volume(b,"terrace-second",-342,-30,96,48,24.36,18,"ivory");volume(b,"terrace-top",-359,-34,61,36,42.36,18,"silver");
+      balconies(b,"brick-apartment-front",-330,30,7.3,[-42,-21,0,21,42],[7,14,21],1);roofPlant(b,"stepped-garden",-294,-8,24.4,19,31);roofService(b,"terrace-services",-369,-36,60.4,[9,6]);
+      plant(b,"garden-tree",-285,53,10.6,5.3,5.1,.2);plant(b,"garden-flowering-tree",151,-56,7.5,4.1,3.9,-.5,"pink");bench(b,"garden-seat",140,60,0);storefront(b,"laundry",-334,31,31,"LAUNDRY","teal");
     });
     site(b,"flower-north-river-homes","塔西滨江住居",645,1320,"沿河逐渐降低的住宅和临水餐馆，在滨江绿道与生活横街之间形成有厚度的街区",function(b){
       paving(b,"river-court",0,0,237,273);volume(b,"river-west-home",-75,-13,47,134,.36,57,"stone");volume(b,"river-east-home",46,38,65,127,.36,82,"silver");volume(b,"river-north-villa",9,-100,84,31,.36,19,"ivory");
@@ -98,6 +98,7 @@
     });
     site(b,"financial-trio-infill-west","三件套西侧 · 地标尺度过渡",-1639,-1122,"弧形银行与带翼酒店在超高层脚下形成街墙，低矮街角广场留出三座地标的视线",function(b){
       paving(b,"block-court",0,0,172,417);b.cylinder("bank-ellipse",-12,44,-94,53,87,75,"silver",{material:1,wx:5.2,wy:4.2});volume(b,"bank-roof-wing",-12,-94,51,97,87.6,16,"gold");
+      b.cylinder("bank-ground-plinth",-12,.43,-94,53,.14,75,"stone");b.part("bank-roof-transfer",-12,87.55,-94,51,.1,97,"silver");
       volume(b,"hotel-east-wing",37,125,54,101,.36,123,"ivory");volume(b,"hotel-west-wing",-33,106,53,72,.36,92,"glass");b.part("hotel-roof-link",1,91,106,44,2.8,22,"silver");
       volume(b,"coffee-pavilion",-33,34,49,27,.36,8,"brick");storefront(b,"coffee",-33,48,45,"COFFEE","gold");roofService(b,"hotel-services",35,139,124,[8,10]);roofPlant(b,"bank-roof",-8,-109,104.2,40,58);plant(b,"street-ash",-55,9,10.9,5.4,5.1,.6);bench(b,"coffee-seat",-31,57,0);
     });
@@ -150,6 +151,7 @@
     site(b,"oldtown-north-corner","骑楼北街 · 钟楼书铺",-628,1293,"西式钟楼、转角书铺与退台旧公寓沿骑楼北街组成第一处老城街角",function(b){
       paving(b,"courtyard",0,0,157,129);volume(b,"bookstore-body",28,-19,62,42,4.5,15,"ivory",{wx:3.9,wy:3.7});volume(b,"west-residence",-45,10,49,91,.36,24,"brick");volume(b,"clock-tower",25,-38,19,19,19.5,19,"stone");
       arcade(b,"bookstore-arcade",28,4,68,4.5,[-28,-9,11,30]);storefront(b,"books",25,1,42,"OLD BOOKS","teal");pitchedRoof(b,"west-roof",-45,10,54,95,25,5.7,"roof");b.cylinder("clock-face",25,31.8,-28.4,2.6,.20,2.6,"ivory",{pitch:Math.PI/2,material:5,glyph:"+",solid:false});b.cylinder("clock-crown",25,41,-38,12,5,12,"roof",{parameter:.12});
+      b.part("bookstore-support-floor",28,4.34,-19,62,.32,42,"stone");b.part("bookstore-rear-ground-wall",28,2.43,-40,62,4.14,.5,"brick");[-2,58].forEach(function(x,i){[-34,-15,0].forEach(function(z,j){b.cylinder("bookstore-ground-pier-"+i+"-"+j,x,2.43,z,.25,4.14,.25,"ivory");});});
       balconies(b,"west-balcony",-45,55.5,7,[-14,14],[8,15,22],1);b.part("bookstore-upper-balcony",29,12,6,56,.2,3.7,"stone");b.part("bookstore-upper-rail",29,12.6,7.8,56,1,.12,"silver",{material:5,glyph:"|"});ac(b,"bookshop-ac",44,17,3,0);plant(b,"corner-banyan",-5,45,9.9,6.4,5.3,1.1);bench(b,"old-town-seat",13,44,0);
     });
     site(b,"oldtown-market-arcade","骑楼中街 · 鲜货与面馆",-469,1439,"侧向骑廊让行人沿店面通行，面馆、五金铺和菜档各有不同的屋檐、窗台与晾衣细节",function(b){
@@ -431,6 +433,89 @@
       b.part("parking-side-ramp",66,4.35,0,11,.45,113,"asphalt",{material:11,pitch:-.071});b.part("charging-stall",-55,1.18,112,1.1,1.6,.6,"teal");b.part("charging-display",-55,1.46,112.32,.78,.55,.05,"blue",{material:6,emission:.2});b.text("parking-title","P / EV",-18,10.7,85,"white",2.8);bin(b,"parking-bin",37,107);
     },"parking");
   }
-  function author(b){flower(b);financial(b);oldtown(b);civic(b);culture(b);parks(b);harbor(b);airport(b);infill(b);}
+  function fabric(b){
+    // Authored street walls close the large voids between the original sites.
+    // Each plot has its own footprint, setbacks, roof and public connection.
+    site(b,"fabric-science-north","科创北街 · 折角书院街坊",-538,-1195,"连续临街书店、斜冠写字楼和错台住宅围合两条可通行内巷",function(b){
+      paving(b,"block",0,0,474,252);volume(b,"west-court-wing",-188,-4,52,194,.36,71,"brick");volume(b,"east-court-wing",188,-15,53,181,.36,93,"ivory");volume(b,"north-homes",-28,-101,245,39,.36,52,"stone");volume(b,"north-setback",-66,-107,151,25,52.36,21,"silver");
+      volume(b,"south-bookstore",-120,93,139,42,.36,12,"ivory");volume(b,"south-makers",91,94,153,40,.36,17,"teal");volume(b,"centre-workshop",6,-5,87,53,.36,36,"brick");
+      b.loft("east-cut-crown",[{y:93.36,points:[[161,-105],[215,-105],[215,75],[161,75]]},{y:120,points:[[168,-83],[207,-96],[207,35],[168,60]]}],"blue",{material:1,wx:4.4,wy:4.5});
+      balconies(b,"north-living",-28,-81.5,7.8,[-100,-60,-20,20,60,100],[8,19,30,41,50],1);storefront(b,"books",-120,115,90,"CITY BOOKS","gold");storefront(b,"makers",91,115,105,"MAKER STREET","teal");pitchedRoof(b,"workshop-roof",6,-5,91,58,36.7,9,"roof");
+      roofService(b,"west-services",-188,-38,71.4,[10,8]);roofPlant(b,"north-garden",44,-105,52.4,56,23);plant(b,"court-tree",-60,14,13,6.1,5.3,.4);bench(b,"court-seat",-57,34,0);bin(b,"recycling",-44,35);b.light("laneway-light",128,5,42,"warm",34);
+    },"urban-block");
+    site(b,"fabric-science-south","科创南街 · 双院住居",-548,-832,"街墙公寓、坡顶托育、不同高度塔楼与两个开放院落组成紧凑居住街区",function(b){
+      paving(b,"block",0,0,463,383);volume(b,"north-wall",-3,-158,367,47,.36,42,"ivory");volume(b,"west-wall",-183,-31,45,168,.36,57,"stone");volume(b,"east-tower",159,30,61,123,.36,123,"silver");volume(b,"east-setback",169,13,40,83,123.36,25,"glass");
+      volume(b,"south-wall",-35,149,288,48,.36,64,"brick");volume(b,"south-setback",-67,143,169,29,64.36,17,"ivory");volume(b,"centre-homes",-41,24,147,44,.36,34,"teal");volume(b,"nursery-house",58,-58,63,78,.36,14,"gold");
+      balconies(b,"north-porches",-3,-134.5,8.5,[-145,-96,-47,2,51,100,149],[8,18,28,38],1);balconies(b,"south-porches",-35,173,7.6,[-103,-61,-19,23,65,107],[9,21,33,45,57],1);pitchedRoof(b,"nursery-gable",58,-58,69,85,14.8,5.2,"roof");
+      storefront(b,"corner-grocery",-108,-133,60,"GROCER","teal");storefront(b,"south-clinic",31,174,66,"COMMUNITY CLINIC","gold");roofPlant(b,"centre-green",-40,24,34.4,116,30);roofService(b,"east-service",169,13,148.4,[9,11]);plant(b,"north-court-tree",-61,-81,12,5.6,5.2,-.5);plant(b,"south-court-tree",49,89,11,5,4.8,.6);bench(b,"residents",32,111,0);bin(b,"south-bin",52,112);
+    },"urban-block");
+    site(b,"fabric-media-south","媒体街 · 连续生活街坊",20,-1197,"高低错落的沿街建筑、低层餐饮和穿行院落把央视南侧接到运河桥",function(b){
+      paving(b,"block",0,0,414,164);volume(b,"west-house",-155,-4,49,130,.36,65,"ivory");volume(b,"west-step",-157,-12,35,80,65.36,16,"stone");volume(b,"north-newsrooms",-37,-53,158,32,.36,39,"blue");volume(b,"east-home",144,-3,69,119,.36,88,"silver");volume(b,"south-cafe",-57,46,112,37,.36,11,"brick");volume(b,"south-photo-studio",66,48,82,34,.36,23,"ivory");
+      balconies(b,"east-terraces",144,56.5,7.4,[-23,0,23],[10,24,38,52,66,80],1);storefront(b,"cafe",-57,65,72,"PRESS CAFE","gold");storefront(b,"studio",66,66,48,"PHOTO","teal");cornice(b,"newsroom-coping",-37,-53,163,37,39.7);roofService(b,"east-roof",144,-23,88.4,[8,9]);plant(b,"court-plane",-8,-10,10.6,5.1,4.6,.3);bench(b,"meeting-seat",-5,11,Math.PI);bin(b,"court-bin",9,13);
+    },"urban-block");
+    site(b,"fabric-canal-tech","运河东岸 · 科技生活街",645,-931,"三角办公塔、叠院公寓、沿河排屋与街角食堂围住开放街巷",function(b){
+      paving(b,"block",0,0,274,319);volume(b,"west-river-homes",-108,-18,33,235,.36,37,"brick");volume(b,"east-street-wall",124,-39,32,210,.36,54,"ivory");volume(b,"north-home",-9,-132,131,34,.36,74,"silver");volume(b,"north-top",-24,-134,83,28,74.36,19,"blue");volume(b,"south-food-hall",18,128,186,37,.36,14,"gold");
+      b.loft("triangular-workplace",[{y:.36,points:[[-52,-48],[60,-28],[34,50],[-22,59]]},{y:116,points:[[-37,-39],[49,-25],[27,40],[-16,47]]},{y:139,points:[[-20,-32],[31,-22],[19,24],[-9,30]]}],"teal",{material:1,wx:5,wy:4.4,trim:"silver"});
+      balconies(b,"north-apartments",-9,-115,6.9,[-43,-14,15,44],[9,22,35,48,61,72],1);storefront(b,"canteen",18,148,110,"CANAL FOOD HALL","gold");cornice(b,"street-coping",124,-39,35,214,54.8);roofService(b,"north-services",-24,-134,93.4,[8,7]);plant(b,"south-court-tree",-40,84,11.7,5.5,5.2,.6);bench(b,"canal-seat",-101,115,Math.PI/2);bin(b,"lunch-bin",-26,88);
+    },"urban-block");
+    site(b,"fabric-canal-north","尊塔南侧 · 弧冠商务与住居",693,-1258,"低矮裙房和双斜冠公寓衔接尊塔与运河社区桥，保留朝北的观景空隙",function(b){
+      paving(b,"block",0,0,228,225);volume(b,"east-offices",72,-3,39,172,.36,104,"silver");volume(b,"west-home",-83,-36,34,119,.36,57,"ivory");volume(b,"north-grocery",-14,-86,91,31,.36,10,"brick");volume(b,"south-shops",25,82,148,34,.36,15,"stone");
+      b.loft("office-sloping-crown",[{y:104.36,points:[[52.5,-89],[91.5,-89],[91.5,83],[52.5,83]]},{y:123,points:[[59,-74],[86,-77],[83,60],[62,67]]}],"gold");balconies(b,"west-home-balconies",-83,23.5,6.4,[-9,9],[8,20,32,44,55],1);
+      storefront(b,"south-shops",25,100,98,"NEIGHBOURHOOD","teal");roofService(b,"west-roof",-83,-47,57.4,[7,8]);plant(b,"court-tree",-21,26,10.4,4.9,4.5,-.3);bench(b,"court-seat",-17,48,0);
+    },"urban-block");
+    site(b,"fabric-financial-south","陆家嘴南街 · 连续裙房",-1480,-664,"朝向塔群的连续低层餐饮街墙在主路之外，以错台屋顶留下地标视线",function(b){
+      paving(b,"frontage",0,0,432,46);volume(b,"west-restaurant",-168,0,93,34,.36,18,"brick");volume(b,"book-corner",-67,0,92,34,.36,24,"ivory");volume(b,"gallery",36,0,88,34,.36,15,"teal");volume(b,"east-dining",136,0,94,34,.36,28,"stone");
+      pitchedRoof(b,"west-pitched-roof",-168,0,97,38,18.7,5,"roof");volume(b,"book-top",-75,-4,57,24,24.36,11,"silver");cornice(b,"dining-coping",136,0,98,38,28.7);storefront(b,"restaurant",-168,18,65,"DIM SUM","gold");storefront(b,"books",-67,18,62,"BOOKS","teal");storefront(b,"gallery",36,18,61,"GALLERY","violet");storefront(b,"dining",136,18,67,"RIVER DINING","gold");
+    },"urban-block");
+    site(b,"fabric-river-west","西湾滨江 · 拱廊住宅街",-1056,1135,"临河街上的五栋不同退台与屋顶的住宅连续排列，首层餐馆与绿道相通",function(b){
+      paving(b,"frontage",0,0,593,73);volume(b,"west-pitched-home",-239,0,97,54,.36,39,"brick");volume(b,"west-courtyard-home",-128,0,99,56,.36,52,"ivory");volume(b,"centre-home",-9,1,110,57,.36,67,"silver");volume(b,"east-courtyard-home",116,0,107,54,.36,46,"stone");volume(b,"east-step-home",234,0,104,55,.36,59,"teal");
+      pitchedRoof(b,"western-gable",-239,0,103,60,39.7,7,"roof");volume(b,"centre-setback",-16,-3,68,41,67.36,17,"glass");volume(b,"east-setback",240,-5,69,38,59.36,14,"ivory");balconies(b,"court-front",-128,28,7.4,[-34,-11,12,35],[8,19,30,41,50],1);balconies(b,"east-front",116,27,7,[-35,-12,11,34],[7,18,29,40],1);
+      storefront(b,"west-food",-239,28,63,"RIVER KITCHEN","gold");storefront(b,"centre-mart",-9,30,74,"DAILY MART","teal");storefront(b,"east-noodles",234,29,71,"NOODLES","gold");roofService(b,"centre-roof",-16,-3,84.4,[9,8]);roofPlant(b,"east-garden",209,0,59.4,15,33);
+    },"urban-block");
+    site(b,"fabric-river-east","老城东岸 · 滨江混合街",-72,1134,"四座折角、退台、坡顶街屋把滨江店面接到骑楼北街",function(b){
+      paving(b,"frontage",0,0,680,74);volume(b,"west-guesthouse",-272,0,115,57,.36,31,"ivory");volume(b,"west-top",-284,-7,73,40,31.36,15,"roof");volume(b,"middle-home",-119,0,137,54,.36,61,"brick");volume(b,"east-home",64,0,154,55,.36,47,"stone");volume(b,"east-top",81,-3,91,39,47.36,17,"silver");volume(b,"east-hotel",257,0,124,54,.36,75,"teal");
+      b.loft("hotel-cut-crown",[{y:75.36,points:[[195,-27],[319,-27],[319,27],[195,27]]},{y:88,points:[[214,-21],[304,-21],[291,15],[219,20]]}],"gold");balconies(b,"home-front",-119,27,7.4,[-48,-24,0,24,48],[9,21,33,45,57],1);balconies(b,"east-front",64,27.5,7.4,[-57,-28,1,30,59],[8,20,32,44],1);
+      storefront(b,"tea",-272,30,85,"TEA HOUSE","teal");storefront(b,"fresh",-119,29,86,"FRESH FOOD","gold");storefront(b,"east-cafe",64,29,98,"RIVER CAFE","gold");storefront(b,"hotel",257,29,80,"GUEST HOUSE","teal");roofService(b,"east-service",83,-3,64.4,[9,8]);
+    },"urban-block");
+    site(b,"fabric-oldtown-midwest","榕树巷东侧 · 短街屋",-1224,1490,"北街与菜市之间的一排高低街屋缩短空白院落，背后仍留居民通路",function(b){
+      paving(b,"lane",0,0,278,79);volume(b,"west-house",-104,0,56,59,.36,26,"brick");volume(b,"middle-house",-26,-4,69,52,.36,38,"ivory");volume(b,"east-house",66,-1,89,55,.36,43,"stone");pitchedRoof(b,"west-gable",-104,0,61,64,26.8,5,"roof");volume(b,"east-step",80,-8,52,39,43.36,12,"silver");
+      storefront(b,"repair",-104,31,45,"REPAIR","teal");storefront(b,"bakery",-26,24,48,"BAKERY","gold");storefront(b,"clinic",66,29,60,"CLINIC","teal");balconies(b,"middle-balconies",-26,22,6.6,[-21,0,21],[9,18,27,36],1);roofService(b,"east-roof",80,-8,55.4,[7,6]);
+    },"urban-block");
+    site(b,"fabric-oldtown-midcentre","骑楼街 · 花窗后街",-799,1468,"转角住宅、花窗茶楼和老书铺组成紧凑后街，保留市场入口",function(b){
+      paving(b,"lane",0,0,358,78);volume(b,"west-rooms",-138,0,63,56,.36,31,"ivory");volume(b,"tea-house",-50,-1,74,58,.36,27,"brick");volume(b,"central-home",53,0,94,55,.36,47,"stone");volume(b,"east-books",147,0,49,57,.36,22,"teal");
+      pitchedRoof(b,"tea-gable",-50,-1,80,63,27.8,6,"roof");volume(b,"home-setback",59,-6,61,36,47.36,13,"silver");storefront(b,"tea",-50,30,52,"TEA / CHESS","gold");storefront(b,"books",147,30,39,"OLD BOOKS","teal");balconies(b,"home-front",53,27.5,6.5,[-28,-9,10,29],[8,19,30,41],1);roofService(b,"home-roof",59,-6,60.4,[8,7]);
+    },"urban-block");
+    site(b,"fabric-oldtown-eastlane","骑楼东街 · 生活后巷",-294,1492,"市场后巷的三段错台住宅和底层食肆围住小广场，与东侧路相通",function(b){
+      paving(b,"block",0,0,277,84);volume(b,"west-home",-99,-4,61,57,.36,49,"brick");volume(b,"centre-home",-5,-4,74,61,.36,35,"ivory");volume(b,"east-home",99,0,59,58,.36,58,"silver");volume(b,"east-step",104,-8,36,40,58.36,12,"glass");pitchedRoof(b,"centre-pitch",-5,-4,80,67,35.8,5,"roof");
+      storefront(b,"west-food",-99,26,43,"NOODLES","gold");storefront(b,"centre-food",-5,28,51,"RICE / TEA","teal");storefront(b,"east-food",99,31,43,"FRUIT","gold");balconies(b,"west-home-front",-99,24.5,6.2,[-20,0,20],[8,20,32,44],1);roofService(b,"east-roof",104,-8,70.4,[7,7]);
+    },"urban-block");
+    site(b,"fabric-flower-west","花城西侧 · 连续窄街住居",545,1845,"四座细长住居沿街错开、底层有生活商业，街巷与南岸横街连通",function(b){
+      paving(b,"block",0,0,88,410);volume(b,"north-house",0,-157,57,80,.36,59,"ivory");volume(b,"middle-house",-8,-49,55,72,.36,43,"brick");volume(b,"south-house",3,68,58,81,.36,76,"silver");volume(b,"south-grocery",-3,168,63,47,.36,24,"stone");
+      volume(b,"south-top",7,62,39,61,76.36,17,"blue");pitchedRoof(b,"middle-roof",-8,-49,62,78,43.8,8,"roof");balconies(b,"north-front",0,-117,6.6,[-18,0,18],[9,21,33,45,57],1);balconies(b,"south-front",3,108.5,7,[-18,0,18],[10,24,38,52,66],1);storefront(b,"grocery",-3,193,46,"MART","teal");roofService(b,"north-services",0,-175,59.4,[8,7]);roofPlant(b,"south-green",-12,78,76.4,11,37);
+    },"urban-block");
+    site(b,"fabric-flower-east-north","花城东侧 · 层叠商务社区",1474,1443,"沿邻里路的错角办公楼、弧形住宅和连续餐饮裙房衬托广州塔",function(b){
+      paving(b,"block",0,0,133,455);volume(b,"north-office",-15,-157,78,94,.36,129,"blue");volume(b,"office-setback",-9,-166,54,69,129.36,24,"glass");volume(b,"street-retail",39,-33,24,163,.36,16,"brick");b.cylinder("middle-round-home",-14,48,25,39,95,54,"ivory",{material:1,parameter:.92,wx:3.7,wy:3.6});volume(b,"south-home",-6,170,87,72,.36,73,"stone");
+      balconies(b,"south-balconies",-6,206,7.1,[-28,0,28],[9,21,33,45,57,69],1);storefront(b,"south-cafe",-6,208,62,"NEIGHBOUR CAFE","gold");cornice(b,"office-coping",-9,-166,58,73,153.7);roofService(b,"south-services",-9,157,73.4,[8,9]);plant(b,"street-tree",38,116,11,5,4.6,.5);bench(b,"lunch-seat",36,134,Math.PI/2);
+    },"urban-block");
+    site(b,"fabric-flower-east-south","花城东侧 · 双庭院社区",1471,1871,"L形社区街墙、低层生活商场与两座不同塔冠的住宅沿邻里路布置",function(b){
+      paving(b,"block",0,0,137,431);volume(b,"north-home",-3,-149,83,97,.36,87,"silver");volume(b,"north-step",-11,-160,59,61,87.36,18,"teal");volume(b,"middle-west-home",-36,-11,35,127,.36,58,"ivory");volume(b,"middle-home-foot",0,42,103,30,.36,58,"ivory");volume(b,"south-home",-3,146,89,85,.36,110,"stone");
+      b.loft("south-crown",[{y:110.36,points:[[-47.5,103.5],[41.5,103.5],[41.5,188.5],[-47.5,188.5]]},{y:125,points:[[-34,113],[35,108],[23,172],[-37,179]]}],"blue",{material:1,wx:4.3,wy:4.1});volume(b,"community-retail",32,-52,35,70,.36,12,"brick");balconies(b,"north-front",-3,-100.5,7,[-26,0,26],[10,23,36,49,62,75,84],1);balconies(b,"south-front",-3,188.5,7.1,[-28,0,28],[10,25,40,55,70,85,100],1);
+      storefront(b,"north-mart",-3,-99,57,"MART / DAILY","teal");storefront(b,"south-food",-3,191,64,"FAMILY TABLE","gold");roofService(b,"north-roof",-11,-160,105.4,[8,8]);roofPlant(b,"L-garden",0,42,58.4,71,19);plant(b,"court-tree",15,85,10.2,4.6,4.8,-.5);bench(b,"court-seat",14,101,0);
+    },"urban-block");
+    site(b,"fabric-flower-east-outer","东岸邻里路 · 长街公寓",1654,1702,"北端退台酒店、转角街屋、两栋公寓和沿街食肆构成连续街墙",function(b){
+      paving(b,"block",0,0,130,977);volume(b,"north-hotel",4,-399,83,119,.36,94,"silver");volume(b,"hotel-upper",13,-413,57,83,94.36,22,"glass");volume(b,"north-home",-9,-236,71,101,.36,54,"ivory");volume(b,"middle-home",5,-81,78,102,.36,71,"brick");volume(b,"south-home",-6,130,83,117,.36,82,"stone");volume(b,"south-step",-13,123,53,83,82.36,16,"blue");volume(b,"southern-shops",0,310,86,109,.36,32,"teal");volume(b,"south-terminal",5,455,97,63,.36,19,"ivory");
+      balconies(b,"north-porches",-9,-185.5,7.2,[-22,0,22],[8,20,32,44,52],1);balconies(b,"middle-porches",5,-30,7.3,[-26,0,26],[9,22,35,48,61,69],1);balconies(b,"south-porches",-6,188.5,7.3,[-28,0,28],[9,23,37,51,65,79],1);pitchedRoof(b,"shop-roof",0,310,92,115,32.8,7,"roof");storefront(b,"hotel-food",4,-338,57,"RIVER HOTEL","gold");storefront(b,"middle-food",5,-28,53,"BAKERY","teal");storefront(b,"south-shop",5,487,71,"WETLAND MART","gold");roofService(b,"south-roof",-13,123,98.4,[8,9]);
+      plant(b,"street-plane",-36,29,11.6,5.2,4.7,.4);plant(b,"south-tree",29,221,10.5,4.8,5,-.4);bench(b,"street-seat",-31,48,Math.PI/2);bin(b,"street-bin",-32,53);
+    },"urban-block");
+    site(b,"fabric-raffles-street","朝天门南侧 · 连续江岸街墙",2070,1810,"地标后方的四段阶梯住宅、坡顶会馆与长街店面把地标群接到生活街",function(b){
+      paving(b,"block",0,0,451,125);volume(b,"west-home",-173,-7,81,93,.36,54,"ivory");volume(b,"middle-home",-65,-9,91,97,.36,72,"brick");volume(b,"east-home",53,2,87,89,.36,91,"silver");volume(b,"east-step",66,-4,54,65,91.36,19,"blue");volume(b,"east-community-hall",165,0,94,91,.36,23,"stone");
+      pitchedRoof(b,"community-gable",165,0,101,98,23.8,9,"roof");balconies(b,"west-front",-173,39.5,7.3,[-25,0,25],[9,21,33,45,52],1);balconies(b,"middle-front",-65,39.5,7.2,[-29,0,29],[10,24,38,52,66],1);storefront(b,"west-food",-173,42,55,"RIVER DINING","gold");storefront(b,"east-shop",53,49,59,"FAMILY MART","teal");roofService(b,"east-roof",66,-4,110.4,[8,8]);
+    },"urban-block");
+    site(b,"fabric-north-station-shops","北城站 · 高架下生活空间",10,-2150,"高架桥下的步行商业、接驳公交和开放体育场地把交通走廊接入城市日常",function(b){
+      paving(b,"concourse",0,0,819,103);shell(b,"west-bakery",-331,8,101,53,6.3,9);shell(b,"east-cycle-service",275,8,122,55,6.1,12);volume(b,"middle-bookshop",-161,10,89,58,.36,8,"brick");volume(b,"parcel-service",77,11,114,56,.36,7,"ivory");
+      storefront(b,"bakery",-331,36,77,"BAKERY","gold");storefront(b,"books",-161,40,65,"BOOKS / CAFE","teal");storefront(b,"parcel",77,40,83,"PARCEL / DAILY","gold");b.part("court-floor",-35,.24,-1,115,.16,68,"teal",{material:2});b.beam("court-net",[-90,2.1,0],[19,2.1,0],.05,"silver",{solid:false});[-83,-38,13,56,135,190].forEach(function(x,i){bench(b,"waiting-"+i,x,39,0);});plant(b,"west-court-tree",-225,25,7,3.5,3.1,.3);bin(b,"station-bin",156,37);
+    },"urban-block");
+  }
+  function author(b){flower(b);financial(b);oldtown(b);civic(b);culture(b);parks(b);harbor(b);airport(b);infill(b);fabric(b);}
   return Object.freeze({author:author});
 });

@@ -2,6 +2,6 @@
   "version": "0.3.0",
   "rust": "1.97.0",
   "target": "wasm32-unknown-unknown",
-  "sha256": "3ac397735218820ae544b85c6f05eb760d1743ae3081fe1c05cc807ba55c6108",
-  "bytes": 84380
+  "sha256": "c7801b45fd5f3a3ca117447428d3ee3615637450d0a4d496f8b0a6a2a96cbb2e",
+  "bytes": 88958
 }

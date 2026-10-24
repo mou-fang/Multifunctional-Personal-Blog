@@ -31,6 +31,14 @@ test("authored composition has stable identities, finite geometry and distinct b
   assert.doesNotMatch(fs.readFileSync(path.join(root,"js/city-shuttle-scene.js"),"utf8"),/Math\.random|describeChunk|towerVariant/);
 });
 
+test("elevated building volumes touch load-bearing structure while lightwell windows remain open",async()=>{
+  const scene=Scene.build(),e=await createEngine(scene.packed);for(const o of scene.objects){const v=o.values;if(v[16]!==0||v[10]!==1||v[4]<4||v[3]<4||v[5]<4||v[24]||v[25])continue;const base=v[1]-v[4];if(base<2)continue;let supported=false;
+    for(const x of [-.97,-.7,0,.7,.97])for(const z of [-.97,-.7,0,.7,.97]){const px=v[0]+x*v[3]*Math.cos(v[6])+z*v[5]*Math.sin(v[6]),pz=v[2]-x*v[3]*Math.sin(v[6])+z*v[5]*Math.cos(v[6]);if(!e.static_space_clear(px,base-.04,pz,.005))supported=true;}
+    assert.ok(supported,o.id+" is completely detached from its structural base");
+  }
+  assert.equal(e.static_space_clear(200,64,-38,.8),1,"the west lightwell opening remains flyable between its new piers");assert.equal(e.static_space_clear(244,53,-42,.8),1,"the east lightwell opening remains flyable");
+});
+
 test("runtime loads the built first-party Wasm and content hash matches build manifest",async()=>{
   const metadata=JSON.parse(fs.readFileSync(path.join(root,"libs/city-shuttle-20261008/build.json"),"utf8"));
   assert.equal(crypto.createHash("sha256").update(wasm).digest("hex"),metadata.sha256);
@@ -94,17 +102,31 @@ test("desktop grid stays within Wasm limits and input expresses only free-flight
   assert.equal(Core.flags({ShiftLeft:true}),0);
 });
 
-test("doubled character grids render complete Wasm frames beyond the former size limits",async()=>{
+test("fluent and detailed grids render complete frames with a quarter of the former ray budget",async()=>{
   const e=await createEngine(object(0,10,0,20,20,3));e.reset_flight(0,10,28,0,0);
   for(const detailed of [false,true]){
     const g=Core.grid(1920,1080,detailed);
-    assert.deepEqual([g.columns,g.rows],detailed?[640,244]:[480,184]);
+    assert.deepEqual([g.columns,g.rows],detailed?[320,122]:[240,92]);
+    assert.equal(g.columns*g.rows*4,detailed?640*244:480*184);
     const pixels=render(e,g.columns,g.rows);
     assert.equal(pixels.length,g.columns*g.rows*4);
     assert.ok(pixels[(g.rows*g.columns-1)*4]>=32,"last cell must contain a rendered glyph");
     const index=(Math.floor(g.rows/2)*g.columns+Math.floor(g.columns/2))*4;
     assert.notEqual(pixels[index],32,"centre must show the actual foreground geometry");
   }
+});
+
+test("ASCII outlines follow silhouettes and corners without drawing coplanar triangle seams",async()=>{
+  const G=require("../js/city-shuttle-geometry.js"),b=new G.Builder("outline");b.site("plane","plane",0,0,"Coplanar triangles",b=>{b.triangle("a",[[-15,0,-30],[15,0,-30],[15,30,-30]],"silver");b.triangle("b",[[-15,0,-30],[15,30,-30],[-15,30,-30]],"silver");});
+  const e=await createEngine(b.finish().packed);e.reset_flight(0,15,0,0,0);const px=render(e,180,80);let vertical=0,horizontal=0;
+  for(let i=0;i<px.length;i+=4){if(px[i]===124)vertical++;if(px[i]===95)horizontal++;}assert.ok(vertical>20&&horizontal>25,"the actual plane must have directional silhouette strokes");
+  for(let y=29;y<51;y++)for(let x=72;x<108;x++)assert.equal(px[(y*180+x)*4],35,"the diagonal between two coplanar faces must stay invisible");
+});
+
+test("distant sub-cell windows become coherent facade bands while near windows retain detail",async()=>{
+  const e=await createEngine(object(0,20,-950,350,350,100));e.reset_flight(0,20,0,0,0);const far=render(e,180,80);let sample=[];
+  for(let y=34;y<46;y++){const i=(y*180+88)*4;assert.equal(far[i],124);sample.push(far[i+1]);}assert.ok(Math.max(...sample)-Math.min(...sample)<=3,"far window lighting must not form high contrast checker noise");
+  e.reset_flight(0,20,-865,0,0);const near=render(e,180,80),glyphs=new Set();for(let i=0;i<near.length;i+=4)glyphs.add(near[i]);assert.ok(glyphs.has(91)&&glyphs.has(93)&&glyphs.has(61),"brackets and floor lines remain in a resolvable near facade");
 });
 
 test("every authored portal can actually be flown through, including ascending and inclined interior streets",async()=>{

@@ -6,7 +6,7 @@ const path = require("node:path");
 const os = require("node:os");
 const zlib = require("node:zlib");
 const express = require("express");
-const { publish, readSnapshot, storageDir, addDays, sourceUrl } = require("./game-releases-store");
+const { publish, readSnapshot, readHistory, releasedHistory, storageDir, addDays, sourceUrl } = require("./game-releases-store");
 const { createGameReleasesRouter, blockPrivateStatic } = require("./game-releases");
 const core = require("../js/game-releases-core");
 const { verify } = require("./game-releases-verification");
@@ -37,8 +37,17 @@ async function fixture(t) {
   const input = { schemaVersion: 1, date, items }, card = { date, heroTitle: "近期游戏发售速报", heroImage: "", items: cards };
   const config = { inputFile: path.join(base, "site.json"), cardFile: path.join(base, "card.json"), imageFile: path.join(base, "poster.png"), coversDir, dataDir, now };
   const save = async () => { await fs.writeFile(config.inputFile, JSON.stringify(input)); await fs.writeFile(config.cardFile, JSON.stringify(card)); };
+  const advance = async (date, change = () => {}) => {
+    input.date = card.date = date;
+    input.items.forEach((item, index) => { item.releaseDate = addDays(date, index + 1); });
+    change(input.items);
+    input.items.forEach((item, index) => {
+      Object.assign(card.items[index], { title: item.title, searchName: item.searchName, desc: `📅 ${item.releaseDate}｜🖥️ ${item.platforms.join("、")}｜${item.summary}` });
+    });
+    config.now = new Date(date + "T04:00:00Z"); await save();
+  };
   await save(); await fs.writeFile(config.imageFile, png(1440, 2));
-  return { ...config, config, base, input, card, save };
+  return { ...config, config, base, input, card, save, advance };
 }
 test("local publish preserves exact PNG, is idempotent, creates backup, and never clears good data on bad input", async t => {
   const f = await fixture(t); const result = await publish(f.config); assert.equal(result.count, 10); assert.equal(result.covers, 10);
@@ -110,6 +119,8 @@ test("public API only reads, guards private files and serves only committed imag
   const head = await fetch(base + "/api/game-releases", { method: "HEAD" }); assert.equal(head.status, 200); assert.equal(await head.text(), "");
   app.use("/empty", createGameReleasesRouter({ dataDir: path.join(f.base, "empty") }));
   const empty = await fetch(base + "/empty"); assert.equal(empty.status, 200); const initial = await empty.json(); assert.equal(core.valid(initial), true); assert.deepEqual(initial.items, []);
+  const emptyArchive = await fetch(base + "/empty/archive"); assert.equal(emptyArchive.status, 200);
+  const initialArchive = await emptyArchive.json(); assert.equal(core.valid(initialArchive, true), true); assert.deepEqual(initialArchive.items, []);
   await fs.writeFile(path.join(f.dataDir, "current.json"), "corrupt");
   // Cached content must invalidate immediately after a disk change.
   const broken = await fetch(base + "/api/game-releases"); assert.equal(broken.status, 503); assert.ok(!(await broken.text()).includes(f.dataDir));
@@ -140,4 +151,105 @@ test("date window, title search, mobile platform filtering and expired entries b
   assert.equal(core.filter(items, { today: "2026-10-04", platform: "mobile" })[0].searchName, "Mobile");
   assert.equal(core.filter(items, { today: "2026-10-04", includeReleased: true }).length, 3);
   assert.equal(core.today("Asia/Shanghai", new Date("2026-10-03T20:00:00Z")), "2026-10-04");
+});
+
+test("weekly history survives multiple replacements, seeds legacy previous.json, and keeps dropped upcoming entries until release", async t => {
+  const f = await fixture(t); await publish(f.config);
+  const first = await readSnapshot(f.dataDir);
+  await f.advance("2026-10-13", items => items.forEach((item, index) => { item.searchName = "Second Game " + index; }));
+  await publish(f.config);
+  // Simulate upgrading a pre-history installation, which only has current/previous.
+  const historyDir = path.join(f.dataDir, "history");
+  await fs.unlink(path.join(historyDir, first.revision + ".json"));
+  const migrated = releasedHistory(await readHistory(f.dataDir), new Date("2026-10-13T04:00:00Z"));
+  assert.equal(migrated.items.length, 6, "today and future releases stay out of the archive");
+  assert.equal(core.valid(migrated, true), true);
+  const second = await readSnapshot(f.dataDir);
+  await f.advance("2026-10-20", items => items.forEach((item, index) => { item.searchName = "Third Game " + index; }));
+  await publish(f.config);
+  const catalogue = await readHistory(f.dataDir);
+  const archived = releasedHistory(catalogue, new Date("2026-11-01T04:00:00Z"));
+  assert.equal(archived.items.length, 30, "history grows beyond the weekly 15-item limit");
+  assert.equal(new Set(archived.items.map(item => item.id)).size, 30);
+  assert.ok(archived.items.some(item => item.id === first.items[9].id), "a dropped future item is preserved after its date passes");
+  assert.equal(core.valid(archived, true), true);
+  assert.equal(core.valid(archived), false);
+  assert.deepEqual((await fs.readdir(historyDir)).sort(), [first.revision + ".json", second.revision + ".json"].sort());
+  const filesBefore = await fs.readdir(historyDir);
+  assert.equal((await publish(f.config)).unchanged, true);
+  assert.deepEqual(await fs.readdir(historyDir), filesBefore);
+});
+
+test("later dates correct earlier announcements without duplicating a game; different platform launches remain", async t => {
+  const f = await fixture(t);
+  f.input.items[0].platforms = ["PC", "PS5"];
+  f.card.items[0].desc = `📅 ${f.input.items[0].releaseDate}｜🖥️ PC、PS5｜${f.input.items[0].summary}`;
+  await f.save(); await publish(f.config);
+  await f.advance("2026-10-13", items => {
+    items[0].platforms = ["PS5"]; items[0].summary = "主机延期后的日期。";
+    items.slice(1).forEach((item, index) => { item.searchName = "New Selection " + index; });
+  });
+  await publish(f.config);
+  const firstId = (await readSnapshot(f.dataDir)).items[0].id;
+  const catalogue = await readHistory(f.dataDir);
+  let games = releasedHistory(catalogue, new Date("2026-10-13T04:00:00Z")).items.filter(item => item.id === firstId);
+  assert.equal(games.length, 1); assert.equal(games[0].releaseDate, "2026-10-07"); assert.deepEqual(games[0].platforms, ["PC"]);
+  games = releasedHistory(catalogue, new Date("2026-10-15T04:00:00Z")).items.filter(item => item.id === firstId);
+  assert.equal(games.length, 2); assert.deepEqual(games.map(item => item.platforms), [["PS5"], ["PC"]]);
+  assert.equal(new Set(catalogue.items.filter(item => item.id === firstId).flatMap(item => item.platforms)).size, 2);
+});
+
+test("same-date platform updates merge once and use the newest summary", async t => {
+  const f = await fixture(t);
+  f.input.items[0].releaseDate = "2026-10-15";
+  f.input.items.forEach((item, index) => { item.releaseDate = addDays("2026-10-15", index); });
+  f.input.items[0].platforms = ["PC", "PS5"];
+  f.input.items.forEach((item, index) => { f.card.items[index].desc = `📅 ${item.releaseDate}｜🖥️ ${item.platforms.join("、")}｜${item.summary}`; });
+  await f.save(); await publish(f.config);
+  const first = await readSnapshot(f.dataDir);
+  await f.advance("2026-10-13", items => {
+    items.forEach((item, index) => { item.releaseDate = addDays("2026-10-15", index); });
+    items[0].platforms = ["PS5"]; items[0].summary = "已更新的游戏简介。";
+  });
+  await publish(f.config);
+  const games = releasedHistory(await readHistory(f.dataDir), new Date("2026-10-16T04:00:00Z")).items.filter(item => item.id === first.items[0].id);
+  assert.equal(games.length, 1); assert.deepEqual(games[0].platforms, ["PC", "PS5"]); assert.equal(games[0].summary, "已更新的游戏简介。");
+});
+
+test("archive API invalidates after publishing and midnight, keeps old covers readable, and exposes no write interface", async t => {
+  const f = await fixture(t); await publish(f.config);
+  const first = await readSnapshot(f.dataDir);
+  let now = new Date("2026-10-13T04:00:00Z");
+  const app = express(); app.use("/api/game-releases", createGameReleasesRouter({ dataDir: f.dataDir, now: () => now }));
+  const server = await new Promise(resolve => { const value = app.listen(0, "127.0.0.1", () => resolve(value)); });
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const base = "http://127.0.0.1:" + server.address().port;
+  const getArchive = async () => { const response = await fetch(base + "/api/game-releases/archive"); assert.equal(response.status, 200); assert.equal(response.headers.get("cache-control"), "no-store"); return response.json(); };
+  assert.equal((await getArchive()).items.length, 6);
+  await f.advance("2026-10-13", items => items.forEach((item, index) => { item.searchName = "Next Week " + index; }));
+  const originalCover = await fs.readFile(path.join(f.coversDir, "0.png"));
+  for (let index = 0; index < 10; index++) await fs.writeFile(path.join(f.coversDir, index + ".png"), png(4, 2, index + 31));
+  await publish(f.config);
+  assert.equal((await getArchive()).items.length, 6);
+  const cover = await fetch(base + first.items[0].cover); assert.equal(cover.status, 200);
+  assert.deepEqual(Buffer.from(await cover.arrayBuffer()), originalCover);
+  now = new Date("2026-10-13T16:00:00Z");
+  assert.equal((await getArchive()).items.length, 7, "midnight promotes yesterday's release without publishing");
+  for (const method of ["POST", "PUT", "PATCH", "DELETE"]) assert.equal((await fetch(base + "/api/game-releases/archive", { method })).status, 405);
+  const good = await fs.readFile(path.join(f.dataDir, "current.json"));
+  f.input.items = []; await f.save(); await assert.rejects(publish(f.config));
+  assert.deepEqual(await fs.readFile(path.join(f.dataDir, "current.json")), good);
+  assert.equal((await getArchive()).items.length, 7);
+});
+
+test("archive filtering excludes today/future and supports old dates, platform and English-name searches", () => {
+  const items = [
+    { title: "去年游戏", searchName: "Archive Game", summary: "回顾", releaseDate: "2025-01-01", platforms: ["PC"] },
+    { title: "今日游戏", searchName: "Today", summary: "", releaseDate: "2026-10-24", platforms: ["PS5"] },
+    { title: "未来游戏", searchName: "Future", summary: "", releaseDate: "2026-11-01", platforms: ["PC"] }
+  ];
+  const options = { archive: true, today: "2026-10-24" };
+  assert.deepEqual(core.filter(items, options), [items[0]]);
+  assert.equal(core.filter(items, { ...options, query: "ARCHIVE", platform: "PC" }).length, 1);
+  assert.equal(core.filter(items, { ...options, platform: "PS5" }).length, 0);
 });

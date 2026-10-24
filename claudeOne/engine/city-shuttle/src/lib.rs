@@ -171,11 +171,13 @@ fn decode_object(a:&[f32])->Option<Object> {
 struct Node {lo: V, hi: V, left: usize, right: usize, start: usize, count: usize}
 #[derive(Clone,Copy)]
 struct Light {position:V,direction:V,color:V,radius:f32,spot:bool}
+#[derive(Clone,Copy,Default)]
+struct Surface {depth:f32,normal:V,outline:bool}
 struct Engine {input: Vec<f32>,objects: Vec<Object>,order: Vec<usize>,nodes: Vec<Node>,pixels: Vec<u8>,state:[f32;8],time:f32,
-    dynamic_input:Vec<f32>,dynamic_objects:Vec<Object>,dynamic_order:Vec<usize>,dynamic_nodes:Vec<Node>,static_lights:Vec<Light>,active_lights:Vec<Light>}
+    dynamic_input:Vec<f32>,dynamic_objects:Vec<Object>,dynamic_order:Vec<usize>,dynamic_nodes:Vec<Node>,static_lights:Vec<Light>,active_lights:Vec<Light>,surfaces:Vec<Surface>}
 impl Default for Engine {
     fn default()->Self {Self {input:Vec::new(),objects:Vec::new(),order:Vec::new(),nodes:Vec::new(),pixels:Vec::new(),state:[0.0,18.0,290.0,0.0,0.0,0.0,0.0,0.0],time:0.0,
-        dynamic_input:Vec::new(),dynamic_objects:Vec::new(),dynamic_order:Vec::new(),dynamic_nodes:Vec::new(),static_lights:Vec::new(),active_lights:Vec::new()}}
+        dynamic_input:Vec::new(),dynamic_objects:Vec::new(),dynamic_order:Vec::new(),dynamic_nodes:Vec::new(),static_lights:Vec::new(),active_lights:Vec::new(),surfaces:Vec::new()}}
 }
 thread_local! {static ENGINE: RefCell<Engine> = RefCell::new(Engine::default());}
 fn bounds_hit(o:V,d:V,lo:V,hi:V,max:f32)->bool {
@@ -290,7 +292,7 @@ impl Engine {
         self.active_lights.sort_unstable_by(|a,b|a.position.sub(camera).dot(a.position.sub(camera)).total_cmp(&b.position.sub(camera).dot(b.position.sub(camera))));
         self.active_lights.truncate(28);
     }
-    fn shade(&self,obj:&Object,t:f32,n:V,p:V)->(u8,V) {
+    fn shade(&self,obj:&Object,t:f32,n:V,p:V,footprint:f32)->(u8,V) {
         let world_n=obj.world(n);let diffuse=world_n.dot(V::new(-0.45,0.72,0.51)).max(0.0);
         let mut color=obj.color.mul(0.72+diffuse*0.38);let mut glyph=obj.glyph;
         let horizontal=if obj.shape==2 {(p.z/obj.h.z).atan2(p.x/obj.h.x)*(obj.h.x+obj.h.z)*0.5}
@@ -299,17 +301,25 @@ impl Engine {
         let vertical=if obj.shape==2||obj.shape==3 {p.y+obj.p.y}else{p.y+obj.h.y};
         match obj.material {
             1|10 if n.y.abs()<0.5 => {
-                let x=fract((horizontal+obj.phase)/obj.wx.max(1.0));
-                let y=fract(vertical/obj.wy.max(1.0));
-                let column=((horizontal+obj.phase)/obj.wx.max(1.0)).floor() as i32;
-                let row=(vertical/obj.wy.max(1.0)).floor() as i32;
-                let bit=(column+row*3).rem_euclid(16) as u32;
-                let lit=obj.mask&(1<<bit)!=0;
-                if x<0.13||x>0.87 {color=obj.trim.mul(1.05+diffuse*0.4);glyph=b'|';}
-                else if y<0.12 {color=obj.trim.mul(0.9);glyph=b'=';}
-                else if y<0.26 {color=obj.color.mul(0.7);glyph=b'-';}
-                else if lit {color=obj.color.mul(1.6+obj.emission);glyph=if x<0.3 {b'['}else if x>0.72 {b']'}else if obj.detail>1.0&&y>0.68 {b'='}else {b':'};}
-                else {color=obj.color.mul(0.34);glyph=b':';}
+                let wx=obj.wx.max(1.0);let wy=obj.wy.max(1.0);
+                if footprint>small(wx,wy)*0.55 {
+                    // Sub-cell windows cannot be resolved. Keep the face coherent, with
+                    // world-anchored structural bands instead of aliased lit/dark speckles.
+                    let scale=(footprint*2.0/wx).max(1.0).log2().ceil().exp2();
+                    let band=fract((horizontal+obj.phase)/(wx*scale*2.0));
+                    glyph=if n.x.abs()>0.5 {b'/'}else{b'|'};
+                    color=obj.color.mul(0.95+diffuse*0.5+obj.emission*0.25);
+                    if band<0.15 {color=color.mul(0.76);}
+                }else{
+                    let x=fract((horizontal+obj.phase)/wx);let y=fract(vertical/wy);
+                    let column=((horizontal+obj.phase)/wx).floor() as i32;let row=(vertical/wy).floor() as i32;
+                    let lit=obj.mask&(1<<((column+row*3).rem_euclid(16) as u32))!=0;
+                    if x<0.13||x>0.87 {color=obj.trim.mul(1.25+diffuse*0.4);glyph=b'|';}
+                    else if y<0.12 {color=obj.trim.mul(1.1);glyph=b'=';}
+                    else if y<0.26 {color=obj.color.mul(0.8);glyph=b'-';}
+                    else if lit {color=obj.color.mul(1.35+obj.emission);glyph=if x<0.3 {b'['}else if x>0.72 {b']'}else if obj.detail>1.0&&y>0.68 {b'='}else {b':'};}
+                    else {color=obj.color.mul(0.62);glyph=b':';}
+                }
             },
             2=> {let a=fract((p.x+obj.p.x)/obj.wx.max(1.0))*obj.wx.max(1.0);let b=fract((p.z+obj.p.z)/obj.wy.max(1.0))*obj.wy.max(1.0);
                 glyph=if a<0.24||b<0.24 {b'+'}else {b'_'};color=color.mul(if a<0.24||b<0.24 {1.5}else{1.0});},
@@ -341,43 +351,62 @@ impl Engine {
                 color=color.add(light.color.mul(strength*0.8));
             }
         }
-        let fog=(-t*0.00012).exp();color=color.mul(fog);
+        let fog=(-t*0.00008).exp();color=color.mul(fog).add(V::new(0.13,0.17,0.215).mul(1.0-fog));
         (glyph,color)
     }
-    fn surface_color(&self,o:V,d:V)->(u8,V) {
+    fn surface_color(&self,o:V,d:V,pixel_scale:f32)->(u8,V,Surface) {
         let mut origin=o;let mut travelled=0.0;let mut transmission=1.0;let mut glass=V::default();
         for _ in 0..5 {
             if let Some((dynamic,index,t,n,p))=self.trace(origin,d) {
                 let obj=if dynamic {&self.dynamic_objects[index]}else{&self.objects[index]};
                 if obj.material==16 {glass=glass.add(obj.color.mul(0.055*transmission));transmission*=0.91;origin=origin.add(d.mul(t+0.025));travelled+=t+0.025;continue;}
-                let (glyph,c)=self.shade(obj,travelled+t,n,p);return (glyph,c.mul(transmission).add(glass));
+                let depth=travelled+t;let (glyph,c)=self.shade(obj,depth,n,p,depth*pixel_scale);
+                return (glyph,c.mul(transmission).add(glass),Surface {depth,normal:obj.world(n),outline:matches!(obj.material,0|1|5|10|14)});
             }
             break;
         }
         let horizon=(1.0-d.y.abs()*1.5).max(0.0);
-        (b' ',V::new(0.075,0.115,0.18).add(V::new(0.055,0.055,0.035).mul(horizon)).mul(transmission).add(glass))
+        (b' ',V::new(0.075,0.115,0.18).add(V::new(0.055,0.055,0.035).mul(horizon)).mul(transmission).add(glass),Surface {depth:FAR,normal:V::default(),outline:false})
     }
     fn render(&mut self,columns:usize,rows:usize,aspect:f32) {
         self.pixels.resize(columns*rows*4,0);
+        self.surfaces.resize(columns*rows,Surface::default());
         let o=V::new(self.state[0],self.state[1],self.state[2]);let yaw=self.state[3];let pitch=self.state[4];let roll=self.state[5];
         self.prepare_lights(o);
         let forward=V::new(yaw.sin()*pitch.cos(),pitch.sin(),-yaw.cos()*pitch.cos());
         let right=V::new(yaw.cos(),0.0,yaw.sin());let up=V::new(-yaw.sin()*pitch.sin(),pitch.cos(),yaw.cos()*pitch.sin());
         let r=right.mul(roll.cos()).add(up.mul(roll.sin()));let u=up.mul(roll.cos()).sub(right.mul(roll.sin()));
         let tangent=0.62;
+        let pixel_scale=(2.0*tangent/rows as f32).max(2.0*tangent*aspect/columns as f32);
         for y in 0..rows {for x in 0..columns {
             let sx=((x as f32+0.5)/columns as f32*2.0-1.0)*tangent*aspect;
             let sy=(1.0-(y as f32+0.5)/rows as f32*2.0)*tangent;
             let d=forward.add(r.mul(sx)).add(u.mul(sy)).unit();
-            let (glyph,color)=self.surface_color(o,d);
+            let (glyph,color,surface)=self.surface_color(o,d,pixel_scale);
+            self.surfaces[y*columns+x]=surface;
             let index=(y*columns+x)*4;self.pixels[index]=glyph;
             self.pixels[index+1]=(color.x.clamp(0.0,1.0)*255.0) as u8;
             self.pixels[index+2]=(color.y.clamp(0.0,1.0)*255.0) as u8;
             self.pixels[index+3]=(color.z.clamp(0.0,1.0)*255.0) as u8;
         }}
+        // Depth and normal discontinuities outline silhouettes and corners, not
+        // triangle IDs: coplanar faces in a loft must not acquire mesh seams.
+        for y in 1..rows-1 {for x in 1..columns-1 {
+            let i=y*columns+x;let s=self.surfaces[i];if !s.outline {continue;}
+            let mut gx=0.0;let mut gy=0.0;
+            for (dx,dy) in [(-1isize,0isize),(1,0),(0,-1),(0,1)] {
+                let q=self.surfaces[(i as isize+dx+dy*columns as isize) as usize];
+                let jump=q.depth-s.depth;let depth_edge=jump>(s.depth*pixel_scale*2.2).max(2.0);
+                let corner=q.outline&&q.depth< s.depth*1.15+2.0&&s.normal.dot(q.normal)<0.72;
+                if depth_edge||corner {let weight=if depth_edge {1.0}else{0.65};gx+=dx as f32*weight;gy+=dy as f32*weight;}
+            }
+            if gx.abs()+gy.abs()<0.4 {continue;}
+            let j=i*4;self.pixels[j]=if gx.abs()>gy.abs()*1.7 {b'|'}else if gy.abs()>gx.abs()*1.7 {b'_'}else if gx*gy>0.0 {b'/'}else{b'\\'};
+            for c in 1..4 {self.pixels[j+c]=(self.pixels[j+c] as f32*1.17+18.0).min(255.0) as u8;}
+        }}
     }
 }
-#[no_mangle] pub extern "C" fn scene_buffer(count:u32)->*mut f32 {ENGINE.with(|e|{let mut e=e.borrow_mut();e.input.resize(count.min(50000) as usize*STRIDE,0.0);e.input.as_mut_ptr()})}
+#[no_mangle] pub extern "C" fn scene_buffer(count:u32)->*mut f32 {ENGINE.with(|e|{let mut e=e.borrow_mut();e.input.resize(count.min(60000) as usize*STRIDE,0.0);e.input.as_mut_ptr()})}
 #[no_mangle] pub extern "C" fn scene_commit(count:u32)->u32 {ENGINE.with(|e|{
     let mut e=e.borrow_mut();e.objects.clear();let count=(count as usize).min(e.input.len()/STRIDE);
     e.dynamic_objects.clear();e.dynamic_order.clear();e.dynamic_nodes.clear();e.time=0.0;
@@ -414,6 +443,14 @@ impl Engine {
 #[no_mangle] pub extern "C" fn engine_version()->u32 {3}
 #[no_mangle] pub extern "C" fn scene_stride()->u32 {STRIDE as u32}
 #[no_mangle] pub extern "C" fn is_space_clear(x:f32,y:f32,z:f32,radius:f32)->u32 {ENGINE.with(|e|{let e=e.borrow();let p=V::new(x,y,z);let r=radius.clamp(0.0,10.0);u32::from(!occupied_tree(&e.objects,&e.order,&e.nodes,p,r)&&!occupied_tree(&e.dynamic_objects,&e.dynamic_order,&e.dynamic_nodes,p,r))})}
+#[no_mangle] pub extern "C" fn static_space_clear(x:f32,y:f32,z:f32,radius:f32)->u32 {ENGINE.with(|e|{let e=e.borrow();u32::from(!occupied_tree(&e.objects,&e.order,&e.nodes,V::new(x,y,z),radius.clamp(0.0,10.0)))})}
+#[no_mangle] pub extern "C" fn floor_material(x:f32,z:f32,above:f32,depth:f32)->u32 {ENGINE.with(|e|{
+    let e=e.borrow();let d=V::new(0.0,-1.0,0.0);let mut origin=V::new(x,above,z);let bottom=above-depth.clamp(0.1,5000.0);
+    for _ in 0..32 {if let Some((index,t,n,_))=trace_tree(&e.objects,&e.order,&e.nodes,origin,d,(origin.y-bottom).max(0.0),true) {
+        let obj=&e.objects[index];let height=origin.y-t;if obj.world(n).y>0.45 {return obj.material;}
+        origin=V::new(x,height-0.02,z);if origin.y<=bottom {break;}
+    }else {break;}}u32::MAX
+})}
 #[no_mangle] pub extern "C" fn floor_height(x:f32,z:f32,above:f32,depth:f32)->f32 {ENGINE.with(|e|{
     let e=e.borrow();let d=V::new(0.0,-1.0,0.0);let mut origin=V::new(x,above,z);let bottom=above-depth.clamp(0.1,5000.0);
     for _ in 0..32 {if let Some((index,t,n,_))=trace_tree(&e.objects,&e.order,&e.nodes,origin,d,(origin.y-bottom).max(0.0),true) {

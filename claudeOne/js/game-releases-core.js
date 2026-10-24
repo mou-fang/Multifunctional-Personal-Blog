@@ -15,7 +15,8 @@
     return items.filter(function (item) {
       var platform = options.platform || "all";
       var matchesPlatform = platform === "all" || (platform === "mobile" ? item.platforms.some(function (p) { return p === "iOS" || p === "Android"; }) : item.platforms.indexOf(platform) !== -1);
-      return matchesPlatform && item.releaseDate <= end && (options.includeReleased || item.releaseDate >= options.today) && (!query || (item.title + " " + item.searchName + " " + item.summary).toLocaleLowerCase().includes(query));
+      var matchesDate = options.archive ? item.releaseDate < options.today : item.releaseDate <= end && (options.includeReleased || item.releaseDate >= options.today);
+      return matchesPlatform && matchesDate && (!query || (item.title + " " + item.searchName + " " + item.summary).toLocaleLowerCase().includes(query));
     });
   }
   function asset(value) { return typeof value === "string" && /^\/api\/game-releases\/assets\/[a-f0-9]{64}\.(png|jpg|webp)$/.test(value); }
@@ -25,11 +26,13 @@
       return url.protocol === "https:" && !url.username && !url.password && (!url.port || url.port === "443") && host.includes(".") && !host.includes(":") && !/^(\d{1,3}\.){3}\d{1,3}$/.test(host) && !/(^|\.)(localhost|local|internal|test|invalid)$/.test(host);
     } catch (_) { return false; }
   }
-  function valid(data) {
-    if (!data || data.schemaVersion !== 1 || !Array.isArray(data.items) || data.items.length > 15) return false;
+  function valid(data, archive) {
+    if (!data || data.schemaVersion !== 1 || !Array.isArray(data.items) || (!archive && data.items.length > 15)) return false;
     try { today(data.timeZone); } catch (_) { return false; }
-    if (!data.items.length) return data.date === null && data.revision === null && data.weeklyPoster === null;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(data.date) || !/^[a-f0-9]{64}$/.test(data.revision) || !asset(data.weeklyPoster)) return false;
+    if (!archive && !data.items.length) return data.date === null && data.revision === null && data.weeklyPoster === null;
+    if (!/^[a-f0-9]{64}$/.test(data.revision)) return false;
+    if (!(archive && data.date === null) && !/^\d{4}-\d{2}-\d{2}$/.test(data.date)) return false;
+    if (!archive && !asset(data.weeklyPoster)) return false;
     var allowed = ["PC", "PS5", "Xbox Series X|S", "Switch 2", "iOS", "Android"];
     return data.items.every(function (item) {
       if (!item || !/^[a-f0-9]{24}$/.test(item.id) || typeof item.title !== "string" || !item.title || item.title.length > 160 || typeof item.searchName !== "string" || item.searchName.length > 160 || typeof item.summary !== "string" || item.summary.length > 220 || !/^\d{4}-\d{2}-\d{2}$/.test(item.releaseDate)) return false;

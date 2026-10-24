@@ -1,0 +1,101 @@
+/* These overrides exist only while measuring or morphing. Native endpoint
+   styles still define the original player, including every responsive size. */
+.lens-preview .global-player[data-lens-player-measure],
+.lens-preview .global-player[data-lens-player-measure] *,
+.lens-preview .global-player[data-lens-player-morph],
+.lens-preview .global-player[data-lens-player-morph] *,
+.lens-preview .global-player[data-lens-player-still],
+.lens-preview .global-player[data-lens-player-still] * {
+  transition: none !important;
+  animation: none !important;
+}
+.lens-preview .global-player[data-lens-player-morph] {
+  left: var(--lens-player-x) !important;
+  top: var(--lens-player-y) !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: var(--lens-player-w) !important;
+  height: var(--lens-player-h) !important;
+  border-radius: var(--lens-player-r0) var(--lens-player-r1) var(--lens-player-r2) var(--lens-player-r3) !important;
+  opacity: var(--lens-player-opacity) !important;
+  transform: none !important;
+}
+.lens-preview .global-player[data-lens-player-morph] .global-player__inner,
+.lens-preview .global-player[data-lens-player-morph] .global-player__controls {
+  display: contents !important;
+  position: static !important;
+}
+.lens-preview .global-player[data-lens-player-morph] [data-lens-player-slot] {
+  position: absolute !important;
+  left: var(--lens-slot-x) !important;
+  top: var(--lens-slot-y) !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: var(--lens-slot-w) !important;
+  height: var(--lens-slot-h) !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  display: var(--lens-slot-display) !important;
+  opacity: var(--lens-slot-opacity) !important;
+  font-size: var(--lens-slot-font) !important;
+  border-radius: var(--lens-slot-radius) !important;
+  pointer-events: var(--lens-slot-pointer) !important;
+  transform: none !important;
+  --lens-base-transform: translate(0,0) !important;
+}
+.lens-preview[data-theme="liquid-glass"] .global-player[data-lens-player-measure] [data-lens-motion] {
+  transform: var(--lens-base-transform, translate(0,0)) !important;
+}
+.lens-preview .global-player[data-lens-player-morph] .global-player__center {
+  gap: 2px !important;
+  transform: none !important;
+}
+.lens-preview .global-player[data-lens-player-morph] .global-player__title {
+  font-size: var(--lens-player-title-font) !important;
+  line-height: var(--lens-player-title-line) !important;
+  max-height: 28px !important;
+  opacity: 1 !important;
+}
+.lens-preview .global-player[data-lens-player-morph] .global-player__meta-row {
+  max-height: 24px !important;
+  gap: 10px !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+.lens-preview .global-player[data-lens-player-morph] .global-player__meta {
+  font-size: var(--lens-player-meta-font) !important;
+}
+.lens-preview .global-player[data-lens-player-morph] .global-player__source {
+  max-width: 90px !important;
+  padding: 1px 8px !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+.lens-preview .global-player[data-lens-player-morph] .global-player__progress-wrap {
+  width: 100% !important;
+  height: 6px !important;
+  margin-top: 6px !important;
+  border-radius: 3px !important;
+  opacity: 1 !important;
+}
+.lens-preview .global-player[data-lens-player-morph] .global-player__time-row {
+  max-height: 18px !important;
+  margin-top: 2px !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+.lens-preview .global-player[data-lens-player-morph] .global-player__progress-thumb {
+  width: 14px !important;
+  height: 14px !important;
+  border-width: 2px !important;
+}
+.lens-preview .global-player[data-lens-player-morph] .global-player__cover-placeholder {
+  font-size: var(--lens-player-cover-font) !important;
+}
+.lens-preview .global-player[data-lens-player-morph] .global-player__volume-group {
+  gap: 6px !important;
+  transform: none !important;
+}

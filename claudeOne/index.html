@@ -102,16 +102,17 @@
       <section class="release-hero page-chunk" data-reveal-order="2">
         <div>
           <p class="release-kicker">RELEASE RADAR · 游戏发售</p>
-          <h1>下一款，玩什么？</h1>
-          <p class="release-hero__intro">每周二更新未来约 8 周的新游戏发售清单。</p>
+          <h1 data-release-heading>下一款，玩什么？</h1>
+          <p class="release-hero__intro" data-release-intro>每周二更新未来约 8 周的新游戏发售清单。</p>
           <div class="release-hero__actions">
             <button class="btn" type="button" data-release-poster-open disabled>查看本周速报 ↗</button>
+            <a class="btn" href="#/game-releases-archive" data-nav-link data-release-view-link>往期已发售 →</a>
             <span class="release-updated" data-release-updated>每周二更新</span>
           </div>
         </div>
         <div class="release-stats" aria-label="发售概览">
-          <div class="release-stat"><strong data-release-count>—</strong><span>款即将发售</span></div>
-          <div class="release-stat"><strong data-release-next>—</strong><span>最近发售日</span></div>
+          <div class="release-stat"><strong data-release-count>—</strong><span data-release-count-label>款即将发售</span></div>
+          <div class="release-stat"><strong data-release-next>—</strong><span data-release-next-label>最近发售日</span></div>
         </div>
       </section>
       <div class="release-toolbar page-chunk" data-reveal-order="3" data-release-filters hidden>
@@ -124,7 +125,7 @@
           <button class="release-filter" type="button" aria-pressed="false" data-release-platform="Switch 2">Switch 2</button>
           <button class="release-filter" type="button" aria-pressed="false" data-release-platform="mobile">手机</button>
         </div>
-        <label class="release-history"><input type="checkbox" data-release-history checked>显示本期已发售游戏</label>
+        <label class="release-history" data-release-history-label><input type="checkbox" data-release-history checked>显示本期已发售游戏</label>
       </div>
       <div class="release-status-row page-chunk" data-reveal-order="3">
         <p class="release-status" role="status" aria-live="polite" data-release-status>正在读取发售清单…</p>
@@ -132,6 +133,7 @@
         <button class="btn" type="button" data-release-refresh>刷新清单</button>
       </div>
       <div class="release-list" data-release-list></div>
+      <button class="btn release-more" type="button" data-release-more hidden>显示更多已发售游戏</button>
       <dialog class="release-dialog" aria-labelledby="release-poster-title" data-release-dialog>
         <div class="release-dialog__bar">
           <h2 id="release-poster-title">本周近期游戏发售速报</h2>
@@ -658,7 +660,7 @@
 
   <!-- Defer preserves dependencies while letting all page templates parse. -->
   <script src="./js/config.js" defer></script>
-  <script src="./js/page-registry.js?v=20261009-smooth-entry" defer></script>
+  <script src="./js/page-registry.js?v=20261024-release-archive" defer></script>
   <script src="./js/shell.js?v=20261005-theme-advice-dismiss" defer></script>
   <script src="./js/startup.js?v=20261005-cache" defer></script>
   <script src="./js/router.js?v=20261009-preparation" defer></script>
@@ -2858,7 +2860,7 @@
 
           <div class="cs-stage-actions" aria-label="画面控制">
             <button type="button" data-cs-hud-toggle>显示 / 隐藏信息 (H)</button>
-            <button type="button" data-cs-quality aria-pressed="false">字符：标准</button>
+            <button type="button" data-cs-quality aria-pressed="false">字符：流畅</button>
             <button type="button" data-cs-fullscreen aria-label="进入全屏">全屏 (F)</button>
           </div>
 
@@ -2870,6 +2872,7 @@
             <div class="cs-hud__flight">
               <div><small>VELOCITY</small><strong data-cs-speed>0 m/s</strong></div>
               <div><small>ALTITUDE</small><strong data-cs-altitude>12 m</strong></div>
+              <div><small>FRAME RATE</small><strong data-cs-fps>— FPS</strong></div>
             </div>
             <span class="cs-flight-status" data-cs-status>自由飞行</span>
             <span class="cs-flight-hint">W 前行 · 松开悬停 · 鼠标 / 方向键转向 · Q / E 升降</span>
@@ -2900,7 +2903,7 @@
           <button type="button" data-cs-reset>返回出发位置</button>
           <button type="button" data-cs-sound aria-pressed="true">声音：开启 (M)</button>
           <label class="cs-volume">音量 <input data-cs-volume type="range" min="0" max="100" step="1" value="55" aria-label="城市音量"></label>
-          <button type="button" data-cs-quality aria-pressed="false">字符：标准</button>
+          <button type="button" data-cs-quality aria-pressed="false">字符：流畅</button>
           <button type="button" data-cs-fullscreen aria-label="进入全屏">全屏 (F)</button>
           <span>PC 键鼠 · 自由飞行</span>
         </div>

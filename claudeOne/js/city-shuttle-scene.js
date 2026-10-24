@@ -393,6 +393,7 @@
       part("rib-west",-25,69,2,4,138,8,"steel");part("rib-east",25,77,-8,3,154,11,"teal");
       part("rib-south",9,73,26,9,146,3,"steel");part("rib-north",-10,66,-26,6,132,4,"green");
       glass("top-hall",1,156,-1,54,14,51,"amber",6.0,7,65535,{trim:"gold"});
+      part("top-hall-transfer",1,148.5,-1,54,1,51,"steel");
       part("top-equipment",8,169,-9,19,13,22,"cyan",{material:5,glyph:"%"});
       part("roof-vent",-15,166,8,9,7,7,"steel",{material:5,glyph:"="});text("pylon-logo","E / P",0,15,26,"gold",3);
     });
@@ -428,6 +429,7 @@
       glass("west-wall",-20,63,0,15,126,59,"white",4.0,4.8,48047,{trim:"blue"});
       glass("east-wall",22,72,-2,16,144,54,"cyan",3.4,4.1,59911,{trim:"steel"});
       glass("north-link",0,59,-24,29,19,12,"blue",4.3,4.7,65535,{trim:"cyan"});
+      part("north-link-transfer",0,48.65,-24,32,1.7,13,"steel");
       glass("south-blade",4,36,22,9,72,21,"teal",2.6,4.0,55293,{trim:"white"});
       part("atrium-deck",0,50,0,24,1,19,"steel");rail("deck-edge",0,52,10,24,.4,"white");
       part("east-crown",22,146,-2,20,4,60,"white");text("quartz-title","Q / ATRIUM",0,10,32,"cyan",1.6);
@@ -436,6 +438,7 @@
       glass("residential-core",0,42,0,47,84,45,"teal",4.1,3.8,55619,{trim:"steel"});glass("south-wing",9,20,30,31,40,27,"green",5.2,4.0,43919,{trim:"teal"});
       part("balcony-a",-13,18,26,16,1.1,12,"white");part("balcony-b",12,36,26,19,1.1,10,"steel");part("balcony-c",-11,53,25,18,1.1,9,"amber");part("balcony-d",9,71,25,16,1.1,13,"white");
       glass("roof-home",-8,92,-7,21,15,24,"rose",4.2,5,61349,{trim:"violet"});part("roof-home-hat",-8,101,-7,27,2,28,"coral");
+      part("roof-home-plinth",-8,84.25,-7,21,.5,24,"steel");part("roof-home-coping",-8,99.75,-7,27,.5,28,"coral");
       text("echo-sign","ECHO",-3,9,24,"green",1.8);
     });
     site("twin-compass","双罗盘楼","两座高度不同的窄塔朝相反方向错转，低层宽连座和屋顶独立平台",183,-648,function(){
@@ -519,7 +522,9 @@
       part("leg-east-front",57,22,44,3.2,44,3.2,"white");part("leg-east-back",57,22,-44,4,44,4,"steel");
       part("west-public-deck",-48,45,0,30,2,110,"white");part("east-public-deck",48,45,-3,30,2,103,"steel");part("north-public-deck",0,45,-42,72,2,25,"teal");
       glass("west-home",-47,73,-7,23,53,78,"green",5.1,4.1,48139,{trim:"teal"});glass("east-home",46,65,-10,26,37,67,"cyan",6.2,4.6,59463,{trim:"blue"});
+      part("west-home-plinth",-47,46.25,-7,23,.5,78,"steel");part("east-home-plinth",46,46.25,-10,26,.5,67,"white");part("west-home-coping",-47,99.75,-7,31,.5,85,"teal");part("east-home-coping",46,83.75,-10,34,.5,77,"blue");
       glass("north-home",0,79,-43,69,55,21,"teal",5.7,4.5,55749,{trim:"green"});
+      part("north-home-transfer",0,51.2,-43,69,.6,21,"steel");[-29,-9,12,31].forEach(function(x,i){part("north-home-support-"+i,x,48.6,-43,1.6,5.2,1.8,"teal");});
       part("front-lintel",0,98,42,121,5,8,"cyan");
       part("west-roof",-47,101,-7,31,2,85,"teal");part("east-roof",46,85,-10,34,2,77,"blue");
       rail("west-inner-rail",-33,48,0,.4,98,"amber");rail("east-inner-rail",33,48,-3,.4,90,"cyan");
@@ -554,6 +559,7 @@
     site("vertical-lightwell","垂直光井","从街道进入的竖向空井，左右各留一扇大窗，三片错位平台让飞行可以转向或向上离开",222,-38,function(){
       glass("west-low",-22,29,0,8,58,51,"teal",3.7,4.4,48199,{trim:"cyan"});glass("west-high",-22,105,0,8,70,51,"blue",3.4,4.6,60107,{trim:"cyan"});
       glass("east-low",22,20,-4,8,40,41,"gold",3.9,4.0,54613,{trim:"green"});glass("east-high",22,90,-4,8,50,41,"green",3.2,4.3,46573,{trim:"teal"});
+      [-24.8,24.8].forEach(function(z,i){part("west-window-pier-"+i,-22,64,z,8,12,1.4,"steel");});[-23.8,15.8].forEach(function(z,i){part("east-window-pier-"+i,22,52.5,z,8,25,1.4,"teal");});
       glass("rear-spine",0,40,-24,30,80,8,"cyan",4.6,4.0,55723,{trim:"blue"});
       part("west-gallery",-13,38,0,14,1.5,36,"white");part("east-gallery",13,69,-4,14,1.5,30,"steel");part("north-gallery",0,100,-14,34,1.5,12,"teal");
       part("west-roof",-22,141,0,12,2,55,"blue");part("east-roof",22,116,-4,12,2,45,"green");

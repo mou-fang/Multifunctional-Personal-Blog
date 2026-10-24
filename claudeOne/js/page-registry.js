@@ -29,17 +29,27 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     templateId: "page-game-releases",
     prepare: true,
     // Bump these URLs and the registry URL in index.html when release assets change.
-    css: ["css/game-releases.css?v=20261009-smooth-entry"],
-    js: ["js/game-releases-core.js?v=20261005-release-badges-4", "js/game-releases.js?v=20261009-smooth-entry"],
+    css: ["css/game-releases.css?v=20261024-archive"],
+    js: ["js/game-releases-core.js?v=20261024-archive", "js/game-releases.js?v=20261024-archive"],
     lifecycle: "__page_game_releases"
+  },
+  "game-releases-archive": {
+    navSection: "game-releases",
+    title: "往期已发售游戏",
+    description: "历期游戏发售清单中的已发售游戏，按日期回看、搜索和筛选平台",
+    templateId: "page-game-releases",
+    prepare: true,
+    css: ["css/game-releases.css?v=20261024-archive"],
+    js: ["js/game-releases-core.js?v=20261024-archive", "js/game-releases.js?v=20261024-archive"],
+    lifecycle: "__page_game_releases_archive"
   },
   "city-shuttle": {
     navSection: "games",
     title: "字符城市",
     description: "字符城市 — 在原创彩色 ASCII 城市中自由飞行与探索",
     templateId: "page-city-shuttle",
-    css: ["css/city-shuttle.css?v=20261009-live-5"],
-    js: ["js/city-shuttle-engine-url.js?v=20261009-resolution-2x", "js/city-shuttle-core.js?v=20261009-resolution-2x", "js/city-shuttle-geometry.js?v=20261009-live-5", "js/city-shuttle-streets.js?v=20261009-live-5", "js/city-shuttle-neighborhoods.js?v=20261009-live-5", "js/city-shuttle-actors.js?v=20261009-live-5", "js/city-shuttle-transit.js?v=20261009-live-5", "js/city-shuttle-city.js?v=20261009-live-5", "js/city-shuttle-scene.js?v=20261009-live-5", "js/city-shuttle-audio.js?v=20261009-live-5", "js/city-shuttle.js?v=20261009-live-5"],
+    css: ["css/city-shuttle.css?v=20261011-clarity-2"],
+    js: ["js/city-shuttle-engine-url.js?v=20261011-clarity-2", "js/city-shuttle-core.js?v=20261011-clarity-2", "js/city-shuttle-geometry.js?v=20261011-clarity-2", "js/city-shuttle-streets.js?v=20261011-clarity-2", "js/city-shuttle-neighborhoods.js?v=20261011-clarity-2", "js/city-shuttle-actors.js?v=20261011-clarity-2", "js/city-shuttle-transit.js?v=20261011-clarity-2", "js/city-shuttle-city.js?v=20261011-clarity-2", "js/city-shuttle-scene.js?v=20261011-clarity-2", "js/city-shuttle-audio.js?v=20261011-clarity-2", "js/city-shuttle.js?v=20261011-clarity-2"],
     lifecycle: "__page_city_shuttle"
   },
   "anomaly-bureau": {
@@ -47,8 +57,8 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     title: "字符城市",
     description: "字符城市 — 旧游戏地址兼容入口",
     templateId: "page-city-shuttle",
-    css: ["css/city-shuttle.css?v=20261009-live-5"],
-    js: ["js/city-shuttle-engine-url.js?v=20261009-resolution-2x", "js/city-shuttle-core.js?v=20261009-resolution-2x", "js/city-shuttle-geometry.js?v=20261009-live-5", "js/city-shuttle-streets.js?v=20261009-live-5", "js/city-shuttle-neighborhoods.js?v=20261009-live-5", "js/city-shuttle-actors.js?v=20261009-live-5", "js/city-shuttle-transit.js?v=20261009-live-5", "js/city-shuttle-city.js?v=20261009-live-5", "js/city-shuttle-scene.js?v=20261009-live-5", "js/city-shuttle-audio.js?v=20261009-live-5", "js/city-shuttle.js?v=20261009-live-5"],
+    css: ["css/city-shuttle.css?v=20261011-clarity-2"],
+    js: ["js/city-shuttle-engine-url.js?v=20261011-clarity-2", "js/city-shuttle-core.js?v=20261011-clarity-2", "js/city-shuttle-geometry.js?v=20261011-clarity-2", "js/city-shuttle-streets.js?v=20261011-clarity-2", "js/city-shuttle-neighborhoods.js?v=20261011-clarity-2", "js/city-shuttle-actors.js?v=20261011-clarity-2", "js/city-shuttle-transit.js?v=20261011-clarity-2", "js/city-shuttle-city.js?v=20261011-clarity-2", "js/city-shuttle-scene.js?v=20261011-clarity-2", "js/city-shuttle-audio.js?v=20261011-clarity-2", "js/city-shuttle.js?v=20261011-clarity-2"],
     lifecycle: "__page_city_shuttle"
   },
   "ascii-void": {
@@ -56,8 +66,8 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     title: "字符城市",
     description: "字符城市 — 字符禁区旧地址兼容入口",
     templateId: "page-city-shuttle",
-    css: ["css/city-shuttle.css?v=20261009-live-5"],
-    js: ["js/city-shuttle-engine-url.js?v=20261009-resolution-2x", "js/city-shuttle-core.js?v=20261009-resolution-2x", "js/city-shuttle-geometry.js?v=20261009-live-5", "js/city-shuttle-streets.js?v=20261009-live-5", "js/city-shuttle-neighborhoods.js?v=20261009-live-5", "js/city-shuttle-actors.js?v=20261009-live-5", "js/city-shuttle-transit.js?v=20261009-live-5", "js/city-shuttle-city.js?v=20261009-live-5", "js/city-shuttle-scene.js?v=20261009-live-5", "js/city-shuttle-audio.js?v=20261009-live-5", "js/city-shuttle.js?v=20261009-live-5"],
+    css: ["css/city-shuttle.css?v=20261011-clarity-2"],
+    js: ["js/city-shuttle-engine-url.js?v=20261011-clarity-2", "js/city-shuttle-core.js?v=20261011-clarity-2", "js/city-shuttle-geometry.js?v=20261011-clarity-2", "js/city-shuttle-streets.js?v=20261011-clarity-2", "js/city-shuttle-neighborhoods.js?v=20261011-clarity-2", "js/city-shuttle-actors.js?v=20261011-clarity-2", "js/city-shuttle-transit.js?v=20261011-clarity-2", "js/city-shuttle-city.js?v=20261011-clarity-2", "js/city-shuttle-scene.js?v=20261011-clarity-2", "js/city-shuttle-audio.js?v=20261011-clarity-2", "js/city-shuttle.js?v=20261011-clarity-2"],
     lifecycle: "__page_city_shuttle"
   },
   tools: {

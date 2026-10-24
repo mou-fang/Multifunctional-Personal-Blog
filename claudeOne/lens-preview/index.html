@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="description" content="魔方工作台 — 保持好奇，创造不止" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https:; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <link rel="icon" type="image/webp" href="../logo/workspace-logo-lossless.webp" />
+  <title>魔方工作台</title>
+  <!-- Web fonts load after the first route paints; system fonts render immediately. -->
+  <!-- Core CSS (always loaded) -->
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css?v=20261005-theme-advice-dismiss" />
+  <link rel="stylesheet" href="../css/neumorphism.css" />
+  <link rel="stylesheet" href="../css/softui-background.css" />
+  <link rel="stylesheet" href="../css/liquid-glass.css" />
+  <link rel="stylesheet" href="../css/animations.css" />
+  <link rel="stylesheet" href="../css/player.css" />
+  <link rel="stylesheet" href="../css/assistant.css" />
+  <link rel="stylesheet" href="../css/easter-egg.css" />
+  <link rel="stylesheet" href="../lens-preview/preview.css" />
+  <link rel="stylesheet" href="../lens-preview/player-motion.css" />
+  <!-- Page-specific CSS loaded on demand by router -->
+</head>
+<body class="lens-preview" data-page="home" data-route-state="idle" data-initial-route="true">
+  <script src="../lens-preview/theme-init-preview.js"></script>
+
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <div class="ambient ambient-c"></div>
+
+  <!-- Shared Soft UI background: aurora palette, 45%, continuous across routes. -->
+  <div class="softui-background" data-softui-background aria-hidden="true">
+    <div class="softui-background__fallback">
+      <div class="softui-background__glow softui-background__glow--main"></div>
+      <div class="softui-background__glow softui-background__glow--cool"></div>
+      <div class="softui-background__glow softui-background__glow--warm"></div>
+    </div>
+    <canvas class="softui-background__canvas" data-softui-canvas></canvas>
+  </div>
+
+  <div class="site-shell">
+    <header class="site-header page-chunk" data-reveal-order="1">
+      <a class="site-brand" href="#/home" data-nav-link>
+        <span class="brand-mark" aria-hidden="true">
+          <img src="../logo/workspace-logo-lossless.webp" alt="" width="40" height="40" decoding="async" />
+        </span>
+        <span class="brand-text">
+          <small>魔方的</small>
+          <strong>妙妙工具</strong>
+        </span>
+      </a>
+
+      <nav class="site-nav" aria-label="Main"></nav>
+
+      <div class="header-actions">
+        <a class="github-link"
+           href="https://github.com/mou-fang/Multifunctional-Personal-Blog"
+           target="_blank"
+           rel="noopener noreferrer"
+           aria-label="在 GitHub 查看 Multifunctional Personal Blog 项目（新窗口）">
+          <img class="github-link__mark"
+               src="../logo/github-invertocat-2026.svg"
+               width="30" height="30" alt="" aria-hidden="true" />
+          <span class="github-link__label">GitHub</span>
+          <span class="github-link__arrow" aria-hidden="true">↗</span>
+        </a>
+        <div class="theme-controls">
+          <label class="theme-toggle" aria-label="切换主题">
+            <span class="theme-toggle__label" data-theme-label>Soft UI</span>
+            <input type="checkbox" data-theme-toggle class="theme-toggle__input" />
+            <span class="theme-toggle__track">
+              <span class="theme-toggle__thumb"></span>
+            </span>
+          </label>
+          <div class="theme-advice" id="theme-performance-advice" data-theme-advice role="status" aria-live="polite" aria-atomic="true" hidden>
+            <span class="theme-advice__reason" data-theme-advice-reason></span>
+            <button class="theme-advice__action" type="button" data-theme-use-soft>建议换回 Soft UI <span aria-hidden="true">↗</span></button>
+            <div class="theme-advice__options">
+              <button class="theme-advice__dismiss" type="button" data-theme-advice-close>关闭</button>
+              <button class="theme-advice__dismiss" type="button" data-theme-advice-never>不再提醒</button>
+            </div>
+          </div>
+        </div>
+        <span class="sr-only" data-theme-live aria-live="polite"></span>
+      </div>
+    </header>
+
+    <!-- Page content injected here by router -->
+    <main class="page-stack" data-content-slot>
+      <!-- Home page is the default; router mounts it on init -->
+    </main>
+
+    <footer class="site-footer page-chunk" data-reveal-order="8">
+      <span>claudeOne · Soft UI ↔ Liquid Glass · no build</span>
+    </footer>
+  </div>
+
+  <!-- Global Audio Player -->
+  <div class="global-player" data-global-player data-minimized hidden>
+    <div class="global-player__inner">
+      <div class="global-player__cover-wrap">
+        <img class="global-player__cover-img" data-gp-cover alt="" hidden />
+        <div class="global-player__cover-placeholder" data-gp-cover-placeholder hidden></div>
+      </div>
+      <div class="global-player__center">
+        <div class="global-player__title" data-gp-title></div>
+        <div class="global-player__meta-row">
+          <span class="global-player__meta" data-gp-meta></span>
+          <span class="global-player__source" data-gp-source></span>
+        </div>
+        <div class="global-player__progress-wrap" data-gp-progress-wrap>
+          <div class="global-player__progress-fill" data-gp-progress-fill style="width:0%"></div>
+          <div class="global-player__progress-thumb" data-gp-progress-thumb></div>
+        </div>
+        <div class="global-player__time-row">
+          <span class="global-player__time" data-gp-current-time>00:00</span>
+          <span class="global-player__time" data-gp-duration></span>
+        </div>
+      </div>
+      <div class="global-player__controls">
+        <button class="global-player__btn" data-gp-prev title="上一首">⏮</button>
+        <button class="global-player__btn global-player__btn--play" data-gp-play title="播放/暂停">▶</button>
+        <button class="global-player__btn" data-gp-next title="下一首">⏭</button>
+        <button class="global-player__btn" data-gp-mode title="Play mode">→</button>
+        <button class="global-player__btn global-player__btn--playlist" data-gp-playlist title="查看歌单" aria-label="查看歌单">&#9776;</button>
+        <div class="global-player__volume-group">
+          <span class="global-player__volume-icon" data-gp-volume-icon>🔊</span>
+          <input type="range" class="global-player__volume-slider" data-gp-volume min="0" max="100" value="80" />
+        </div>
+        <button class="global-player__btn global-player__btn--expand" data-gp-expand title="Expand player" aria-label="Expand player">▲</button>
+      </div>
+    </div>
+    <div class="global-player__drop-overlay">释放以添加到播放队列</div>
+    <audio data-gp-audio hidden preload="none"></audio>
+  </div>
+
+  <!-- Global AI Assistant -->
+  <div class="site-assistant" data-site-assistant></div>
+
+  <!-- Toast rail (created by shell.js) -->
+
+  <!-- Page Templates -->
+  <template id="page-home">
+    <section class="cube-hero page-chunk" data-reveal-order="2">
+      <div class="cube-hero__cube">
+        <div class="cube-stage" data-cube-stage aria-label="3D Rubik's cube"></div>
+        <div class="cube-controls">
+          <div class="cube-turns" role="toolbar" aria-label="魔方面操作">
+            <button class="cube-turn-btn" data-cube-turn="U" type="button" aria-label="Up clockwise">U</button>
+            <button class="cube-turn-btn" data-cube-turn="U'" type="button" aria-label="Up counter-clockwise">U'</button>
+            <button class="cube-turn-btn" data-cube-turn="D" type="button" aria-label="Down clockwise">D</button>
+            <button class="cube-turn-btn" data-cube-turn="D'" type="button" aria-label="Down counter-clockwise">D'</button>
+            <button class="cube-turn-btn" data-cube-turn="L" type="button" aria-label="Left clockwise">L</button>
+            <button class="cube-turn-btn" data-cube-turn="L'" type="button" aria-label="Left counter-clockwise">L'</button>
+            <button class="cube-turn-btn" data-cube-turn="R" type="button" aria-label="Right clockwise">R</button>
+            <button class="cube-turn-btn" data-cube-turn="R'" type="button" aria-label="Right counter-clockwise">R'</button>
+            <button class="cube-turn-btn" data-cube-turn="F" type="button" aria-label="Front clockwise">F</button>
+            <button class="cube-turn-btn" data-cube-turn="F'" type="button" aria-label="Front counter-clockwise">F'</button>
+            <button class="cube-turn-btn" data-cube-turn="B" type="button" aria-label="Back clockwise">B</button>
+            <button class="cube-turn-btn" data-cube-turn="B'" type="button" aria-label="Back counter-clockwise">B'</button>
+          </div>
+          <div class="cube-actions">
+            <button class="btn btn-primary" data-cube-scramble type="button">打乱</button>
+            <button class="btn btn-ghost" data-cube-reset type="button">还原</button>
+          </div>
+          <p class="cube-hint">键盘：U D L R F B（Shift = 反向）· 空格打乱 · Esc 还原</p>
+        </div>
+      </div>
+      <div class="cube-hero__copy">
+        <span class="pill pill--accent">STAY CURIOUS · KEEP CREATING</span>
+        <h1 class="cube-hero__title">无意义的<br />魔方工作台。</h1>
+        <p class="cube-hero__lead">
+          这里摆着几件工具，还有更多空位。左边的魔方可以把玩，鼠标离开魔方就会散开，反之聚合。
+          右上角的开关在 Soft UI 和 Liquid Glass 之间切换，两种风格都按 1:1 复刻。
+        </p>
+        <div class="cube-hero__tags">
+          <span class="pill">Neumorphism</span>
+          <span class="pill">Liquid Glass</span>
+          <span class="pill">No build step</span>
+        </div>
+        <p class="cube-hero__hint">拖动魔方 · 切换风格 · 选一个工具开始</p>
+      </div>
+    </section>
+    <section class="visitor-pulse page-chunk" data-reveal-order="3" aria-labelledby="visitor-pulse-title">
+      <div class="visitor-pulse__intro">
+        <span class="visitor-pulse__eyebrow">
+          <span class="visitor-pulse__dot" aria-hidden="true"></span>
+          Site pulse
+        </span>
+        <h2 id="visitor-pulse-title">此刻，有人在这里。</h2>
+        <p>仅在浏览器产生真实操作后计入，常见爬虫与自动化访问不会增加数字。</p>
+      </div>
+      <div class="visitor-pulse__metrics" aria-live="polite" aria-atomic="true">
+        <div class="visitor-metric">
+          <strong class="visitor-metric__value" data-visitor-total>—</strong>
+          <span class="visitor-metric__label">累计真人访客</span>
+        </div>
+        <div class="visitor-metric">
+          <strong class="visitor-metric__value" data-visitor-online>—</strong>
+          <span class="visitor-metric__label">当前在线</span>
+        </div>
+      </div>
+      <div class="visitor-pulse__privacy">
+        <span aria-hidden="true">✓</span>
+        <span data-visitor-status>正在连接统计服务</span>
+      </div>
+    </section>
+    <section class="home-cta page-chunk" data-reveal-order="3">
+      <p class="home-cta__text">从顶部导航选择「游戏」或「工具箱」开始探索</p>
+    </section>
+  </template>
+
+  <!-- Defer preserves dependencies while letting all page templates parse. -->
+  <script src="../js/config.js" defer></script>
+  <script src="../js/page-registry.js?v=20261011-city-clarity-2" defer></script>
+  <script src="../lens-preview/isolation.js" defer></script>
+  <script src="../lens-preview/shell-preview.js" defer></script>
+  <script src="../lens-preview/startup-preview.js" defer></script>
+  <script src="../js/router.js?v=20261009-preparation" defer></script>
+  <script src="../lens-preview/visitor-preview.js" defer></script>
+
+  <!-- Color studio: page-local controls and local image processing. -->
+  
+  <script type="module" src="../lens-preview/lens-adapter.js"></script>
+</body>
+</html>

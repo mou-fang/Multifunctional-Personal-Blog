@@ -2,12 +2,13 @@
 (function () {
   "use strict";
   var Core=window.CityShuttleCore,Scene=window.CityShuttleScene;
-  var workerUrl=new URL("city-shuttle-worker.js?v=20261009-living-5",document.currentScript.src).href;
+  var workerUrl=new URL("city-shuttle-worker.js?v=20261011-clarity-2",document.currentScript.src).href;
   var root=null,canvas=null,stage=null,worker=null,renderer=null,audio=null,controller=null,observer=null;
   var ready=false,active=false,paused=false,busy=false,raf=0,lastTime=0,serial=0,ticket=0;
   var keys=Object.create(null),pressedFlags=0,look={x:0,y:0},detailed=false,hudVisible=true,sensitivity=1;
   var state=null,pendingSpawn=null,pendingRefresh=false,ui={},lastFrame=null,pendingDt=0,soundVolume=.55,soundMuted=false,soundBlocked=false;
   var SETTINGS_KEY="claudeOne:city-shuttle-flight:v2";
+  var fpsStarted=0,fpsFrames=0,qualityScale=1,qualitySamples=0,qualityElapsed=0;
 
   function compile(gl,type,source) {
     var shader=gl.createShader(type);gl.shaderSource(shader,source);gl.compileShader(shader);
@@ -26,7 +27,7 @@
       void main(){vec2 view=vec2(uv.x,1.0-uv.y);vec2 cell=floor(view*grid);vec2 local=fract(view*grid);
         vec4 data=texelFetch(cells,ivec2(clamp(cell,vec2(0),grid-1.0)),0);float code=floor(data.r*255.0+.5);
         vec2 tile=vec2(mod(code,16.0),floor(code/16.0));float ink=texture(glyphs,(tile+local)/16.0).r;
-        vec3 rgb=data.gba;vec3 surface=code==32.0?rgb*.9:rgb*(.16+ink*.84); color=vec4(surface,1.0);}`);
+        vec3 rgb=data.gba;vec3 surface=code==32.0?rgb*.9:rgb*(.30+ink*.70); color=vec4(surface,1.0);}`);
     program=gl.createProgram();gl.attachShader(program,vertex);gl.attachShader(program,fragment);gl.linkProgram(program);
     gl.deleteShader(vertex);gl.deleteShader(fragment);vertex=null;fragment=null;
     if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(program)||"字符渲染程序链接失败");
@@ -43,7 +44,7 @@
     var gridLocation=gl.getUniformLocation(program,"grid");gl.useProgram(program);gl.uniform1i(gl.getUniformLocation(program,"cells"),0);gl.uniform1i(gl.getUniformLocation(program,"glyphs"),1);
     var cw=0,ch=0;
     function draw(frame) {
-      var rect=target.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
+      var rect=target.getBoundingClientRect(),dpr=detailed?Math.min(window.devicePixelRatio||1,1.5):1;
       var width=Math.max(1,Math.round(rect.width*dpr)),height=Math.max(1,Math.round(rect.height*dpr));
       if(target.width!==width||target.height!==height){target.width=width;target.height=height;}
       gl.viewport(0,0,width,height);gl.useProgram(program);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,cellTexture);
@@ -77,6 +78,8 @@
     text(ui.district,district);text(ui.altitude,Math.round(state[1])+" m");text(ui.speed,Math.round(Math.abs(state[6]))+" m/s");
     text(ui.status,state[7]>0.5?"贴近建筑 · 请转向":"自由飞行");
     canvas.dataset.position=state.slice(0,3).map(function(v){return v.toFixed(2);}).join(",");canvas.dataset.engineMs=frame.elapsed.toFixed(2);
+    if(active&&!paused&&(!document.hasFocus||document.hasFocus())){var now=performance.now();if(!fpsStarted)fpsStarted=now;fpsFrames++;if(now-fpsStarted>=650){var fps=Math.round(fpsFrames*1000/(now-fpsStarted));text(root.querySelector("[data-cs-fps]"),fps+" FPS");canvas.dataset.fps=String(fps);fpsStarted=now;fpsFrames=0;}}
+    else {fpsStarted=0;fpsFrames=0;text(root.querySelector("[data-cs-fps]"),"— FPS");delete canvas.dataset.fps;}
     stage.dataset.engine="rust-wasm";
     if(frame.life){stage.dataset.people=String(frame.life.people);stage.dataset.vehicles=String(frame.life.vehicles);canvas.dataset.worldTime=frame.time.toFixed(2);}
   }
@@ -84,7 +87,7 @@
     if(!root||!ready||document.hidden)return;
     if(busy){if(dt===0)pendingRefresh=true;return;}
     var rect=canvas.getBoundingClientRect();if(rect.width<1||rect.height<1)return;
-    var grid=Core.grid(rect.width,rect.height,detailed);busy=true;pendingDt=0;
+    var grid=Core.grid(rect.width,rect.height,detailed,qualityScale);busy=true;pendingDt=0;
     var turnX=look.x+(keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0);
     var turnY=look.y+(keys.ArrowUp?1:0)-(keys.ArrowDown?1:0);
     worker.postMessage({type:"frame",dt:active&&!paused?dt:0,flags:Core.flags(keys)|pressedFlags,turnX:turnX,turnY:turnY,columns:grid.columns,rows:grid.rows,aspect:grid.aspect,serial:++serial});
@@ -99,7 +102,7 @@
   }
   function beginLoop(){lastTime=0;if(!raf&&active&&!paused&&!document.hidden)raf=requestAnimationFrame(loop);}
   function pause(value) {
-    if(!ready)return;paused=value;pendingDt=0;clearInput();cancelAnimationFrame(raf);raf=0;
+    if(!ready)return;paused=value;pendingDt=0;fpsStarted=0;fpsFrames=0;clearInput();cancelAnimationFrame(raf);raf=0;text(root.querySelector("[data-cs-fps]"),"— FPS");delete canvas.dataset.fps;
     if(audio)audio.setPaused(paused);syncSound();
     if(paused){if(document.pointerLockElement===canvas)document.exitPointerLock();showOverlay("停在这一刻","城市飞行已暂停。继续后从当前位置出发。",true);ui.start.focus();}
     else {showOverlay("","",false);canvas.focus();startSound();beginLoop();}
@@ -111,7 +114,7 @@
     if(canvas.requestPointerLock){try{var result=canvas.requestPointerLock();if(result&&result.catch)result.catch(function(){text(ui.status,"方向键转向 · 点击画面可用鼠标");});}catch(ignore){}}
   }
   function reset(spawn) {
-    if(!ready)return;clearInput();worker.postMessage({type:"reset",spawn:spawn});pendingSpawn=spawn;
+    if(!ready)return;fpsStarted=0;fpsFrames=0;clearInput();worker.postMessage({type:"reset",spawn:spawn});pendingSpawn=spawn;
     if(!busy)requestFrame(0);
   }
   function fail(message) {
@@ -124,7 +127,7 @@
     catch(ignore){text(ui.status,"此浏览器暂不支持全屏");}
   }
   function syncFullscreen(){var enabled=document.fullscreenElement===stage;root.querySelectorAll("[data-cs-fullscreen]").forEach(function(button){text(button,enabled?"退出全屏 (F)":"全屏 (F)");button.setAttribute("aria-label",enabled?"退出全屏":"进入全屏");});}
-  function syncQuality(){root.querySelectorAll("[data-cs-quality]").forEach(function(button){text(button,detailed?"字符：精细":"字符：标准");button.setAttribute("aria-pressed",String(detailed));});}
+  function syncQuality(){root.querySelectorAll("[data-cs-quality]").forEach(function(button){text(button,detailed?"字符：精细":"字符：流畅");button.setAttribute("aria-pressed",String(detailed));});}
   function mount(scope) {
     unmount();root=scope.querySelector("[data-cs-root]");if(!root||!Core||!Scene)return;
     var current=++ticket;stage=root.querySelector("[data-cs-stage]");canvas=root.querySelector("[data-cs-canvas]");controller=new AbortController();
@@ -134,7 +137,7 @@
     try{var settings=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}");detailed=!!settings.detailed;hudVisible=settings.hud!==false;sensitivity=Core.clamp(Number(settings.sensitivity)||1,.3,2);if(Number.isFinite(settings.volume))soundVolume=Core.clamp(settings.volume,0,1);soundMuted=settings.muted===true;}catch(ignore){}
     audio=window.CityShuttleAudio?new window.CityShuttleAudio.Sound({volume:soundVolume,muted:soundMuted}):null;
     syncHud();syncQuality();syncFullscreen();syncSound();document.body.classList.add("city-shuttle-route");
-    delete stage.dataset.engine;delete stage.dataset.objects;delete stage.dataset.people;delete stage.dataset.vehicles;delete canvas.dataset.worldTime;delete canvas.dataset.engineMs;delete canvas.dataset.position;
+    delete stage.dataset.engine;delete stage.dataset.objects;delete stage.dataset.people;delete stage.dataset.vehicles;delete canvas.dataset.worldTime;delete canvas.dataset.engineMs;delete canvas.dataset.position;delete canvas.dataset.fps;fpsStarted=0;fpsFrames=0;qualityScale=1;qualitySamples=0;qualityElapsed=0;
     var sensitivityInput=root.querySelector("[data-cs-sensitivity]");sensitivityInput.value=String(sensitivity);
     var select=root.querySelector("[data-cs-startpoint]");select.replaceChildren();Scene.SPAWNS.forEach(function(spawn){var option=document.createElement("option");option.value=spawn.id;option.textContent=spawn.name;select.appendChild(option);});
     var unsupported=window.matchMedia("(pointer: coarse)").matches||window.innerWidth<600;
@@ -148,7 +151,9 @@
     listen(worker,"message",function(event){
       if(!root||current!==ticket)return;var message=event.data;
       if(message.type==="ready"){ready=true;stage.dataset.objects=String(message.objects);var startPoint=Scene.SPAWNS.find(function(p){return p.id===select.value;})||Scene.SPAWNS[0];worker.postMessage({type:"reset",spawn:startPoint});showOverlay("起飞，只为看这座城","按 W 前行，松开悬停；鼠标或方向键转向，Q / E 升降。你可以沿街慢飞，也可以越过屋顶。",true);requestFrame(0);}
-      else if(message.type==="frame"){busy=false;lastFrame=message;renderer.draw(message);hud(message);if(audio)audio.update(message);if(pendingSpawn||pendingRefresh){pendingSpawn=null;pendingRefresh=false;requestFrame(0);}}
+      else if(message.type==="frame"){busy=false;lastFrame=message;renderer.draw(message);hud(message);if(audio)audio.update(message);
+        if(active&&!paused&&!detailed&&Number.isFinite(message.elapsed)){qualityElapsed+=message.elapsed;if(++qualitySamples===30){var cost=qualityElapsed/qualitySamples;if(cost>14)qualityScale=Math.max(.65,qualityScale-.1);else if(cost<8)qualityScale=Math.min(1,qualityScale+.05);qualitySamples=0;qualityElapsed=0;}}
+        if(pendingSpawn||pendingRefresh){pendingSpawn=null;pendingRefresh=false;requestFrame(0);}}
       else if(message.type==="error")fail(message.message);
     });
     listen(worker,"error",function(event){fail(event.message||"城市 Worker 启动失败");});
@@ -157,7 +162,7 @@
     listen(sensitivityInput,"input",function(){sensitivity=Number(sensitivityInput.value);save();});
     if(ui.sound)listen(ui.sound,"click",toggleSound);
     if(ui.volume)listen(ui.volume,"input",function(){soundVolume=Number(ui.volume.value)/100;if(audio)audio.setVolume(soundVolume);save();});
-    root.querySelectorAll("[data-cs-quality]").forEach(function(button){listen(button,"click",function(){detailed=!detailed;syncQuality();save();requestFrame(0);});});
+    root.querySelectorAll("[data-cs-quality]").forEach(function(button){listen(button,"click",function(){detailed=!detailed;qualityScale=1;qualitySamples=0;qualityElapsed=0;fpsStarted=0;fpsFrames=0;syncQuality();save();requestFrame(0);});});
     root.querySelectorAll("[data-cs-fullscreen]").forEach(function(button){listen(button,"click",fullscreen);});
     listen(document,"fullscreenchange",syncFullscreen);
     listen(root.querySelector("[data-cs-hud-toggle]"),"click",function(){hudVisible=!hudVisible;syncHud();save();});
