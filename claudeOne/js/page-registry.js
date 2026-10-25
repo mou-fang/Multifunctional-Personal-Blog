@@ -30,7 +30,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     prepare: true,
     // Bump these URLs and the registry URL in index.html when release assets change.
     css: ["css/game-releases.css?v=20261025-reveal"],
-    js: ["js/game-releases-core.js?v=20261024-archive", "js/game-releases.js?v=20261024-archive"],
+    js: ["js/game-releases-core.js?v=20261025-current-list", "js/game-releases.js?v=20261025-current-list"],
     lifecycle: "__page_game_releases"
   },
   "game-releases-archive": {
@@ -40,7 +40,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     templateId: "page-game-releases",
     prepare: true,
     css: ["css/game-releases.css?v=20261025-reveal"],
-    js: ["js/game-releases-core.js?v=20261024-archive", "js/game-releases.js?v=20261024-archive"],
+    js: ["js/game-releases-core.js?v=20261025-current-list", "js/game-releases.js?v=20261025-current-list"],
     lifecycle: "__page_game_releases_archive"
   },
   "city-shuttle": {

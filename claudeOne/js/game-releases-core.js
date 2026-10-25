@@ -27,7 +27,8 @@
     } catch (_) { return false; }
   }
   function valid(data, archive) {
-    if (!data || data.schemaVersion !== 1 || !Array.isArray(data.items) || (!archive && data.items.length > 15)) return false;
+    // Published editions may grow independently of the CLI's editorial item limit.
+    if (!data || data.schemaVersion !== 1 || !Array.isArray(data.items)) return false;
     try { today(data.timeZone); } catch (_) { return false; }
     if (!archive && !data.items.length) return data.date === null && data.revision === null && data.weeklyPoster === null;
     if (!/^[a-f0-9]{64}$/.test(data.revision)) return false;

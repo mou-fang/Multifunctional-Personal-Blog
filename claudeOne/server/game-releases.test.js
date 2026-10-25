@@ -5,8 +5,9 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 const os = require("node:os");
 const zlib = require("node:zlib");
+const crypto = require("node:crypto");
 const express = require("express");
-const { publish, readSnapshot, readHistory, releasedHistory, storageDir, addDays, sourceUrl } = require("./game-releases-store");
+const { publish, readSnapshot, readHistory, releasedHistory, validateSnapshot, storageDir, addDays, sourceUrl } = require("./game-releases-store");
 const { createGameReleasesRouter, blockPrivateStatic } = require("./game-releases");
 const core = require("../js/game-releases-core");
 const { verify } = require("./game-releases-verification");
@@ -23,13 +24,13 @@ function png(width, height, shade = 0) {
   for (let row = 0; row < height; row++) pixels[row * (width * 3 + 1)] = 0;
   return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]), chunk("IHDR", header), chunk("IDAT", zlib.deflateSync(pixels)), chunk("IEND", Buffer.alloc(0))]);
 }
-async function fixture(t) {
+async function fixture(t, count = 10) {
   const base = await fs.mkdtemp(path.join(os.tmpdir(), "release-test-"));
   t.after(() => fs.rm(base, { recursive: true, force: true }));
   const coversDir = path.join(base, "covers"), dataDir = path.join(base, "private"); await fs.mkdir(coversDir);
   const date = "2026-10-06", now = new Date(date + "T04:00:00Z");
   const items = [], cards = [];
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < count; i++) {
     const cover = path.join(coversDir, i + ".png"); await fs.writeFile(cover, png(4, 2, i + 1));
     const item = { title: "验证样例 " + i, searchName: "Fixture Game " + i, releaseDate: addDays(date, i + 1), platforms: i % 2 ? ["PS5"] : ["PC"], summary: "仅供自动化验证的样例。", sourceUrls: ["https://store.steampowered.com/"] };
     items.push(item); cards.push({ section: i === 0 ? "🔥 重点推荐" : "近期发售", title: item.title, searchName: item.searchName, desc: `📅 ${item.releaseDate}｜🖥️ ${item.platforms.join("、")}｜${item.summary}`, tag: "发售", cover });
@@ -252,4 +253,38 @@ test("archive filtering excludes today/future and supports old dates, platform a
   assert.deepEqual(core.filter(items, options), [items[0]]);
   assert.equal(core.filter(items, { ...options, query: "ARCHIVE", platform: "PC" }).length, 1);
   assert.equal(core.filter(items, { ...options, platform: "PS5" }).length, 0);
+});
+
+test("reading a signed 25-game edition supports both pages while the publisher keeps its editorial limit", async t => {
+  const f = await fixture(t, 25);
+  await assert.rejects(publish(f.config), /10–15/);
+  const hash = value => crypto.createHash("sha256").update(value).digest("hex");
+  const assetsDir = path.join(f.dataDir, "assets"); await fs.mkdir(assetsDir, { recursive: true });
+  const asset = async file => {
+    const bytes = await fs.readFile(file), name = hash(bytes) + ".png";
+    await fs.writeFile(path.join(assetsDir, name), bytes); return "/api/game-releases/assets/" + name;
+  };
+  const items = [];
+  for (const [index, item] of f.input.items.entries()) items.push({ id: hash(item.searchName.toLowerCase()).slice(0, 24), title: item.title, searchName: item.searchName, releaseDate: item.releaseDate, platforms: item.platforms, summary: item.summary, section: "验证样例", sourceUrls: item.sourceUrls, cover: await asset(path.join(f.coversDir, index + ".png")) });
+  const body = { schemaVersion: 1, date: f.input.date, windowEnd: addDays(f.input.date, 56), timeZone: "Asia/Shanghai", weeklyPoster: await asset(f.imageFile), items };
+  const data = { ...body, revision: hash(JSON.stringify(body)), generatedAt: f.config.now.toISOString() };
+  assert.equal(validateSnapshot(data).items.length, 25);
+  assert.throws(() => validateSnapshot(data, { publication: true }), /10–15/);
+  const tampered = structuredClone(data); tampered.items[0].summary = "篡改";
+  assert.throws(() => validateSnapshot(tampered), /内容校验/);
+  await fs.writeFile(path.join(f.dataDir, "current.json"), JSON.stringify(data));
+  assert.equal((await readSnapshot(f.dataDir)).items.length, 25);
+  assert.equal((await readHistory(f.dataDir)).items.length, 25);
+  const now = new Date("2026-10-12T04:00:00Z");
+  const app = express(); app.use("/api/game-releases", createGameReleasesRouter({ dataDir: f.dataDir, now: () => now }));
+  const server = await new Promise(resolve => { const value = app.listen(0, "127.0.0.1", () => resolve(value)); });
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const base = "http://127.0.0.1:" + server.address().port;
+  const currentResponse = await fetch(base + "/api/game-releases"); assert.equal(currentResponse.status, 200);
+  const current = await currentResponse.json(); assert.equal(core.valid(current), true);
+  assert.equal(core.filter(current.items, { today: "2026-10-12" }).length, 20);
+  const archiveResponse = await fetch(base + "/api/game-releases/archive"); assert.equal(archiveResponse.status, 200);
+  const archive = await archiveResponse.json(); assert.equal(core.valid(archive, true), true);
+  assert.equal(archive.items.length, 5); assert.ok(archive.items.every(item => item.releaseDate < "2026-10-12"));
+  assert.equal((await fetch(base + current.items[0].cover)).status, 200);
 });

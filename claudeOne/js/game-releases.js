@@ -2,7 +2,7 @@
   "use strict";
   var core = window.GameReleasesCore;
   function createPage(archive) {
-    var root, data, controller, timeout, dateTimer, renderedDate, generation = 0, platform = "all", query = "", includeReleased = true, dialog, opener;
+    var root, data, controller, timeout, dateTimer, renderedDate, generation = 0, platform = "all", query = "", includeReleased = false, dialog, opener;
     var visibleCount = 60;
     var cachedData = null, preparation = null, preparationController = null, preparationTimeout = null, preparationFailed = false, preparedFresh = false;
     function find(selector) { return root.querySelector(selector); }
@@ -79,7 +79,7 @@
       if (!data.items.length) { status("发售日期以官方公布为准"); showEmpty(archive ? "往期记录，陆续收录中" : "下一期速报，正在路上", archive ? "清单中已过发售日的游戏会保留在这里，之后每周更新也不会清空。" : "首期游戏清单发布后会显示在这里，每周二更新未来约 8 周的发售信息。"); return; }
       var age = core.daysBetween(data.date, date);
       status(archive ? "历期清单中已过发售日的游戏会自动保留；日期按已公布信息判断，可查看来源核对。" : age > 8 ? "本期已 " + age + " 天未更新，发售日期请以官方页面为准。" : "发售安排可能调整，点击卡片来源可核对最新信息。");
-      if (!items.length) { showEmpty("没有匹配的游戏", archive ? "试试其他平台或关键词。" : "试试其他平台或关键词；也可以勾选显示本期已发售游戏。"); return; }
+      if (!items.length) { showEmpty(archive || future.length || query || platform !== "all" ? "没有匹配的游戏" : "本期游戏均已发售", archive ? "试试其他平台或关键词。" : "试试其他平台或关键词；已发售游戏可查看往期记录，或勾选显示本期已发售游戏。"); return; }
       var list = find("[data-release-list]"); list.replaceChildren();
       var month = "", grid;
       items.forEach(function (item) {
@@ -179,7 +179,7 @@
     function onPosterError() { find("[data-release-poster-error]").hidden = false; }
     function mount(container) {
       unmount(); root = container.querySelector("[data-releases]"); if (!root) return;
-      platform = "all"; query = ""; includeReleased = true; visibleCount = 60; data = cachedData; renderedDate = data ? core.today(data.timeZone) : null;
+      platform = "all"; query = ""; includeReleased = false; visibleCount = 60; data = cachedData; renderedDate = data ? core.today(data.timeZone) : null;
       root.setAttribute("data-release-view", archive ? "archive" : "current");
       find("[data-release-heading]").textContent = archive ? "往期已发售游戏" : "下一款，玩什么？";
       find("[data-release-intro]").textContent = archive ? "每周清单持续留存，回看那些已经发售的游戏。" : "每周二更新未来约 8 周的新游戏发售清单。";
@@ -190,7 +190,7 @@
       link.title = archive ? "返回本期游戏发售清单" : "查看往期已发售的游戏";
       find("[data-release-poster-open]").hidden = archive;
       find("[data-release-history-label]").hidden = archive;
-      find("[data-release-history]").checked = true;
+      find("[data-release-history]").checked = false;
       dialog = find("[data-release-dialog]");
       root.addEventListener("click", onClick); root.addEventListener("input", onInput); root.addEventListener("change", onChange);
       dialog.addEventListener("close", onClose); find("[data-release-poster]").addEventListener("error", onPosterError);

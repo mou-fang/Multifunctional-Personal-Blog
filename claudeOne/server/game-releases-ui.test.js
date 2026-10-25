@@ -70,21 +70,24 @@ function harness() {
     tick: () => [...intervals.values()].forEach(timer => timer.callback()), fetches: () => fetches };
 }
 
-test("release cards default to including history and advance across Shanghai midnight without refetching", async () => {
+test("current releases default to today/upcoming and move past entries out across Shanghai midnight", async () => {
   const h = harness(); h.page.mount(h.container);
   await new Promise(setImmediate);
-  assert.equal(h.get("history").checked, true);
+  assert.equal(h.get("history").checked, false);
   assert.deepEqual(h.badges(), ["今日发售", "明天"]);
   assert.equal([...h.intervals.values()][0].delay, 60000);
   const renders = h.get("list").replacements; h.tick();
   assert.equal(h.get("list").replacements, renders, "same-day checks must not replace cards");
   h.setNow("2026-10-05T16:00:00Z"); h.tick();
-  assert.deepEqual(h.badges(), ["已发售", "今日发售"]);
+  assert.deepEqual(h.badges(), ["今日发售"]);
   assert.equal(h.get("count").textContent, "01");
   h.setNow("2026-10-06T16:00:00Z"); h.window.emit("focus");
-  assert.deepEqual(h.badges(), ["已发售", "已发售"]);
+  assert.deepEqual(h.badges(), []);
+  assert.match(h.get("list").textContent, /本期游戏均已发售/);
   assert.equal(h.get("count").textContent, "00");
   assert.equal(h.fetches(), 1, "calendar updates do not need another weekly publish or network fetch");
+  h.get("history").checked = true; h.root.emit("change", { target: h.get("history") });
+  assert.deepEqual(h.badges(), ["已发售", "已发售"], "the optional checkbox can still show past entries from this edition");
   h.page.unmount();
 });
 
@@ -144,23 +147,23 @@ test("cancelled and timed-out preparation aborts the request and releases its de
 
 test("hidden tabs stop date checks, resume immediately, retain the checkbox choice and clean up on unmount", async () => {
   const h = harness(); h.page.mount(h.container); await new Promise(setImmediate);
-  h.get("history").checked = false; h.root.emit("change", { target: h.get("history") });
+  h.get("history").checked = true; h.root.emit("change", { target: h.get("history") });
   h.document.hidden = true; h.document.emit("visibilitychange");
   assert.equal(h.intervals.size, 0);
   h.setNow("2026-10-06T16:00:00Z"); h.window.emit("focus");
   assert.deepEqual(h.badges(), ["今日发售", "明天"]);
   h.document.hidden = false; h.document.emit("visibilitychange");
-  assert.deepEqual(h.badges(), []);
-  assert.equal(h.get("result").textContent, "显示 0 款");
-  assert.equal(h.get("history").checked, false);
+  assert.deepEqual(h.badges(), ["已发售", "已发售"]);
+  assert.equal(h.get("result").textContent, "显示 2 款");
+  assert.equal(h.get("history").checked, true);
   assert.equal(h.intervals.size, 1);
   h.page.unmount();
   assert.equal(h.intervals.size, 0);
   assert.equal(h.document.listeners.size, 0);
   assert.equal(h.window.listeners.size, 0);
   h.page.mount(h.container); await new Promise(setImmediate);
-  assert.equal(h.get("history").checked, true);
-  assert.deepEqual(h.badges(), ["已发售", "已发售"]);
+  assert.equal(h.get("history").checked, false);
+  assert.deepEqual(h.badges(), []);
   assert.equal(h.intervals.size, 1);
   h.page.unmount();
 });
@@ -192,6 +195,23 @@ test("archive has its own prepared cache, filters and paginates records, and rec
   assert.equal(h.get("heading").textContent, "下一款，玩什么？");
   assert.equal(h.get("view-link").href, "#/game-releases-archive");
   assert.equal(h.get("poster-open").hidden, false);
-  assert.deepEqual(h.badges(), ["已发售", "今日发售"]);
+  assert.deepEqual(h.badges(), ["今日发售"]);
   h.page.unmount();
+});
+
+test("a 25-game current response loads normally and never swaps upcoming games into the archive", async () => {
+  const h = harness(); h.setNow("2026-10-06T04:00:00Z");
+  h.snapshot.date = "2026-10-01";
+  h.snapshot.items = Array.from({ length: 25 }, (_, index) => ({ ...h.snapshot.items[0], id: index.toString(16).padStart(24, "0"), title: "批量样例 " + index, releaseDate: "2026-10-" + String(index + 1).padStart(2, "0") }));
+  assert.equal(core.valid(h.snapshot), true);
+  const archived = { schemaVersion: 1, date: h.snapshot.date, timeZone: h.snapshot.timeZone, revision: "d".repeat(64), items: h.snapshot.items.filter(item => item.releaseDate < "2026-10-06") };
+  h.setFetch(async url => ({ ok: true, json: async () => url.endsWith("/archive") ? archived : h.snapshot }));
+  await h.page.prepare(); h.page.mount(h.container);
+  assert.equal(h.badges().length, 20); assert.equal(h.get("count").textContent, "20");
+  assert.ok(h.badges().every(badge => badge !== "已发售"));
+  assert.doesNotMatch(h.get("status").textContent, /失败/);
+  h.page.unmount();
+  await h.archive.prepare(); h.archive.mount(h.container);
+  assert.equal(h.badges().length, 5); assert.ok(h.badges().every(badge => badge === "已发售"));
+  h.archive.unmount();
 });

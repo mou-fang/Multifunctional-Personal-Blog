@@ -82,12 +82,14 @@ function validAssetUrl(value) {
   if (typeof value !== "string" || !value.startsWith("/api/game-releases/assets/") || !ASSET_NAME.test(value.slice(26))) fail("资源地址无效");
   return value;
 }
-function validateSnapshot(raw, { checkRevision = true } = {}) {
+function validateSnapshot(raw, { checkRevision = true, publication = false } = {}) {
   if (raw?.schemaVersion !== 1 || !/^[a-f0-9]{64}$/.test(raw.revision || "")) fail("数据版本无效");
   const date = isoDate(raw.date), windowEnd = isoDate(raw.windowEnd);
   if (windowEnd !== addDays(date, 56) || typeof raw.generatedAt !== "string" || !Number.isFinite(Date.parse(raw.generatedAt))) fail("数据时间无效");
   text(raw.timeZone, 80, "时区"); today(new Date(), raw.timeZone);
-  if (!Array.isArray(raw.items) || raw.items.length < 10 || raw.items.length > 15) fail("清单必须为 10–15 条");
+  // Reading an already-published edition must not impose the CLI's editorial cap.
+  // readLimited still bounds every stored JSON file; publishing keeps its own limit.
+  if (!Array.isArray(raw.items) || raw.items.length < 10 || (publication && raw.items.length > 15)) fail(publication ? "清单必须为 10–15 条" : "清单至少需要 10 条");
   const ids = new Set(), covers = new Set(); let previous = date;
   const items = raw.items.map(item => {
     const releaseDate = isoDate(item.releaseDate);
@@ -246,7 +248,7 @@ async function publish({ inputFile, cardFile, imageFile, coversDir, dataDir, tim
     items.push({ id: hash(name.toLowerCase()).slice(0, 24), title: item.title, searchName: name, releaseDate, platforms: item.platforms, summary, section: pictureItem.section || "近期发售", sourceUrls: item.sourceUrls, cover });
   }
   const body = { schemaVersion: 1, date, windowEnd: addDays(date, 56), timeZone, weeklyPoster: posterUrl, items };
-  const snapshot = validateSnapshot({ ...body, revision: "0".repeat(64), generatedAt: now.toISOString() }, { checkRevision: false });
+  const snapshot = validateSnapshot({ ...body, revision: "0".repeat(64), generatedAt: now.toISOString() }, { checkRevision: false, publication: true });
   snapshot.revision = contentRevision(snapshot);
   if (dryRun) return { ok: true, dryRun: true, revision: snapshot.revision, date, count: items.length, covers: items.filter(item => item.cover).length };
   await fs.mkdir(dir, { recursive: true, mode: 0o700 });
