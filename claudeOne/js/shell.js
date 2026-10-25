@@ -248,45 +248,47 @@
 
   // --- Reveal-on-scroll -----------------------------------------------------
   let revealObs = null;
+  let aheadRevealObs = null;
 
-  function getRevealObserver() {
-    if (revealObs) return revealObs;
+  function getRevealObserver(ahead) {
+    const existing = ahead ? aheadRevealObs : revealObs;
+    if (existing) return existing;
     if (!("IntersectionObserver" in window)) return null;
-    revealObs = new IntersectionObserver(
+    const obs = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
           if (e.isIntersecting) {
+            // Start nearby covers during scrolling instead of relying on lazy-load scheduling.
+            if (ahead) e.target.querySelectorAll('img[loading="lazy"]').forEach((img) => { img.loading = "eager"; });
             e.target.setAttribute("data-revealed", "true");
-            revealObs.unobserve(e.target);
+            obs.unobserve(e.target);
           }
         });
       },
-      { threshold: 0.08, rootMargin: "0px 0px -40px 0px" }
+      ahead
+        ? { threshold: 0, rootMargin: "0px 0px 640px 0px" }
+        : { threshold: 0.08, rootMargin: "0px 0px -40px 0px" }
     );
-    return revealObs;
+    if (ahead) aheadRevealObs = obs;
+    else revealObs = obs;
+    return obs;
   }
 
   function setupReveal() {
-    const chunks = document.querySelectorAll(".page-chunk");
-    if (!chunks.length) return;
-    const obs = getRevealObserver();
-    if (!obs) {
-      chunks.forEach((c) => c.setAttribute("data-revealed", "true"));
-      return;
-    }
-    chunks.forEach((c) => obs.observe(c));
+    refreshReveal();
   }
 
   // --- Refresh reveal for dynamically added elements -----------------------
   function refreshReveal() {
+    // Release detached cards after filtering, pagination or a route change.
+    if (revealObs) revealObs.disconnect();
+    if (aheadRevealObs) aheadRevealObs.disconnect();
     const chunks = document.querySelectorAll(".page-chunk:not([data-revealed])");
-    if (!chunks.length) return;
-    const obs = getRevealObserver();
-    if (!obs) {
-      chunks.forEach((c) => c.setAttribute("data-revealed", "true"));
-      return;
-    }
-    chunks.forEach((c) => obs.observe(c));
+    chunks.forEach((c) => {
+      const obs = getRevealObserver(!!c.closest("[data-reveal-ahead]"));
+      if (obs) obs.observe(c);
+      else c.setAttribute("data-revealed", "true");
+    });
   }
   // --- Toast ----------------------------------------------------------------
   function ensureToastRail() {

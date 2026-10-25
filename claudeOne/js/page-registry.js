@@ -29,7 +29,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     templateId: "page-game-releases",
     prepare: true,
     // Bump these URLs and the registry URL in index.html when release assets change.
-    css: ["css/game-releases.css?v=20261024-archive"],
+    css: ["css/game-releases.css?v=20261025-reveal"],
     js: ["js/game-releases-core.js?v=20261024-archive", "js/game-releases.js?v=20261024-archive"],
     lifecycle: "__page_game_releases"
   },
@@ -39,7 +39,7 @@ window.__CLAUDEONE_PAGES = Object.freeze({
     description: "历期游戏发售清单中的已发售游戏，按日期回看、搜索和筛选平台",
     templateId: "page-game-releases",
     prepare: true,
-    css: ["css/game-releases.css?v=20261024-archive"],
+    css: ["css/game-releases.css?v=20261025-reveal"],
     js: ["js/game-releases-core.js?v=20261024-archive", "js/game-releases.js?v=20261024-archive"],
     lifecycle: "__page_game_releases_archive"
   },

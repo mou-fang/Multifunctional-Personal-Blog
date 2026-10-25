@@ -11,6 +11,7 @@
 .release-hero__intro { color: var(--ink-soft); font-size: .88rem; line-height: 1.6; }
 .release-hero__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
 .release-hero__actions .btn { display: inline-flex; align-items: center; justify-content: center; }
+.release-view-switch { min-inline-size: 10rem; }
 .release-page[data-release-view="archive"] .release-toolbar { grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); }
 .release-more { align-self: center; }
 .release-updated { color: var(--ink-soft); font-size: .78rem; }
@@ -32,11 +33,14 @@
 .release-status--error { color: var(--ink); border-left: 3px solid var(--danger); padding-left: 10px; }
 .release-result { flex-shrink: 0; font-size: .8rem; color: var(--ink-soft); }
 .release-list { display: flex; flex-direction: column; gap: 34px; }
+/* Nearby cards enter together, without the shell's page-entry stagger. */
+.release-list .page-chunk { transform: translateY(10px); transition-duration: 180ms; transition-delay: 0ms; }
+.release-list .page-chunk[data-revealed="true"] { transform: translateY(0); }
 .release-month__title { font-size: .86rem; font-weight: 700; letter-spacing: .12em; color: var(--ink-soft); margin-bottom: 18px; }
 .release-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; }
 .release-card { padding: 0; overflow: hidden; min-width: 0; display: flex; flex-direction: column; }
 .release-card__media { aspect-ratio: 460 / 215; position: relative; overflow: hidden; background: var(--surface-sunken); }
-.release-card__cover { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; opacity: 0; transition: opacity var(--dur-slow) var(--ease-out); }
+.release-card__cover { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; opacity: 0; transition: opacity 160ms var(--ease-out); }
 .release-card__cover[data-loaded="true"] { opacity: 1; }
 .release-card__fallback { padding: 24px; display: flex; flex-direction: column; justify-content: center; gap: 8px; height: 100%; }
 .release-card__fallback span { font-size: .6rem; letter-spacing: .2em; color: var(--ink-soft); }

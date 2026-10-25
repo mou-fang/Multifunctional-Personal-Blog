@@ -105,8 +105,8 @@
           <h1 data-release-heading>下一款，玩什么？</h1>
           <p class="release-hero__intro" data-release-intro>每周二更新未来约 8 周的新游戏发售清单。</p>
           <div class="release-hero__actions">
+            <a class="btn release-view-switch" href="#/game-releases-archive" data-nav-link data-release-view-link>往期已发售 →</a>
             <button class="btn" type="button" data-release-poster-open disabled>查看本周速报 ↗</button>
-            <a class="btn" href="#/game-releases-archive" data-nav-link data-release-view-link>往期已发售 →</a>
             <span class="release-updated" data-release-updated>每周二更新</span>
           </div>
         </div>
@@ -132,7 +132,7 @@
         <span class="release-result" aria-live="polite" data-release-result></span>
         <button class="btn" type="button" data-release-refresh>刷新清单</button>
       </div>
-      <div class="release-list" data-release-list></div>
+      <div class="release-list" data-release-list data-reveal-ahead></div>
       <button class="btn release-more" type="button" data-release-more hidden>显示更多已发售游戏</button>
       <dialog class="release-dialog" aria-labelledby="release-poster-title" data-release-dialog>
         <div class="release-dialog__bar">
@@ -660,8 +660,8 @@
 
   <!-- Defer preserves dependencies while letting all page templates parse. -->
   <script src="./js/config.js" defer></script>
-  <script src="./js/page-registry.js?v=20261024-release-archive" defer></script>
-  <script src="./js/shell.js?v=20261005-theme-advice-dismiss" defer></script>
+  <script src="./js/page-registry.js?v=20261025-release-reveal" defer></script>
+  <script src="./js/shell.js?v=20261025-release-reveal" defer></script>
   <script src="./js/startup.js?v=20261005-cache" defer></script>
   <script src="./js/router.js?v=20261009-preparation" defer></script>
   <script src="./js/visitor-stats.js" defer></script>

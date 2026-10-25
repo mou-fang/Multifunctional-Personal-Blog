@@ -187,6 +187,7 @@
       find("[data-release-next-label]").textContent = archive ? "最近收录发售日" : "最近发售日";
       var link = find("[data-release-view-link]"); link.href = archive ? "#/game-releases" : "#/game-releases-archive";
       link.textContent = archive ? "← 返回本期发售" : "往期已发售 →";
+      link.title = archive ? "返回本期游戏发售清单" : "查看往期已发售的游戏";
       find("[data-release-poster-open]").hidden = archive;
       find("[data-release-history-label]").hidden = archive;
       find("[data-release-history]").checked = true;
