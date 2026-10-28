@@ -89,7 +89,7 @@ function validateSnapshot(raw, { checkRevision = true, publication = false } = {
   text(raw.timeZone, 80, "时区"); today(new Date(), raw.timeZone);
   // Reading an already-published edition must not impose the CLI's editorial cap.
   // readLimited still bounds every stored JSON file; publishing keeps its own limit.
-  if (!Array.isArray(raw.items) || raw.items.length < 10 || (publication && raw.items.length > 15)) fail(publication ? "清单必须为 10–15 条" : "清单至少需要 10 条");
+  if (!Array.isArray(raw.items) || raw.items.length < 10 || (publication && raw.items.length > 50)) fail(publication ? "清单必须为 10–50 条" : "清单至少需要 10 条");
   const ids = new Set(), covers = new Set(); let previous = date;
   const items = raw.items.map(item => {
     const releaseDate = isoDate(item.releaseDate);
@@ -217,7 +217,7 @@ async function publish({ inputFile, cardFile, imageFile, coversDir, dataDir, tim
   const date = isoDate(input.date);
   if (date !== today(now, timeZone) || card.date !== date) fail("两份清单日期必须一致且为任务执行当天");
   if (input.schemaVersion !== 1 || card.heroTitle !== "近期游戏发售速报" || !Array.isArray(input.items) || !Array.isArray(card.items) || input.items.length !== card.items.length) fail("网站清单与图片清单不一致");
-  if (input.items.length < 10 || input.items.length > 15) fail("清单必须为 10–15 条");
+  if (input.items.length < 10 || input.items.length > 50) fail("清单必须为 10–50 条");
   const coverRoot = await fs.realpath(coversDir), assets = new Map(), names = new Set();
   const addAsset = buffer => {
     const name = hash(buffer) + "." + imageExtension(buffer);

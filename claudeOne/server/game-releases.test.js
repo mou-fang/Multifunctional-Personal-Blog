@@ -58,7 +58,7 @@ test("local publish preserves exact PNG, is idempotent, creates backup, and neve
   f.input.items[0].summary = "更新后的验证样例。"; f.card.items[0].desc = `📅 ${f.input.items[0].releaseDate}｜🖥️ PC｜更新后的验证样例。`; await f.save();
   await publish(f.config); assert.equal((JSON.parse(await fs.readFile(path.join(f.dataDir, "previous.json")))).revision, first.revision);
   const good = await fs.readFile(path.join(f.dataDir, "current.json"));
-  f.input.items = []; await f.save(); await assert.rejects(publish(f.config), /不一致|10–15/);
+  f.input.items = []; await f.save(); await assert.rejects(publish(f.config), /不一致|10–50/);
   assert.deepEqual(await fs.readFile(path.join(f.dataDir, "current.json")), good);
   await assert.rejects(fs.stat(path.join(f.dataDir, "publish.lock")), { code: "ENOENT" });
 });
@@ -255,11 +255,14 @@ test("archive filtering excludes today/future and supports old dates, platform a
   assert.equal(core.filter(items, { ...options, platform: "PS5" }).length, 0);
 });
 
-test("reading a signed 25-game edition supports both pages while the publisher keeps its editorial limit", async t => {
+test("reading a signed 25-game edition supports both pages while the publisher allows up to 50 items", async t => {
   const f = await fixture(t, 25);
-  await assert.rejects(publish(f.config), /10–15/);
+  // 25 items can now be published directly without rejection
+  const result = await publish(f.config);
+  assert.equal(result.ok, true);
+  assert.equal(result.count, 25);
   const hash = value => crypto.createHash("sha256").update(value).digest("hex");
-  const assetsDir = path.join(f.dataDir, "assets"); await fs.mkdir(assetsDir, { recursive: true });
+  const assetsDir = path.join(f.dataDir, "assets");
   const asset = async file => {
     const bytes = await fs.readFile(file), name = hash(bytes) + ".png";
     await fs.writeFile(path.join(assetsDir, name), bytes); return "/api/game-releases/assets/" + name;
@@ -269,7 +272,9 @@ test("reading a signed 25-game edition supports both pages while the publisher k
   const body = { schemaVersion: 1, date: f.input.date, windowEnd: addDays(f.input.date, 56), timeZone: "Asia/Shanghai", weeklyPoster: await asset(f.imageFile), items };
   const data = { ...body, revision: hash(JSON.stringify(body)), generatedAt: f.config.now.toISOString() };
   assert.equal(validateSnapshot(data).items.length, 25);
-  assert.throws(() => validateSnapshot(data, { publication: true }), /10–15/);
+  assert.equal(validateSnapshot(data, { publication: true }).items.length, 25);
+  const overLimit = { ...data, items: Array.from({ length: 51 }, (_, i) => ({ ...items[0], id: i.toString(16).padStart(24, "0") })) };
+  assert.throws(() => validateSnapshot(overLimit, { publication: true }), /10–50/);
   const tampered = structuredClone(data); tampered.items[0].summary = "篡改";
   assert.throws(() => validateSnapshot(tampered), /内容校验/);
   await fs.writeFile(path.join(f.dataDir, "current.json"), JSON.stringify(data));
