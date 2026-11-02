@@ -8,7 +8,7 @@ const source = fs.readFileSync(path.join(__dirname, "../js/tool-cards.js"), "utf
 
 function renderCards(section, script = source) {
   const grid = { innerHTML: "", getAttribute: () => section };
-  const context = vm.createContext({ window: {} });
+  const context = vm.createContext({ window: { SitePages: { ...require("../js/site-pages"), href: id => id === "charts" ? "/tools/charts" : require("../js/site-pages").href(id) } } });
   vm.runInContext(script, context);
   context.window["__page_" + section].mount({ querySelectorAll: () => [grid], querySelector: () => null });
   const boundary = grid.innerHTML.indexOf('<div class="feature-grid">');

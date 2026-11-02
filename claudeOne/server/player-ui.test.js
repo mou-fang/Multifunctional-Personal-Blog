@@ -95,6 +95,16 @@ function assertMinimized(h) {
 
 const settle = () => new Promise(resolve => setImmediate(resolve));
 
+test("player Space shortcut leaves help summaries, buttons, links and editable fields to their native keyboard behavior", async () => {
+  const h = harness(); await settle();
+  function press() { const e = new Event("keydown", { cancelable: true }); Object.defineProperty(e, "code", { value: "Space" }); h.document.dispatchEvent(e); return e; }
+  for (const tagName of ["SUMMARY", "BUTTON", "A", "INPUT", "TEXTAREA", "SELECT"]) {
+    h.document.activeElement = { tagName }; assert.equal(press().defaultPrevented, false, tagName); assert.equal(h.audio.plays, 0);
+  }
+  h.document.activeElement = { tagName: "DIV", isContentEditable: true }; assert.equal(press().defaultPrevented, false);
+  h.document.activeElement = { tagName: "BODY" }; assert.equal(press().defaultPrevented, true); assert.equal(h.audio.plays, 1);
+});
+
 test("either saved view restores the song and position while opening minimized and paused", async () => {
   for (const savedView of [undefined, "0", "1"]) {
     const h = harness({ savedView });

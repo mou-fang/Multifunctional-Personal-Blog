@@ -16,19 +16,23 @@ function harness(initial = "home") {
     tools: { templateId: "tools", js: [], title: "Tools" }
   };
   const window = Object.assign(new EventTarget(), {
-    __CLAUDEONE_PAGES: pages, location: { hash: "#/" + initial }, scrollTo() {},
+    __CLAUDEONE_PAGES: pages, location: { hash: "#/" + initial, pathname: "/", search: "", href: "http://example.com/#/" + initial, origin: "http://example.com" }, scrollTo() {},
     home: { mount() {}, unmount() { unmounted++; } },
     releases: { prepare: () => preparation, cancelPrepare() { cancelled++; complete(); }, mount() { mounted++; }, unmount() {} },
     ClaudeOne: { renderNav() {}, refreshReveal() {} }
   });
   const document = { readyState: "complete", addEventListener() {},
-    body: { setAttribute(name, value) { attributes[name] = value; if (name === "data-route-state") states.push(value); },
+    body: { getAttribute(name) { return attributes[name] || (name === "data-page" ? initial : null); }, setAttribute(name, value) { attributes[name] = value; if (name === "data-route-state") states.push(value); },
       removeAttribute(name) { delete attributes[name]; }, appendChild(script) { queueMicrotask(() => script.onload()); } },
     head: { appendChild() {} }, createElement: () => ({ setAttribute() {} }),
     getElementById: name => ({ content: { cloneNode: () => ({ name }) } }),
     querySelector: selector => selector === "[data-content-slot]" ? main : selector.startsWith("meta") ? { setAttribute() {} } : null
   };
-  const history = { pushState(_state, _title, hash) { window.location.hash = hash; }, replaceState(_state, _title, hash) { window.location.hash = hash; } };
+  Object.keys(pages).forEach(id => { pages[id].path = id === "home" ? "/" : "/" + id; });
+  window.SitePages = { ...require("../js/site-pages"), has: id => Object.prototype.hasOwnProperty.call(pages, id), key: id => id, href: id => pages[id].path, title: id => pages[id].title,
+    resolve: loc => loc.hash.startsWith("#/") ? loc.hash.slice(2).split("?")[0] : Object.keys(pages).find(id => pages[id].path === loc.pathname) };
+  const update = value => { const next = new URL(value, window.location.href); for (const name of ["href", "pathname", "hash", "search"]) window.location[name] = next[name]; };
+  const history = { pushState(_state, _title, value) { update(value); }, replaceState(_state, _title, value) { update(value); } };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../js/router.js"), "utf8"), {
     window, document, history, console, queueMicrotask,
     CustomEvent: class extends Event { constructor(type, options) { super(type); this.detail = options.detail; } },

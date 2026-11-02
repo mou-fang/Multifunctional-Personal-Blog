@@ -112,7 +112,7 @@ test("bead studio is fully wired into the SPA and tool card grid", () => {
   assert.match(registry, /beads:\s*\{/);
   assert.match(registry, /js\/bead-studio-core\.js/);
   assert.match(registry, /js\/bead-studio\.js/);
-  assert.match(cards, /href:\s*"#\/beads"/);
+  assert.match(cards, /page:\s*"beads"/);
   assert.match(controller, /window\.__page_beads/);
   assert.match(styles, /body\[data-theme="neumorphism"\] \.beads-canvas-panel/);
   assert.match(styles, /body\[data-theme="liquid-glass"\] \.beads-commandbar/);

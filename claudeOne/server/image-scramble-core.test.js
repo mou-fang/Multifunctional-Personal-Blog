@@ -98,5 +98,5 @@ test("scramble page is wired into the SPA registry and tool grid", () => {
   assert.match(registry, /scramble:\s*\{/);
   assert.match(registry, /js\/image-scramble-core\.js/);
   assert.match(registry, /js\/image-scramble\.js/);
-  assert.match(cards, /href:\s*"#\/scramble"/);
+  assert.match(cards, /page:\s*"scramble"/);
 });

@@ -105,6 +105,6 @@ test("color page route, template, lifecycle, tools card and local worker assets 
   const page = context.window.__CLAUDEONE_PAGES.colors;
   assert.equal(page.navSection, "tools"); assert.equal(page.lifecycle, "__page_colors");
   assert.ok(fs.readFileSync(path.join(base, "index.html"), "utf8").includes('id="page-colors"'));
-  assert.match(fs.readFileSync(path.join(base, "js/tool-cards.js"), "utf8"), /title: "颜色工具"[\s\S]*?href: "#\/colors"/);
+  assert.match(fs.readFileSync(path.join(base, "js/tool-cards.js"), "utf8"), /title: "颜色工具"[\s\S]*?page: "colors"/);
   for (const asset of [...page.css, ...page.js, "js/color-tools-worker.js", "libs/color-thief-3.5.0/LICENSE"]) assert.ok(fs.existsSync(path.join(base, asset.split("?")[0])), asset);
 });

@@ -20,7 +20,7 @@ function shell() {
       addEventListener() {},
     },
   });
-  for (const file of ["page-registry.js", "shell.js"]) {
+  for (const file of ["page-registry.js", "site-pages.js", "shell.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "../js", file), "utf8"), context);
   }
   return { context, nav, attrs };
@@ -34,12 +34,13 @@ test("every registered page has exactly one active parent navigation item", () =
       context.window.location.hash = "#/" + route + suffix;
       context.window.ClaudeOne.renderNav();
       assert.equal((nav.innerHTML.match(/aria-current="page"/g) || []).length, 1, route);
-      assert.ok(nav.innerHTML.includes(`href="#/${page.navSection}" data-nav-link aria-current="page"`), route);
+      assert.ok(nav.innerHTML.includes(`href="${context.window.__CLAUDEONE_PAGES[page.navSection].path}" data-nav-link aria-current="page"`), route);
     }
     context.window.location.hash = "";
+    context.window.location.pathname = context.window.SitePages.href(route);
     attrs["data-page"] = route;
     context.window.ClaudeOne.renderNav();
-    assert.ok(nav.innerHTML.includes(`href="#/${page.navSection}" data-nav-link aria-current="page"`), route + " body fallback");
+    assert.ok(nav.innerHTML.includes(`href="${context.window.__CLAUDEONE_PAGES[page.navSection].path}" data-nav-link aria-current="page"`), route + " body fallback");
   }
 });
 
@@ -50,13 +51,14 @@ test("game and tool cards agree with route ownership; aliases inherit their page
   const boundary = cards.indexOf("var TOOL_CARDS");
   const releaseBoundary = cards.indexOf("var RELEASE_CARDS");
   for (const [source, expected] of [[cards.slice(0, boundary), "games"], [cards.slice(boundary, releaseBoundary), "tools"], [cards.slice(releaseBoundary), "game-releases"]]) {
-    for (const match of source.matchAll(/href: "#\/([^"]+)"/g)) {
+    for (const match of source.matchAll(/page: "([^"]+)"/g)) {
       assert.equal(pages[match[1]]?.navSection, expected, match[1]);
     }
   }
   for (const page of Object.values(pages)) {
+    if (page.aliasOf) assert.equal(page.navSection, pages[page.aliasOf].navSection);
     for (const other of Object.values(pages)) {
-      if (page.templateId === other.templateId) assert.equal(page.navSection, other.navSection);
+      if (page.templateId && page.templateId === other.templateId) assert.equal(page.navSection, other.navSection);
     }
   }
   assert.equal(pages.home.navSection, "home");

@@ -25,6 +25,12 @@ function element(tag = "div") {
     removeAttribute(name) { delete this.attributes[name]; },
     matches(selector) { return this.selector === selector; }
   });
+  Object.defineProperty(el, "innerHTML", {
+    get() { return ""; }, set(value) {
+      function convert(n) { const child = element(n.tagName); child.className = (n.attrs || []).find(a => a.name === "class")?.value || ""; if (n.nodeName === "#text") child.textContent = n.value; else child.children = (n.childNodes || []).map(convert); return child; }
+      el.children = require("parse5").parseFragment(value).childNodes.map(convert); el.value = ""; el.replacements++;
+    }
+  });
   Object.defineProperty(el, "textContent", {
     get() { return this.value + this.children.map(child => child.textContent).join(""); },
     set(value) { this.value = value; this.children = []; }
@@ -34,7 +40,7 @@ function element(tag = "div") {
 function harness() {
   let now = "2026-10-05T15:59:59Z"; // One second before midnight in Shanghai.
   const controls = new Map();
-  for (const name of ["status", "list", "count", "next", "result", "updated", "poster-open", "refresh", "filters", "history", "history-label", "dialog", "poster", "poster-error", "poster-download", "heading", "intro", "count-label", "next-label", "view-link", "more", "search"]) {
+  for (const name of ["status", "list", "count", "next", "result", "updated", "poster-open", "refresh", "filters", "history", "history-label", "dialog", "poster", "poster-error", "poster-download", "heading", "intro", "count-label", "next-label", "view-link", "more", "search", "pagination"]) {
     const selector = `[data-release-${name}]`, control = element();
     control.selector = selector; controls.set(selector, control);
   }
@@ -49,6 +55,7 @@ function harness() {
   assert.equal(core.valid(snapshot), true);
   const window = Object.assign(target(), {
     GameReleasesCore: { ...core, today: zone => core.today(zone, new Date(now)) },
+    SitePages: require("../js/site-pages"), ReleaseHTML: require("../js/game-releases-render"), location: { search: "" },
     CLAUDE_ONE_CONFIG: { api: { baseUrl: "" } }
   });
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../js/game-releases.js"), "utf8"), {
@@ -175,11 +182,11 @@ test("archive has its own prepared cache, filters and paginates records, and rec
   h.setFetch(async url => { requested.push(url); return { ok: true, json: async () => url.endsWith("/archive") ? structuredClone(archive) : h.snapshot }; });
   await h.archive.prepare(); h.archive.mount(h.container);
   assert.equal(h.get("heading").textContent, "往期已发售游戏");
-  assert.equal(h.get("view-link").href, "#/game-releases");
+  assert.equal(h.get("view-link").href, "/game-releases");
   assert.equal(h.get("poster-open").hidden, true); assert.equal(h.get("history-label").hidden, true);
-  assert.equal(h.badges().length, 60); assert.equal(h.get("more").hidden, false);
-  h.root.emit("click", { target: { closest: selector => selector === "[data-release-more]" ? h.get("more") : null } });
-  assert.equal(h.badges().length, 65); assert.equal(h.get("more").hidden, true);
+  assert.equal(h.badges().length, 60); assert.match(h.get("pagination").textContent, /下一页/);
+  h.archive.setPage(2);
+  assert.equal(h.badges().length, 5); assert.equal(h.get("more").hidden, true);
   h.get("search").value = "Archive 64"; h.root.emit("input", { target: h.get("search") });
   assert.equal(h.badges().length, 1);
   h.get("search").value = "no match"; h.root.emit("input", { target: h.get("search") });
@@ -193,7 +200,7 @@ test("archive has its own prepared cache, filters and paginates records, and rec
   h.archive.unmount(); assert.equal(h.intervals.size, 0); assert.equal(h.window.listeners.size, 0);
   await h.page.prepare(); h.page.mount(h.container);
   assert.equal(h.get("heading").textContent, "下一款，玩什么？");
-  assert.equal(h.get("view-link").href, "#/game-releases-archive");
+  assert.equal(h.get("view-link").href, "/game-releases/archive");
   assert.equal(h.get("poster-open").hidden, false);
   assert.deepEqual(h.badges(), ["今日发售"]);
   h.page.unmount();

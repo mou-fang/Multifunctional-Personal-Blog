@@ -21,15 +21,17 @@
 
   // --- Navigation config ----------------------------------------------------
   const NAV_ITEMS = [
-    { label: "首页",   href: "#/home",  section: "home" },
-    { label: "游戏",   href: "#/games", section: "games" },
-    { label: "游戏发售", href: "#/game-releases", section: "game-releases" },
-    { label: "工具箱", href: "#/tools", section: "tools" },
+    { label: "首页",   section: "home" },
+    { label: "游戏",   section: "games" },
+    { label: "游戏发售", section: "game-releases" },
+    { label: "工具箱", section: "tools" },
   ];
 
   function resolveCurrentRoute() {
     var hash = window.location.hash;
     if (hash && hash.indexOf("#/") === 0) return hash.slice(2).split("?")[0];
+    var resolved = window.SitePages && window.SitePages.resolve(window.location);
+    if (resolved) return resolved;
     var page = document.body.getAttribute("data-page");
     return page || "home";
   }
@@ -43,7 +45,7 @@
     const section = page ? page.navSection : "home";
     nav.innerHTML = NAV_ITEMS.map(function (item) {
       var isActive = item.section === section;
-      return '<a href="' + item.href + '" data-nav-link' + (isActive ? ' aria-current="page"' : '') + '>' + item.label + '</a>';
+      return '<a href="' + (window.SitePages ? window.SitePages.href(item.section) : '') + '" data-nav-link' + (isActive ? ' aria-current="page"' : '') + '>' + item.label + '</a>';
     }).join("");
   }
 

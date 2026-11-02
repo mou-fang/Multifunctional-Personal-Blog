@@ -1,0 +1,14 @@
+.page-help { margin-top: var(--space-6, 24px); padding: 0; overflow: hidden; }
+.page-help > summary { cursor: pointer; padding: 16px 20px; font-weight: 700; }
+.page-help > summary span { margin-left: 12px; font-size: .82rem; font-weight: 400; color: var(--muted, #58677c); }
+.page-help > summary:focus-visible { outline: 3px solid var(--accent); outline-offset: -4px; border-radius: var(--radius-md, 16px); }
+.page-help__body { padding: 0 22px 20px; max-width: 88ch; line-height: 1.8; overflow-wrap: anywhere; }
+.page-help__body h2 { font-size: 1.15rem; }
+.page-help__body h3 { font-size: 1rem; margin: 18px 0 6px; }
+.page-help__body p { margin: 6px 0; }
+.page-help__body ol, .page-help__body ul { padding-left: 24px; }
+.page-help__body ol { list-style: decimal; }
+.page-help__body ul { list-style: disc; }
+.release-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin-top: 22px; }
+.release-pagination[hidden] { display: none; }
+@media (max-width: 600px) { .page-help > summary span { display: block; margin: 6px 0 0 17px; } .page-help__body { padding: 0 56px 16px 16px; } }

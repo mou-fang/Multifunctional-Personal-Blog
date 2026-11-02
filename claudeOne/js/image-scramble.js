@@ -329,7 +329,7 @@
 
   function ensureWorker() {
     if (worker) return worker;
-    worker = new Worker("./js/image-scramble-worker.js");
+    worker = new Worker("/js/image-scramble-worker.js");
     worker.addEventListener("message", function (event) {
       var message = event.data || {};
       if (!workerRequest || message.requestId !== workerRequest.id) return;

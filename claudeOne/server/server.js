@@ -17,6 +17,8 @@ const { createVisitorStatsRouter } = require("./visitor-stats");
 const { createGameReleasesRouter, blockPrivateStatic } = require("./game-releases");
 const { createMusicLibraryRouter } = require("./music-library");
 const { createStaticAssets } = require("./static-assets");
+const { createReleaseReader } = require("./game-releases-data");
+const { createSEO } = require("./seo");
 const {
   QQMusicUnlockError,
   QQMusicAuthError,
@@ -81,6 +83,10 @@ if (process.env.TRUST_PROXY === "1" || process.env.TRUST_PROXY === "true") {
 
 app.use(cors());
 app.use(express.json());
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/") && !req.path.startsWith("/api/game-releases/assets/")) res.setHeader("X-Robots-Tag", "noindex");
+  next();
+});
 
 // ---- Compression: gzip 全站静态/JSON,DOOM wasm/data 也走压缩 ----
 // 客户端 Accept-Encoding 含 gzip 时,Express 自动压缩响应(对 .wasm/.data
@@ -99,10 +105,14 @@ app.use(compression({
 }));
 
 // ---- Serve frontend static files (claudeOne/ root) ----
-app.use("/api/game-releases", createGameReleasesRouter());
+const releaseReader = createReleaseReader();
+app.use("/api/game-releases", createGameReleasesRouter({ reader: releaseReader }));
 app.use("/api/music-library", createMusicLibraryRouter());
 app.use(blockPrivateStatic);
 const staticAssets = createStaticAssets(STATIC_DIR);
+const seo = createSEO({ root: STATIC_DIR, reader: releaseReader, versionURL: staticAssets.versionURL });
+app.use(seo.middleware);
+
 app.use(staticAssets.middleware);
 app.use(express.static(STATIC_DIR, {
   setHeaders(res, filePath) {
@@ -136,7 +146,7 @@ app.use(express.static(STATIC_DIR, {
 }));
 
 // SPA fallback — serve index.html for any unmatched GET (hash routes)
-app.get(/^\/(home|games|tools|game|sokoban|minesweeper|snake|billiards|doom|lottery|music|playlist|ai|ascii|pixel|compress|qr|videogif)/, staticAssets.sendIndex);
+// Exact public routes are served by seo.middleware; unknown routes are real 404s.
 
 // ---- Multer ----
 const storage = multer.diskStorage({
@@ -595,6 +605,8 @@ app.use((err, req, res, _next) => {
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
+
+app.use((req, res) => { res.status(404).type("html").send(seo.errorPage(404, "没有找到这个页面，请通过导航选择工具或游戏。")); });
 
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`[claudeOne] Server running on http://0.0.0.0:${PORT}`);

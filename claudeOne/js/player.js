@@ -397,7 +397,7 @@
     if (window.__ClaudeOneRouter && typeof window.__ClaudeOneRouter.go === "function") {
       window.__ClaudeOneRouter.go("playlist");
     } else {
-      window.location.hash = "#/playlist";
+      window.location.href = "/tools/playlist";
     }
   }
 
@@ -941,7 +941,7 @@
   /* ---- Keyboard ----------------------------------------------------------- */
   document.addEventListener("keydown", function (e) {
     var tag = document.activeElement ? document.activeElement.tagName : "";
-    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (e.defaultPrevented || ["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A", "SUMMARY"].includes(tag) || document.activeElement && document.activeElement.isContentEditable) return;
     /* Skip if a game page is active — those own their own Space handling */
     var curPage = document.body.getAttribute("data-page") || "";
     if (curPage === "onlyup" || curPage === "snake" || curPage === "doom" || curPage === "abyss") return;

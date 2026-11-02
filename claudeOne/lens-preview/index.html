@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
+  <meta name="robots" content="noindex,follow" />
   <meta name="description" content="魔方工作台 — 保持好奇，创造不止" />
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https:; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self'; base-uri 'self'; form-action 'none'">
@@ -19,6 +20,7 @@
   <link rel="stylesheet" href="../css/liquid-glass.css" />
   <link rel="stylesheet" href="../css/animations.css" />
   <link rel="stylesheet" href="../css/player.css" />
+  <link rel="stylesheet" href="../css/page-help.css" />
   <link rel="stylesheet" href="../css/assistant.css" />
   <link rel="stylesheet" href="../css/easter-egg.css" />
   <link rel="stylesheet" href="../lens-preview/preview.css" />
@@ -44,7 +46,7 @@
 
   <div class="site-shell">
     <header class="site-header page-chunk" data-reveal-order="1">
-      <a class="site-brand" href="#/home" data-nav-link>
+      <a class="site-brand" href="/" data-nav-link>
         <span class="brand-mark" aria-hidden="true">
           <img src="../logo/workspace-logo-lossless.webp" alt="" width="40" height="40" decoding="async" />
         </span>
@@ -210,13 +212,14 @@
       </div>
     </section>
     <section class="home-cta page-chunk" data-reveal-order="3">
-      <p class="home-cta__text">从顶部导航选择「游戏」或「工具箱」开始探索</p>
+      <p class="home-cta__text">在线工具、网页小游戏与游戏发售清单。从顶部导航选择分类，开始探索。</p>
     </section>
   </template>
 
   <!-- Defer preserves dependencies while letting all page templates parse. -->
   <script src="../js/config.js" defer></script>
   <script src="../js/page-registry.js?v=20261011-city-clarity-2" defer></script>
+  <script src="../js/site-pages.js" defer></script>
   <script src="../lens-preview/isolation.js" defer></script>
   <script src="../lens-preview/shell-preview.js" defer></script>
   <script src="../lens-preview/startup-preview.js" defer></script>

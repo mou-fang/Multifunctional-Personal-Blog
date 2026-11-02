@@ -14,13 +14,24 @@
 
 ## 页面与代码接入
 
-- 本项目是原生 HTML / CSS / JavaScript Hash SPA，不要无必要引入构建框架。
+- 本项目是原生 HTML / CSS / JavaScript SPA，采用 History API 正式路径和 Express 首屏渲染，兼容旧 Hash 地址，不要无必要引入构建框架。
 - 新页面同步接入 `claudeOne/index.html` 的模板、`claudeOne/js/page-registry.js` 的注册信息和 `claudeOne/js/tool-cards.js` 的入口。
 - 每个路由必须声明 `navSection: "home" | "games" | "tools" | "game-releases"`；旧地址与目标页分类一致。游戏发售使用独立导航分类；不要在导航中另建路由白名单。
 - 页面暴露 `window.__page_xxx = { mount, unmount }`。DOM 查询限定在当前页面根节点；卸载时清理监听、观察器、定时器、动画帧、Worker、Object URL 和异步任务。
 - 共享主题、播放器、助手和路由能力由站点外壳管理。页面样式使用独立命名空间，避免影响其他工具和游戏。
 
 ## 验证、文档与清理
+
+### 搜索接入必须与功能一起完成
+
+- 新增工具、游戏或公共页面时，先在共用 `claudeOne/js/page-registry.js` 登记唯一 `path`、真实 `title`/`description`、`indexable: true`、实际内容更新日 `updated`、`help.steps` / `help.limits` / `help.faq`，以及原有模板、资源、生命周期和 `navSection`。别名使用 `aliasOf`、`indexable: false`，不重复生成正式地址。
+- 正式路径：首页 `/`、工具箱 `/tools`、游戏中心 `/games`；工具 `/tools/<页面ID>`、游戏 `/games/<页面ID>`；已有音乐、图片压缩、俄罗斯转盘和发售页面保留登记表中的明确路径。服务器、导航、卡片、助手和网站地图使用同一登记表，不再维护第二份路径白名单。卡片使用 `page: "页面ID"`，由登记表生成地址。
+- 每个已上线页面必须有可抓取的分类入口（歌单使用全局播放器入口）；占位卡片不登记为可收录页面。服务器首次返回的 HTML 必须包含对应主标题、真实简介、实际内容、导航和使用帮助，浏览器接管时不得先清空首屏。
+- 介绍必须与实际实现一致，说明用途、步骤、支持范围、限制及常见问题。详细内容放在默认收起、可用键盘展开的帮助面板；已有完整帮助优先复用。不可隐藏给爬虫单独看的文字、堆关键词、虚构评分/功能/价格，也不可声称技术检查通过即已收录或排名有保证。
+- 新增页面自动进入 `/sitemap.xml`，测试必须确认 URL 唯一、模板存在、标题简介和帮助完整、分类入口可到达、首次 HTML 和 canonical 正确。不把别名、占位页、API、用户文件、聊天记录、处理结果写入地图或结构化数据。实质内容变化才更新 `updated`，不要使用每次请求的当前时间充当 lastmod。
+- 保留同一播放器实例与无刷新切换；根路径资源、Worker、WASM、音频在深层网址直接进入时也须可用。兼容旧 Hash 地址，前进后退不得额外塞入历史记录；不存在的普通路径返回真实 404。
+- 发售页面读取现有发布器与 API 共用的数据读取层；本期和往期按配置时区与真实发布数据渲染。往期每页 60 条、提供可访问的分页链接和各页 canonical；不得用模拟数据替换线上清单或删除历史封面。
+- 运行完整测试和 `node claudeOne/scripts/verify-seo.js --base-url http://127.0.0.1:3001`，按实际端口调整；上线后再对 `https://moufang.xyz` 验证。实际检查两套主题、桌面与窄屏、帮助焦点、旧链接、直接进入/刷新/前进后退和音乐连续播放。上线与账号步骤见 `docs/seo-deployment.md`。
 
 - 根目录没有 `package.json`。Windows 在根目录运行 `npm.cmd --prefix claudeOne/server test`；其他系统使用 `npm --prefix claudeOne/server test`。
 - 按改动范围验证功能，检查真实结果而非仅检查成功提示。涉及导航时检查直接进入、刷新、前进后退和选中态。

@@ -31,7 +31,7 @@ function createStaticAssets(root) {
     const source = read(relative);
     if (!source) return null;
     if (!REWRITTEN_JS.has(relative)) return source;
-    const bytes = Buffer.from(source.bytes.toString("utf8").replace(/(['"])((?:\.\/)?(?:css|js|logo)\/[^'"\s]+)\1/g,
+    const bytes = Buffer.from(source.bytes.toString("utf8").replace(/(['"])((?:\.\/|\/)?(?:css|js|logo)\/[^'"\s]+)\1/g,
       (_match, quote, url) => quote + versionURL(url) + quote));
     return { bytes, version: fingerprint(bytes) };
   }

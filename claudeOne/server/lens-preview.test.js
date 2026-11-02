@@ -15,13 +15,13 @@ test('Lens preview preserves the exact original homepage, header, footer and pla
     /<footer class="site-footer[\s\S]*?<\/footer>/,
     /<div class="global-player"[\s\S]*?<audio[\s\S]*?<\/audio>\s*<\/div>/,
     /<div class="site-assistant"[^>]*><\/div>/,
-  ]) assert.equal(preview.match(expression)?.[0]?.replaceAll('="../', '="./'), original.match(expression)?.[0], String(expression));
+  ]) assert.equal(preview.match(expression)?.[0]?.replace(/="(?:\.\.\/|\.\/|\/)/g, '="/'), original.match(expression)?.[0]?.replace(/="(?:\.\.\/|\.\/|\/)/g, '="/'), String(expression));
   assert.deepEqual([...preview.matchAll(/<template\b[^>]*id="([^"]+)"/g)].map(m => m[1]), ['page-home']);
 });
 
 test('Lens preview loads all the same layout styles and has no layout or typography redesign', () => {
   const original = read('index.html'), preview = read('lens-preview/index.html');
-  const css = source => [...source.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"/g)].map(m => m[1].replace(/^\.\.?\//, ''));
+  const css = source => [...source.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"/g)].map(m => m[1].replace(/^(?:\.\.?\/|\/)/, ''));
   for (const file of css(original)) assert.ok(css(preview).includes(file), file);
   const adapter = read('lens-preview/preview.css');
   assert.doesNotMatch(adapter, /(?:^|[;{\s])(?:font(?:-family|-size|-weight)?|padding(?:-[\w-]+)?|margin(?:-[\w-]+)?|gap|grid-template-columns)\s*:/m);

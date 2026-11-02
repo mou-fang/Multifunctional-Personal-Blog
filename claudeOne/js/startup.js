@@ -23,20 +23,20 @@
   function startExtras() {
     var font = document.createElement("link");
     font.rel = "stylesheet";
-    font.href = "./css/fonts.css?v=20261005-cache";
+    font.href = "/css/fonts.css?v=20261005-cache";
     document.head.appendChild(font);
 
     // Static-only hosting can still use the scanner's original playlist.
-    loadScript("./api/music-library/playlist.js")
-      .catch(function () { return loadScript("./music/playlist.js"); })
+    loadScript("/api/music-library/playlist.js")
+      .catch(function () { return loadScript("/music/playlist.js"); })
       .catch(function () { window.__MUSIC_PLAYLIST = []; })
-      .then(function () { return loadScript("./js/player.js?v=20261005-startup"); })
+      .then(function () { return loadScript("/js/player.js?v=20261005-startup"); })
       .catch(function (error) { console.warn("[startup]", error.message); })
       .finally(function () { window.__CLAUDEONE_PLAYER_LOADING = false; });
 
-    loadSequence(["./js/softui-background-renderer.js", "./js/softui-background.js"])
+    loadSequence(["/js/softui-background-renderer.js", "/js/softui-background.js"])
       .catch(function (error) { console.warn("[startup]", error.message); });
-    loadSequence(["./js/deepseek-client.js", "./js/assistant.js", "./js/easter-egg.js"])
+    loadSequence(["/js/deepseek-client.js", "/js/assistant.js", "/js/easter-egg.js"])
       .catch(function (error) { console.warn("[startup]", error.message); });
   }
 

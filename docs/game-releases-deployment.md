@@ -1,6 +1,6 @@
 # 游戏发售：服务器部署与 OpenClaw 接入
 
-本功能以现有 Node.js / Express 服务运行，不增加依赖或数据库。页面为 `https://moufang.xyz/#/game-releases`。周二定时任务本身、图片渲染器和 NapCat 的现有配置保持原样，本仓库提供新页面、公开读取接口、本地发布器和完整替换提示词。
+本功能以现有 Node.js / Express 服务运行，不增加数据库。全站搜索接入增加了固定 HTML 解析依赖，需按锁文件执行 npm ci。页面为 `https://moufang.xyz/game-releases`。周二定时任务本身、图片渲染器和 NapCat 的现有配置保持原样，本仓库提供新页面、公开读取接口、本地发布器和完整替换提示词。
 
 ## 1. 部署代码与目录权限
 
@@ -14,7 +14,7 @@ git status --short
 git pull --ff-only
 ```
 
-如果仓库有本地改动或不能快进，先处理当前部署差异；不要使用 `git reset --hard` 清除服务器文件。本功能不新增 npm 依赖，现有依赖已安装时无需额外安装。
+如果仓库有本地改动或不能快进，先处理当前部署差异；不要使用 `git reset --hard` 清除服务器文件。同步全站搜索接入时，请执行 `npm --prefix claudeOne/server ci` 安装锁定依赖；完整发布与 Cloudflare/搜索账号步骤见 [搜索部署教程](seo-deployment.md)。
 
 服务器网站和 OpenClaw 同机：发布器直接写私有数据目录，不经过公网 HTTP。默认私有目录为仓库根目录下的 `.game-release-data/`。对于用户提供的服务器仓库位置，默认解析为 `/home/li/.openclaw/workspace/Multifunctional-Personal-Blog/.game-release-data`。代码自身没有硬编码该路径。
 
@@ -40,7 +40,7 @@ export GAME_NEWS_TIMEZONE=Asia/Shanghai
 
 重启现有 Node.js 网站进程，使新路由生效。按原来的运行方式重启；不要另外启动一个长期重复进程。如果原来是直接 `node server.js`，先正常结束旧进程，再从 `claudeOne/server` 用原有端口和环境启动 `node server.js`。如果反向代理只负责代理整个 Node 服务，通常无需新增代理规则。
 
-重启后先打开 `https://moufang.xyz/#/game-releases`，并访问 `https://moufang.xyz/api/game-releases`。首次尚未发布时，页面应显示“下一期速报，正在路上”，接口应返回空清单，不能返回 404 或 HTML。确认正常后，把原有周二任务的正文替换为 [详细提示词](openclaw-game-news-weekly-prompt.md) 中的完整代码块；保持原有定时规则和接收人，不另建重复任务。第一份真实数据由龙虾运行该任务时发布。
+重启后先打开 `https://moufang.xyz/game-releases`，并访问 `https://moufang.xyz/api/game-releases`。首次尚未发布时，页面应显示“下一期速报，正在路上”，接口应返回空清单，不能返回 404 或 HTML。确认正常后，把原有周二任务的正文替换为 [详细提示词](openclaw-game-news-weekly-prompt.md) 中的完整代码块；保持原有定时规则和接收人，不另建重复任务。第一份真实数据由龙虾运行该任务时发布。
 
 **如果 Nginx 直接读取整个 `claudeOne/` 作为静态根目录**，Express 的私有目录拦截无法保护 Nginx 的直接响应。必须在 Nginx 中把 `/server`、`/scripts`、`/test-results` 返回 404，并将 `/api/game-releases`（含子路径）代理到当前 Node 端口。不要给发售数据配置公开静态 alias。这些是不同部署方式的适配条件，不需要为全部由 Node 提供的站点额外引入 Nginx。
 
@@ -122,7 +122,7 @@ node "$PROJECT/claudeOne/scripts/verify-game-releases.js" \
 
 本期页默认显示今日及未来发售的游戏，过去日期的条目到往期页查看；仍可手动勾选「显示本期已发售游戏」查看本期过期条目。本地发布器与服务端均支持 10–50 条清单（例如 25–35 条），逐项结构、来源、图片与快照校验保持有效。存储文件的 256 KiB 大小限制继续生效。
 
-`#/game-releases` 顶部的「往期已发售」打开 `#/game-releases-archive`，可搜索、筛选平台并按发售日倒序浏览。每次有效发布在替换当前清单前，将当前版及已有上一版保存到私有数据目录的 `history/<revision>.json`；重复发布不增加记录。原有周二任务命令和输入格式保持不变，无需另建存档任务。
+`/game-releases` 顶部的「往期已发售」打开 `/game-releases/archive`，可搜索、筛选平台并按发售日倒序浏览。每次有效发布在替换当前清单前，将当前版及已有上一版保存到私有数据目录的 `history/<revision>.json`；重复发布不增加记录。原有周二任务命令和输入格式保持不变，无需另建存档任务。
 
 公开只读 `GET /api/game-releases/archive` 合并历史、当前版及上一版，返回在配置时区已经过发售日的游戏；今日发售仍在本期显示，次日进入往期。曾经收录、后来离开本期的未发售游戏也保留其记录，到日期后自动进入往期。相同游戏的同一平台采用较新清单中的信息，已知延期会覆盖旧日期；不同平台日期不同则分别展示。同平台再版若需作为独立游戏收录，应使用其准确的独立英文名称。
 

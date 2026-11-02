@@ -9,15 +9,21 @@
     deepseek: Object.freeze(deepseek),
   });
   // A single homepage is mounted here; other navigation opens the real site.
+  const publicPages = window.SitePages;
+  window.SitePages = Object.freeze({...publicPages,
+    href: (id, page) => id === "home" ? "/lens-preview/" : publicPages.href(id, page),
+    resolve: loc => !loc.hash && loc.pathname.replace(/\/$/, "") === "/lens-preview" ? "home" : publicPages.resolve(loc),
+    help: () => "",
+  });
   const originalHome = window.__CLAUDEONE_PAGES.home;
   window.__CLAUDEONE_PAGES = Object.freeze({home: {...originalHome,
     css: originalHome.css.map(url => '../' + url), js: originalHome.js.map(url => '../' + url),
   }});
   if (location.hash !== '#/home') history.replaceState(null, '', location.pathname + location.search + '#/home');
-  const openPage = page => window.open(new URL(`../index.html#/${page}`, location.href).href, '_blank', 'noopener');
+  const openPage = page => window.open(new URL(publicPages.href(page), location.origin).href, '_blank', 'noopener');
   document.addEventListener('click', event => {
     const link = event.target.closest('a[data-nav-link]');
-    const page = link?.getAttribute('href')?.match(/^#\/([^?]+)/)?.[1];
+    const page = link ? publicPages.resolve(new URL(link.getAttribute('href'), location.href)) : null;
     if (page && page !== 'home') {event.preventDefault(); event.stopImmediatePropagation(); openPage(page);}
   }, {capture: true});
   window.addEventListener('claudeone:router-ready', () => {

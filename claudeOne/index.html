@@ -2,29 +2,31 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
+  <base href="/" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <meta name="description" content="魔方工作台 — 保持好奇，创造不止" />
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https:; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <link rel="icon" type="image/webp" href="./logo/workspace-logo-lossless.webp" />
+  <link rel="icon" type="image/webp" href="/logo/workspace-logo-lossless.webp" />
   <title>魔方工作台</title>
   <!-- Web fonts load after the first route paints; system fonts render immediately. -->
   <!-- Core CSS (always loaded) -->
-  <link rel="stylesheet" href="./css/base.css" />
-  <link rel="stylesheet" href="./css/components.css?v=20261005-theme-advice-dismiss" />
-  <link rel="stylesheet" href="./css/neumorphism.css" />
-  <link rel="stylesheet" href="./css/softui-background.css" />
-  <link rel="stylesheet" href="./css/liquid-glass.css" />
-  <link rel="stylesheet" href="./css/animations.css" />
-  <link rel="stylesheet" href="./css/player.css" />
-  <link rel="stylesheet" href="./css/assistant.css" />
-  <link rel="stylesheet" href="./css/easter-egg.css" />
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/components.css?v=20261005-theme-advice-dismiss" />
+  <link rel="stylesheet" href="/css/neumorphism.css" />
+  <link rel="stylesheet" href="/css/softui-background.css" />
+  <link rel="stylesheet" href="/css/liquid-glass.css" />
+  <link rel="stylesheet" href="/css/animations.css" />
+  <link rel="stylesheet" href="/css/player.css" />
+  <link rel="stylesheet" href="/css/page-help.css" />
+  <link rel="stylesheet" href="/css/assistant.css" />
+  <link rel="stylesheet" href="/css/easter-egg.css" />
   <!-- Page-specific CSS loaded on demand by router -->
 </head>
 <body data-page="home" data-route-state="idle" data-initial-route="true">
-  <script src="./js/theme-init.js"></script>
+  <script src="/js/theme-init.js"></script>
 
   <!-- Shared Soft UI background: aurora palette, 45%, continuous across routes. -->
   <div class="softui-background" data-softui-background aria-hidden="true">
@@ -38,9 +40,9 @@
 
   <div class="site-shell">
     <header class="site-header page-chunk" data-reveal-order="1">
-      <a class="site-brand" href="#/home" data-nav-link>
+      <a class="site-brand" href="/" data-nav-link>
         <span class="brand-mark" aria-hidden="true">
-          <img src="./logo/workspace-logo-lossless.webp" alt="" width="40" height="40" decoding="async" />
+          <img src="/logo/workspace-logo-lossless.webp" alt="" width="40" height="40" decoding="async" />
         </span>
         <span class="brand-text">
           <small>魔方的</small>
@@ -57,7 +59,7 @@
            rel="noopener noreferrer"
            aria-label="在 GitHub 查看 Multifunctional Personal Blog 项目（新窗口）">
           <img class="github-link__mark"
-               src="./logo/github-invertocat-2026.svg"
+               src="/logo/github-invertocat-2026.svg"
                width="30" height="30" alt="" aria-hidden="true" />
           <span class="github-link__label">GitHub</span>
           <span class="github-link__arrow" aria-hidden="true">↗</span>
@@ -83,7 +85,8 @@
       </div>
     </header>
 
-    <!-- Page content injected here by router -->
+    <noscript><p class="card">页面介绍、帮助和导航可直接阅读；工具操作、游戏和音乐播放需要启用 JavaScript。</p></noscript>
+    <!-- Express fills the initial page; the router preserves and mounts it. -->
     <main class="page-stack" data-content-slot>
       <!-- Home page is the default; router mounts it on init -->
     </main>
@@ -101,7 +104,7 @@
           <h1 data-release-heading>下一款，玩什么？</h1>
           <p class="release-hero__intro" data-release-intro>每周二更新未来约 8 周的新游戏发售清单。</p>
           <div class="release-hero__actions">
-            <a class="btn release-view-switch" href="#/game-releases-archive" data-nav-link data-release-view-link>往期已发售 →</a>
+            <a class="btn release-view-switch" href="/game-releases/archive" data-nav-link data-release-view-link>往期已发售 →</a>
             <button class="btn" type="button" data-release-poster-open disabled>查看本周速报 ↗</button>
             <span class="release-updated" data-release-updated>每周二更新</span>
           </div>
@@ -130,6 +133,7 @@
       </div>
       <div class="release-list" data-release-list data-reveal-ahead></div>
       <button class="btn release-more" type="button" data-release-more hidden>显示更多已发售游戏</button>
+      <nav class="release-pagination" aria-label="往期发售分页" data-release-pagination></nav>
       <dialog class="release-dialog" aria-labelledby="release-poster-title" data-release-dialog>
         <div class="release-dialog__bar">
           <h2 id="release-poster-title">本周近期游戏发售速报</h2>
@@ -252,7 +256,7 @@
       </div>
     </section>
     <section class="home-cta page-chunk" data-reveal-order="3">
-      <p class="home-cta__text">从顶部导航选择「游戏」或「工具箱」开始探索</p>
+      <p class="home-cta__text">在线工具、网页小游戏与游戏发售清单。从顶部导航选择分类，开始探索。</p>
     </section>
   </template>
 
@@ -655,12 +659,13 @@
   </template>
 
   <!-- Defer preserves dependencies while letting all page templates parse. -->
-  <script src="./js/config.js" defer></script>
-  <script src="./js/page-registry.js?v=20261025-current-list" defer></script>
-  <script src="./js/shell.js?v=20261025-release-reveal" defer></script>
-  <script src="./js/startup.js?v=20261005-cache" defer></script>
-  <script src="./js/router.js?v=20261009-preparation" defer></script>
-  <script src="./js/visitor-stats.js" defer></script>
+  <script src="/js/config.js" defer></script>
+  <script src="/js/page-registry.js?v=20261025-current-list" defer></script>
+  <script src="/js/site-pages.js" defer></script>
+  <script src="/js/shell.js?v=20261025-release-reveal" defer></script>
+  <script src="/js/startup.js?v=20261005-cache" defer></script>
+  <script src="/js/router.js?v=20261009-preparation" defer></script>
+  <script src="/js/visitor-stats.js" defer></script>
   <template id="page-pixel">
 <!-- Hero -->
       <section class="page-chunk" data-reveal-order="2">
@@ -1835,7 +1840,7 @@
   <template id="page-qr-reader">
     <section class="qread page-chunk" data-reveal-order="2" data-qread>
       <header class="qread-heading">
-        <div><a class="qread-back" href="#/tools" data-nav-link>← 工具箱</a><h1>二维码里，藏着什么？</h1><p>拖进来，就知道。链接、文字、连接信息，一眼看明白。</p></div>
+        <div><a class="qread-back" href="/tools" data-nav-link>← 工具箱</a><h1>二维码里，藏着什么？</h1><p>拖进来，就知道。链接、文字、连接信息，一眼看明白。</p></div>
         <span class="qread-local"><span></span>本地识别 · 图片不上传</span>
       </header>
       <div class="qread-workspace card">
@@ -1864,7 +1869,7 @@
         <div class="qread-bottom"><span>PNG / JPG / WebP / GIF / BMP · 最大 20 MB · 每次一张</span><button type="button" class="qread-motion" data-reset hidden>清空并重新开始</button></div>
         <p class="qread-status" data-status role="status" aria-live="polite"></p>
       </div>
-      <div class="qread-footer"><span>支持链接、文本、Wi-Fi、邮件、电话与名片</span><a href="#/qr" data-nav-link>想制作二维码？ 去生成 ↗</a></div>
+      <div class="qread-footer"><span>支持链接、文本、Wi-Fi、邮件、电话与名片</span><a href="/tools/qr" data-nav-link>想制作二维码？ 去生成 ↗</a></div>
     </section>
   </template>
 
@@ -3296,7 +3301,7 @@
     <section class="color-tools" data-ct>
       <header class="ct-heading">
         <div><p class="ct-eyebrow">COLOR STUDIO</p><h1>颜色工具</h1><p class="ct-subtitle">取一个喜欢的颜色，搭一套自己的配色。</p></div>
-        <a class="btn btn-sm" href="#/tools" data-nav-link>返回工具箱 →</a>
+        <a class="btn btn-sm" href="/tools" data-nav-link>返回工具箱 →</a>
       </header>
       <div class="ct-start">
         <div class="ct-row">

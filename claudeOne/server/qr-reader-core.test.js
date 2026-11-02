@@ -56,5 +56,5 @@ test("reader route, local assets, lifecycle and tools entry are wired", () => {
   assert.ok(fs.readFileSync(path.join(base, "index.html"), "utf8").includes(`id="${page.templateId}"`));
   for (const asset of [...page.css, ...page.js]) assert.ok(fs.existsSync(path.join(base, asset)));
   assert.ok(fs.readFileSync(path.join(base, "js/qr-reader.js"), "utf8").includes(`window.${page.lifecycle}`));
-  assert.ok(fs.readFileSync(path.join(base, "js/tool-cards.js"), "utf8").includes('href: "#/qr-reader"'));
+  assert.ok(fs.readFileSync(path.join(base, "js/tool-cards.js"), "utf8").includes('page: "qr-reader"'));
 });

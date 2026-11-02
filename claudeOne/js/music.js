@@ -264,7 +264,7 @@
   function ensureWorker() {
     if (worker) return;
     try {
-      worker = new Worker("./js/decrypt-worker.js");
+      worker = new Worker("/js/decrypt-worker.js");
       worker.onmessage = function (e) {
         var data = e.data;
         var entry = fileResults.get(data.id);

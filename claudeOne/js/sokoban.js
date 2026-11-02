@@ -2452,7 +2452,8 @@
 
   function exitAfterWin() {
     stopAuto(false);
-    host.location.href = "#/";
+    if (host.__ClaudeOneRouter) host.__ClaudeOneRouter.go("home");
+    else host.location.href = "/";
   }
 
   function handleKeydown(event) {

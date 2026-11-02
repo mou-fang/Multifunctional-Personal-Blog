@@ -4,7 +4,11 @@
  * SPA lifecycle: window.__page_games / window.__page_tools
  */
 
-(function () {
+(function (root, factory) {
+  var api = factory(typeof module === "object" && module.exports ? require("./site-pages") : root.SitePages);
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root) { root.SiteCards = api; root.__page_games = api.gamesLifecycle; root.__page_tools = api.toolsLifecycle; }
+})(typeof window !== "undefined" ? window : null, function (site) {
   "use strict";
 
   var GAME_CARDS = [
@@ -13,14 +17,14 @@
       title: "字符城市",
       desc: "在原创彩色字符城市里自由飞行，沿着霓虹街道、屋顶、空中连廊与河岸慢慢探索。",
       tags: ["城市探索", "彩色 ASCII", "自由飞行"],
-      href: "#/city-shuttle",
+      page: "city-shuttle",
     },
     {
       icon: "\u{1F480}",
       title: "DOOM",
       desc: "1993 经典 FPS，WebAssembly 浏览器版。doomgeneric 引擎 + Freedoom 自由数据，完全本地运行。",
       tags: ["FPS", "经典", "WebAssembly"],
-      href: "#/doom",
+      page: "doom",
       featuredOrder: 2,
     },
     {
@@ -28,28 +32,28 @@
       title: "推箱子",
       desc: "经典推箱子益智游戏，包含固定关卡和随机可解模式。",
       tags: ["益智", "关卡", "单人"],
-      href: "#/sokoban",
+      page: "sokoban",
     },
     {
       icon: "\u{1F30C}",
       title: "重力扫雷",
       desc: "经典扫雷加重力：翻开 0 格让上方下落，数字平台随邻居实时重算——用下落反推雷位的策略 2.0。",
       tags: ["益智", "重力", "推理"],
-      href: "#/minesweeper",
+      page: "minesweeper",
     },
     {
       icon: "\u{1F9D7}",
       title: "Only Up",
       desc: "像素风垂直攀爬地狱：8 个奇幻场景，从贫民窟卧室爬向宇宙顶点。无存档、无安全网，一脚踩空可能直接坠回起点。",
       tags: ["平台", "硬核", "像素"],
-      href: "#/onlyup",
+      page: "onlyup",
     },
     {
       icon: "\u{1F300}",
       title: "深渊协议",
       desc: "类吸血鬼幸存者：虚渊深处自动攻击、升级三选一、武器终极进化、遗物、可编程逻辑模块构筑流派，4 个动态 Boss 与局外永久成长。",
       tags: ["生存", "Roguelike", "像素"],
-      href: "#/abyss",
+      page: "abyss",
     },
     {
       icon: "\u{265F}",
@@ -62,14 +66,14 @@
       title: "贪吃蛇",
       desc: "大战场多人混战！3个AI对手抢食围堵，10种能力道具（时停、掠食、护盾…），障碍物随机生成。",
       tags: ["经典", "竞技", "对战"],
-      href: "#/snake",
+      page: "snake",
     },
     {
       icon: "\u{1F3B1}",
       title: "台球",
       desc: "中式八球：单人练习、人机对战、规则学习一应俱全。",
       tags: ["体育", "休闲", "对战"],
-      href: "#/billiards",
+      page: "billiards",
       featuredOrder: 1,
     },
     {
@@ -77,7 +81,7 @@
       title: "俄罗斯转盘",
       desc: "适合聚会整活的随机转盘小游戏，可设置玩家、弹巢和结束规则。",
       tags: ["娱乐", "聚会", "随机"],
-      href: "#/game",
+      page: "game",
     },
     {
       icon: "\u{1F3C6}",
@@ -93,14 +97,14 @@
       title: "幸运抽奖",
       desc: "管理参与者和奖项，用大转盘完成随机抽奖。",
       tags: ["抽奖", "随机", "群活动"],
-      href: "#/lottery",
+      page: "lottery",
     },
     {
       icon: "\u{1F3B5}",
       title: "音乐解锁",
       desc: "本地处理音乐文件格式，支持常见加密音乐格式处理。",
       tags: ["音频", "文件", "本地处理"],
-      href: "#/music",
+      page: "music",
       featuredOrder: 1,
     },
     {
@@ -108,28 +112,28 @@
       title: "ASCII 艺术",
       desc: "上传图片并转换成 ASCII 字符画，支持多种输出风格。",
       tags: ["图片", "字符画", "艺术"],
-      href: "#/ascii",
+      page: "ascii",
     },
     {
       icon: "\u{1F5A8}",
       title: "颜色工具",
       desc: "取色与色卡管理，查询品牌颜料、预览光谱混色，并寻找目标颜色的调色配方。",
       tags: ["取色", "颜料调色", "本地处理"],
-      href: "#/colors",
+      page: "colors",
     },
     {
       icon: "\u{1F9E9}",
       title: "拼豆工坊",
       desc: "图片转拼豆图纸，支持 5 品牌 291 色、图层精修、文字形状、材质预览与逐色摆豆引导。",
       tags: ["拼豆", "图纸", "本地处理"],
-      href: "#/beads",
+      page: "beads",
     },
     {
       icon: "\u{1F510}",
       title: "图片加密（混淆）",
       desc: "用 PixelFlux 打散像素位置与颜色，导出可完整还原的混淆 PNG。",
       tags: ["图片", "可逆混淆", "本地处理"],
-      href: "#/scramble",
+      page: "scramble",
       featuredOrder: 2,
     },
     {
@@ -137,35 +141,35 @@
       title: "图片压缩",
       desc: "在浏览器本地压缩图片，并支持 JPG、PNG、WebP 格式转换。",
       tags: ["图片", "压缩", "格式转换"],
-      href: "#/compress",
+      page: "compress",
     },
     {
       icon: "\u{1F4F1}",
       title: "二维码解析",
       desc: "拖入或粘贴二维码图片，直接查看链接、文字、Wi-Fi 和名片内容。",
       tags: ["二维码", "识别", "本地处理"],
-      href: "#/qr-reader",
+      page: "qr-reader",
     },
     {
       icon: "\u{1F4F1}",
       title: "二维码制作",
       desc: "生成带 Logo、渐变色、圆点样式和自定义角标的二维码。",
       tags: ["二维码", "设计", "导出"],
-      href: "#/qr",
+      page: "qr",
     },
     {
       icon: "\u{1F39E}",
       title: "视频转 GIF",
       desc: "导入视频后裁剪画面、选取片段，本地生成 GIF，可调帧率、尺寸与画质。",
       tags: ["视频", "GIF", "本地处理"],
-      href: "#/videogif",
+      page: "videogif",
     },
     {
       icon: "\u{1F916}",
       title: "DeepSeek",
       desc: "本地保存 API Key 的 AI 聊天工具，支持流式回复。",
       tags: ["AI", "聊天", "API"],
-      href: "#/ai",
+      page: "ai",
     },
     {
       icon: "\u{1F4DD}",
@@ -184,7 +188,7 @@
       title: "图片像素化",
       desc: "把图片转换成复古像素风、8-bit 风或自定义调色板风格。",
       tags: ["图片", "像素", "设计"],
-      href: "#/pixel",
+      page: "pixel",
     },
     {
       icon: "\u{1F50D}",
@@ -213,7 +217,11 @@
   ];
 
   // Independent navigation section: keep this entry outside the game/tool grids.
-  var RELEASE_CARDS = [{ icon: "📅", title: "游戏发售", desc: "每周二更新未来约 8 周的发售清单，也可回看往期已发售游戏。", tags: ["发售日历", "往期回顾"], href: "#/game-releases" }];
+  var RELEASE_CARDS = [{ icon: "📅", title: "游戏发售", desc: "每周二更新未来约 8 周的发售清单，也可回看往期已发售游戏。", tags: ["发售日历", "往期回顾"], page: "game-releases" }];
+
+  [GAME_CARDS, TOOL_CARDS, RELEASE_CARDS].forEach(function (cards) { cards.forEach(function (card) {
+    if (card.page || card.href) { card.page = card.page || card.href.slice(2); card.href = site.href(card.page); }
+  }); });
 
   function renderCards(cards) {
     var html = "";
@@ -304,6 +312,5 @@
 
   function noop() {}
 
-  window.__page_games = { mount: makeMount("games"), unmount: noop };
-  window.__page_tools = { mount: makeMount("tools"), unmount: noop };
-})();
+  return { games: GAME_CARDS, tools: TOOL_CARDS, releases: RELEASE_CARDS, renderCards: renderCards, renderGrid: function (cards) { var grid = {}; renderCardGrid(grid, cards); return grid.innerHTML; }, gamesLifecycle: { mount: makeMount("games"), unmount: noop }, toolsLifecycle: { mount: makeMount("tools"), unmount: noop } };
+});

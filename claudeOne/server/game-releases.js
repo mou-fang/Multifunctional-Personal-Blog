@@ -1,5 +1,6 @@
 "use strict";
 const express = require("express");
+const { createReleaseReader } = require("./game-releases-data");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { ASSET_NAME, MAX_ASSET, inside, storageDir, readSnapshot, readHistory, releasedHistory } = require("./game-releases-store");
@@ -11,35 +12,9 @@ function blockPrivateStatic(req, res, next) {
   if (/^\/(server|scripts|test-results)(\/|$)/.test(pathname)) return res.sendStatus(404);
   next();
 }
-function createGameReleasesRouter({ dataDir, now = () => new Date() } = {}) {
+function createGameReleasesRouter({ dataDir, now = () => new Date(), reader } = {}) {
   const router = express.Router();
-  let cached, cachedKey, pending;
-  let historyCache, historyKey, historyPending;
-  const directory = storageDir(dataDir);
-  // Avoid a rejected initialization promise becoming unhandled before the first request.
-  directory.catch(() => {});
-  async function snapshot() {
-    const dir = await directory;
-    let key;
-    try { const stat = await fs.stat(path.join(dir, "current.json")); key = [stat.ino, stat.size, stat.mtimeMs, stat.ctimeMs].join(":"); }
-    catch (error) { if (error.code !== "ENOENT") throw error; key = "empty"; }
-    if (cached && cachedKey === key) return cached;
-    if (!pending) pending = readSnapshot(dir).then(value => { cached = value; cachedKey = key; return value; }).finally(() => { pending = null; });
-    return pending;
-  }
-  async function archive() {
-    const dir = await directory;
-    const stamps = await Promise.all(["current.json", "previous.json", "history"].map(async name => {
-      try { const stat = await fs.stat(path.join(dir, name)); return [stat.ino, stat.size, stat.mtimeMs, stat.ctimeMs].join(":"); }
-      catch (error) { if (error.code === "ENOENT") return "empty"; throw error; }
-    }));
-    const key = stamps.join("|");
-    if (!historyCache || historyKey !== key) {
-      if (!historyPending) historyPending = readHistory(dir).then(value => { historyCache = value; historyKey = key; return value; }).finally(() => { historyPending = null; });
-      return releasedHistory(await historyPending, now());
-    }
-    return releasedHistory(historyCache, now());
-  }
+  const { snapshot, archive, directory } = reader || createReleaseReader({ dataDir, now });
   router.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     if (req.method !== "GET" && req.method !== "HEAD") { res.setHeader("Allow", "GET, HEAD"); return res.status(405).json({ error: "此接口仅供读取；发布只能在服务器本地执行" }); }
