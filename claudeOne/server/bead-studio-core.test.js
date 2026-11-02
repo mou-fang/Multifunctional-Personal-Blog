@@ -116,7 +116,10 @@ test("bead studio is fully wired into the SPA and tool card grid", () => {
   assert.match(controller, /window\.__page_beads/);
   assert.match(styles, /body\[data-theme="neumorphism"\] \.beads-canvas-panel/);
   assert.match(styles, /body\[data-theme="liquid-glass"\] \.beads-commandbar/);
-  assert.match(styles, /backdrop-filter:\s*blur\(22px\) saturate\(145%\)/);
+  const glassPanels = styles.match(/body\[data-theme="liquid-glass"\] \.beads-inspector\s*\{([^}]*)\}/)[1];
+  assert.match(glassPanels, /background:\s*rgba\(255, 255, 255, \.24\)/);
+  assert.match(glassPanels, /box-shadow:[\s\S]*inset/);
+  assert.doesNotMatch(glassPanels, /backdrop-filter/);
   assert.doesNotMatch(styles, /body\[data-theme="liquid-glass"\] \.beads-canvas-wrap\s*\{[^}]*#101522/s);
   assert.match(styles, /\.beads-studio input\[type="range"\]::\-webkit-slider-thumb\s*\{[^}]*border-radius:\s*50%/s);
   assert.match(styles, /clip-path:\s*circle\(50% at 50% 50%\)/);

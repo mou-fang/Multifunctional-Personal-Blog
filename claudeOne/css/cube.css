@@ -50,7 +50,6 @@
   inset: 0;
   transform-style: preserve-3d;
   transform-origin: 50% 50% 0;
-  will-change: transform;
 }
 
 /* Temporary group used while a layer turn is animating. Same bounds as .cube
@@ -213,7 +212,6 @@ body[data-theme="liquid-glass"] .sticker::before {
     transparent 75%,
     rgba(255, 255, 255, 0.7) 100%
   );
-  filter: blur(2px);
   pointer-events: none;
   z-index: 1;
 }
@@ -515,8 +513,6 @@ body[data-theme="liquid-glass"] .visitor-pulse {
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.08);
   box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
 }
 
 body[data-theme="liquid-glass"] .visitor-pulse__metrics,

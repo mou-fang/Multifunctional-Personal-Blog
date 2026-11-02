@@ -461,6 +461,7 @@
   // Theme may have already been applied by an inline <script> in <head> for flash-free
   // paint; we call again here to wire toggle state.
   applyTheme(resolveTheme(), { announce: false });
+  document.body.setAttribute("data-page-hidden", String(!!document.hidden));
 
   document.addEventListener("DOMContentLoaded", () => {
     renderNav();
@@ -473,17 +474,20 @@
     checkThemePerformance();
   });
   document.addEventListener("visibilitychange", () => {
+    document.body.setAttribute("data-page-hidden", String(!!document.hidden));
     if (document.hidden) cancelThemeCheck();
     else checkThemePerformance();
   });
   window.addEventListener("pagehide", () => {
     themePageActive = false;
+    document.body.setAttribute("data-page-hidden", "true");
     cancelThemeCheck();
   });
 
   // On page show (back/forward from bfcache), reset exit state so layout returns.
   window.addEventListener("pageshow", () => {
     themePageActive = true;
+    document.body.setAttribute("data-page-hidden", String(!!document.hidden));
     document.body.setAttribute("data-route-state", "idle");
     checkThemePerformance();
   });

@@ -160,8 +160,6 @@ body[data-theme="neumorphism"] .ou-overlay__card {
 body[data-theme="liquid-glass"] .ou-overlay__card {
   background: rgba(255, 255, 255, 0.55);
   border: 1px solid var(--border);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
   box-shadow: var(--glass-shadow);
 }
 

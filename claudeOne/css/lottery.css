@@ -689,8 +689,6 @@ body[data-theme="liquid-glass"] .control-card,
 body[data-theme="liquid-glass"] .tiny-btn {
   position: relative;
   background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
   border: 1px solid var(--border);
   box-shadow: var(--glass-shadow);
 }
@@ -704,23 +702,17 @@ body[data-theme="liquid-glass"] .winner-reveal {
 
 body[data-theme="liquid-glass"] .winner-card {
   background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
   border: 1px solid var(--border);
   box-shadow: var(--glass-shadow);
   filter: brightness(0.99);
 }
 
 body[data-theme="liquid-glass"] .winner-card::before {
-  top: 8px;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
+  inset: 0;
   width: auto;
   height: auto;
   transform: none;
-  border: 1px solid rgba(0, 0, 0, 0.78);
-  filter: blur(10px);
+  box-shadow: inset 0 0 10px 1px rgba(0, 0, 0, 0.18);
   opacity: 0.5;
   background: transparent;
 }
@@ -733,7 +725,6 @@ body[data-theme="liquid-glass"] .winner-card::after {
   border-radius: inherit;
   background: var(--glass-overlay);
   color: transparent;
-  filter: blur(3px);
   opacity: 0.85;
 }
 

@@ -178,8 +178,6 @@ body[data-theme="neumorphism"] .snake-overlay__card {
 body[data-theme="liquid-glass"] .snake-overlay__card {
   position: relative;
   background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
   border: 1px solid var(--border);
   box-shadow: var(--glass-shadow);
 }
@@ -188,13 +186,9 @@ body[data-theme="liquid-glass"] .snake-overlay__card::before {
   content: "";
   position: absolute;
   z-index: 1;
-  top: 6px;
-  left: 6px;
-  right: 6px;
-  bottom: 6px;
+  inset: 0;
   border-radius: inherit;
-  border: 1px solid rgba(0, 0, 0, 0.85);
-  filter: blur(8px);
+  box-shadow: inset 0 0 10px 1px rgba(0, 0, 0, 0.18);
   pointer-events: none;
   opacity: 0.55;
 }
@@ -205,7 +199,6 @@ body[data-theme="liquid-glass"] .snake-overlay__card::after {
   inset: 0;
   z-index: 2;
   border-radius: inherit;
-  filter: blur(3px);
   pointer-events: none;
   background: var(--glass-overlay);
   opacity: 0.85;
@@ -289,8 +282,6 @@ body[data-theme="neumorphism"] .buff-tooltip {
 /* Liquid Glass tooltip */
 body[data-theme="liquid-glass"] .buff-tooltip {
   background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
   border: 1px solid var(--border);
   box-shadow: var(--glass-shadow);
 }
@@ -499,7 +490,7 @@ body[data-theme="neumorphism"] .snake-speed__btn--active {
 
 /* Liquid Glass speed */
 body[data-theme="liquid-glass"] .snake-speed__seg {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.28);
   border: 1px solid var(--border);
   box-shadow: var(--glass-shadow-sm);
 }
@@ -544,8 +535,6 @@ body[data-theme="neumorphism"] .snake-action__sub {
 /* ===== Liquid Glass theme: action buttons ===== */
 body[data-theme="liquid-glass"] .snake-action {
   background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
   border: 1px solid var(--border);
   box-shadow: var(--glass-shadow-sm);
 }
@@ -556,8 +545,7 @@ body[data-theme="liquid-glass"] .snake-action::before {
   z-index: 1;
   inset: 6px;
   border-radius: inherit;
-  border: 1px solid rgba(0, 0, 0, 0.85);
-  filter: blur(8px);
+  box-shadow: inset 0 0 10px 1px rgba(0, 0, 0, 0.18);
   pointer-events: none;
   opacity: 0.45;
 }
@@ -568,7 +556,6 @@ body[data-theme="liquid-glass"] .snake-action::after {
   inset: 0;
   z-index: 2;
   border-radius: inherit;
-  filter: blur(3px);
   pointer-events: none;
   background: var(--glass-overlay);
   opacity: 0.7;
@@ -804,9 +791,7 @@ body[data-theme="neumorphism"] .snake-power-item__icon {
 /* ===== Liquid Glass theme: panels & items ===== */
 body[data-theme="liquid-glass"] .snake-panel {
   position: relative;
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  background: rgba(255, 255, 255, 0.28);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
@@ -817,13 +802,9 @@ body[data-theme="liquid-glass"] .snake-panel::before {
   content: "";
   position: absolute;
   z-index: 1;
-  top: 6px;
-  left: 6px;
-  right: 6px;
-  bottom: 6px;
+  inset: 0;
   border-radius: inherit;
-  border: 1px solid rgba(0, 0, 0, 0.85);
-  filter: blur(8px);
+  box-shadow: inset 0 0 10px 1px rgba(0, 0, 0, 0.18);
   pointer-events: none;
   opacity: 0.55;
 }
@@ -834,7 +815,6 @@ body[data-theme="liquid-glass"] .snake-panel::after {
   inset: 0;
   z-index: 2;
   border-radius: inherit;
-  filter: blur(3px);
   pointer-events: none;
   background: var(--glass-overlay);
   opacity: 0.85;

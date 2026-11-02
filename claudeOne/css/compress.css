@@ -513,13 +513,9 @@ body[data-theme="liquid-glass"] .compress-table-wrap::before {
   content: "";
   position: absolute;
   z-index: 1;
-  top: 6px;
-  left: 6px;
-  right: 6px;
-  bottom: 6px;
+  inset: 0;
   border-radius: inherit;
-  border: 1px solid rgba(0, 0, 0, 0.85);
-  filter: blur(8px);
+  box-shadow: inset 0 0 10px 1px rgba(0, 0, 0, 0.18);
   pointer-events: none;
   opacity: 0.55;
 }
@@ -530,7 +526,6 @@ body[data-theme="liquid-glass"] .compress-table-wrap::after {
   inset: 0;
   z-index: 2;
   border-radius: inherit;
-  filter: blur(3px);
   pointer-events: none;
   background: var(--glass-overlay);
   opacity: 0.85;
@@ -575,9 +570,7 @@ body[data-theme="neumorphism"] input[type="range"]::-moz-range-thumb {
 
 /* Liquid Glass additions */
 body[data-theme="liquid-glass"] .compress-upload {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  background: rgba(255, 255, 255, 0.28);
   border: 1px solid var(--border);
   box-shadow: var(--glass-shadow-sm);
   position: relative;
@@ -587,13 +580,9 @@ body[data-theme="liquid-glass"] .compress-upload::before {
   content: "";
   position: absolute;
   z-index: 1;
-  top: 6px;
-  left: 6px;
-  right: 6px;
-  bottom: 6px;
+  inset: 0;
   border-radius: inherit;
-  border: 1px solid rgba(0, 0, 0, 0.85);
-  filter: blur(8px);
+  box-shadow: inset 0 0 10px 1px rgba(0, 0, 0, 0.18);
   pointer-events: none;
   opacity: 0.55;
 }
@@ -604,7 +593,6 @@ body[data-theme="liquid-glass"] .compress-upload::after {
   inset: 0;
   z-index: 2;
   border-radius: inherit;
-  filter: blur(3px);
   pointer-events: none;
   background: var(--glass-overlay);
   opacity: 0.85;
@@ -615,19 +603,21 @@ body[data-theme="liquid-glass"] .compress-upload > * {
   z-index: 3;
 }
 
+/* Keep the transparent file input out of grid sizing and over the drop zone. */
+body[data-theme="liquid-glass"] .compress-upload > .compress-upload__input {
+  position: absolute;
+  z-index: 4;
+}
+
 body[data-theme="liquid-glass"] .compress-file-item {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  background: rgba(255, 255, 255, 0.28);
   border: 1px solid var(--border);
   box-shadow: var(--glass-shadow-sm);
   position: relative;
 }
 
 body[data-theme="liquid-glass"] .compress-params {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  background: rgba(255, 255, 255, 0.28);
   border: 1px solid var(--border);
   box-shadow: var(--glass-shadow);
   border-radius: var(--radius-lg);
@@ -638,13 +628,9 @@ body[data-theme="liquid-glass"] .compress-params::before {
   content: "";
   position: absolute;
   z-index: 1;
-  top: 6px;
-  left: 6px;
-  right: 6px;
-  bottom: 6px;
+  inset: 0;
   border-radius: inherit;
-  border: 1px solid rgba(0, 0, 0, 0.85);
-  filter: blur(8px);
+  box-shadow: inset 0 0 10px 1px rgba(0, 0, 0, 0.18);
   pointer-events: none;
   opacity: 0.55;
 }
@@ -655,7 +641,6 @@ body[data-theme="liquid-glass"] .compress-params::after {
   inset: 0;
   z-index: 2;
   border-radius: inherit;
-  filter: blur(3px);
   pointer-events: none;
   background: var(--glass-overlay);
   opacity: 0.85;

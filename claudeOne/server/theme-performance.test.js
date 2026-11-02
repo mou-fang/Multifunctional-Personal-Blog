@@ -184,6 +184,21 @@ test("reduced motion applies themes without creating a ripple overlay", () => {
   assert.equal(h.frames.size + h.timers.size, 0);
 });
 
+test("shell pauses CSS animations on hidden pages and restores them after visibility or bfcache changes", () => {
+  const h = harness();
+  assert.equal(h.attrs["data-page-hidden"], "false");
+  h.document.hidden = true;
+  h.document.dispatch("visibilitychange");
+  assert.equal(h.attrs["data-page-hidden"], "true");
+  h.document.hidden = false;
+  h.document.dispatch("visibilitychange");
+  assert.equal(h.attrs["data-page-hidden"], "false");
+  h.window.dispatch("pagehide");
+  assert.equal(h.attrs["data-page-hidden"], "true");
+  h.window.dispatch("pageshow");
+  assert.equal(h.attrs["data-page-hidden"], "false");
+});
+
 test("closing advice keeps the selected theme and stays dismissed through route, visibility and bfcache checks", () => {
   const h = harness({ saved: "liquid-glass", memory: 2 });
   h.closeButton.dispatch("click");

@@ -458,9 +458,7 @@ body[data-theme="neumorphism"] input[type="range"]::-moz-range-thumb {
 
 /* Liquid Glass additions */
 body[data-theme="liquid-glass"] .qr-preview {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  background: rgba(255, 255, 255, 0.28);
   border: 1px solid var(--border);
   box-shadow: var(--glass-shadow);
   position: relative;
@@ -470,13 +468,9 @@ body[data-theme="liquid-glass"] .qr-preview::before {
   content: "";
   position: absolute;
   z-index: 1;
-  top: 6px;
-  left: 6px;
-  right: 6px;
-  bottom: 6px;
+  inset: 0;
   border-radius: inherit;
-  border: 1px solid rgba(0, 0, 0, 0.85);
-  filter: blur(8px);
+  box-shadow: inset 0 0 10px 1px rgba(0, 0, 0, 0.18);
   pointer-events: none;
   opacity: 0.55;
 }
@@ -487,7 +481,6 @@ body[data-theme="liquid-glass"] .qr-preview::after {
   inset: 0;
   z-index: 2;
   border-radius: inherit;
-  filter: blur(3px);
   pointer-events: none;
   background: var(--glass-overlay);
   opacity: 0.85;
@@ -499,9 +492,7 @@ body[data-theme="liquid-glass"] .qr-preview > * {
 }
 
 body[data-theme="liquid-glass"] .qr-params {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  background: rgba(255, 255, 255, 0.28);
   border: 1px solid var(--border);
   box-shadow: var(--glass-shadow);
   border-radius: var(--radius-lg);
@@ -512,13 +503,9 @@ body[data-theme="liquid-glass"] .qr-params::before {
   content: "";
   position: absolute;
   z-index: 1;
-  top: 6px;
-  left: 6px;
-  right: 6px;
-  bottom: 6px;
+  inset: 0;
   border-radius: inherit;
-  border: 1px solid rgba(0, 0, 0, 0.85);
-  filter: blur(8px);
+  box-shadow: inset 0 0 10px 1px rgba(0, 0, 0, 0.18);
   pointer-events: none;
   opacity: 0.55;
 }
@@ -529,7 +516,6 @@ body[data-theme="liquid-glass"] .qr-params::after {
   inset: 0;
   z-index: 2;
   border-radius: inherit;
-  filter: blur(3px);
   pointer-events: none;
   background: var(--glass-overlay);
   opacity: 0.85;
@@ -541,9 +527,7 @@ body[data-theme="liquid-glass"] .qr-params > * {
 }
 
 body[data-theme="liquid-glass"] .qr-logo-upload {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  background: rgba(255, 255, 255, 0.28);
   border: 1px solid var(--border);
   box-shadow: var(--glass-shadow-sm);
 }

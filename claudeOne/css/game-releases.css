@@ -74,7 +74,7 @@
 .release-dialog__actions { display: flex; gap: 10px; }
 .release-dialog img { width: 100%; height: auto; border-radius: 8px; }
 body[data-theme="liquid-glass"] .release-hero,
-body[data-theme="liquid-glass"] .release-toolbar { border: 1px solid var(--border); backdrop-filter: blur(var(--backdrop-blur)); background: var(--surface-raised); }
+body[data-theme="liquid-glass"] .release-toolbar { border: 1px solid var(--border); background: var(--surface-raised); }
 body[data-theme="liquid-glass"] .release-filter { border: 1px solid var(--border); }
 body[data-theme="liquid-glass"] .release-search input { border: 1px solid var(--border); }
 body[data-theme="liquid-glass"] .release-card__date,

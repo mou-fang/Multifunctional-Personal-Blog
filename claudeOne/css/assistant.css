@@ -35,7 +35,6 @@
     box-shadow var(--assistant-motion),
     transform var(--assistant-motion),
     opacity 320ms ease;
-  will-change: width, height, border-radius, transform, opacity;
 }
 
 .site-assistant::before {
@@ -177,7 +176,7 @@
   border-radius: 50%;
   background: color-mix(in srgb, var(--accent) 72%, white 28%);
   box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 55%, transparent);
-  animation: assistantRailPulse 1.8s ease-in-out infinite;
+  animation: assistantRailPulse 1.8s ease-in-out 3;
 }
 
 .assistant-launcher__rail i:nth-child(2) { animation-delay: .16s; }
@@ -226,8 +225,8 @@ body[data-theme="neumorphism"] .site-assistant::before {
 
 body[data-theme="liquid-glass"] .site-assistant {
   background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(26px) saturate(1.2);
-  -webkit-backdrop-filter: blur(26px) saturate(1.2);
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
   border: 1px solid rgba(51, 51, 51, 0.1);
   box-shadow: var(--glass-shadow);
 }
@@ -249,11 +248,12 @@ body[data-theme="liquid-glass"] .site-assistant::after {
     linear-gradient(135deg, rgba(255, 255, 255, 0.55), transparent 42%),
     linear-gradient(315deg, rgba(255, 255, 255, 0.32), transparent 46%);
   opacity: .78;
-  filter: blur(1px);
 }
 
 body[data-theme="liquid-glass"] .site-assistant[data-open="true"] {
   background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   box-shadow:
     var(--glass-shadow),
     0 22px 50px rgba(0, 0, 0, 0.14);
@@ -773,8 +773,8 @@ body[data-theme="liquid-glass"] .assistant-menu-popover {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(246, 251, 255, 0.76)),
     rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(22px) saturate(1.18);
-  -webkit-backdrop-filter: blur(22px) saturate(1.18);
+  backdrop-filter: blur(8px) saturate(1.18);
+  -webkit-backdrop-filter: blur(8px) saturate(1.18);
 }
 
 body[data-theme="liquid-glass"] .assistant-conv-item:hover,

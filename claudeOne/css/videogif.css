@@ -128,7 +128,7 @@
 .vg-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 body[data-theme="neumorphism"] .vg-editor { box-shadow: var(--shadow-out); }
 body[data-theme="neumorphism"] .vg-upload, body[data-theme="neumorphism"] .vg-stage { box-shadow: var(--shadow-in-sm); }
-body[data-theme="liquid-glass"] .vg-editor { background: rgba(255,255,255,.08); backdrop-filter: blur(var(--backdrop-blur)); border: 1px solid var(--border); box-shadow: var(--glass-shadow); }
+body[data-theme="liquid-glass"] .vg-editor { background: rgba(255,255,255,.28); border: 1px solid var(--border); box-shadow: var(--glass-shadow); }
 @media (max-width: 900px) { .vg-layout { grid-template-columns: minmax(200px, 230px) minmax(0, 1fr); gap: 20px; } .vg-presets { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 720px) { .vg-layout { grid-template-columns: minmax(0, 1fr); } .vg-upload { min-height: 130px; } .vg-tips { display: none; } .vg-filelist { max-height: 210px; } .vg-editor { padding: 16px; } .vg-empty { min-height: 250px; } .vg-steps { gap: 18px; font-size: .76rem; } .vg-left-actions { flex-direction: row; flex-wrap: wrap; } .vg-advanced summary span { display: block; margin: 6px 0 0 17px; } .vg-gen-area { flex-wrap: wrap; } .vg-gen-area > .btn { width: 100%; } .vg-preview-toolbar { gap: 8px; } .vg-crop-info { flex-basis: 100%; order: 3; } .vg-time-field input { width: 75px; } .vg-result { padding: 14px; } }
 @media (prefers-reduced-motion: reduce) { .vg-layout * { transition: none !important; } }

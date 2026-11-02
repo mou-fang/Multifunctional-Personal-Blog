@@ -20,6 +20,10 @@
   let ac = null;
   let rafId = null;
   let mounted = false;
+  const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let lastFrameTime = null;
+  let lastDriftTime = null;
+  let suspendedAt = null;
   const activeTurnFinishers = new Set();
 
   // --- Module-level state (persists across mount/unmount) ---
@@ -344,13 +348,10 @@
   // ---------------------------------------------------------------- whole-cube view rotation
   function renderCube() {
     if (scatterMode === "gathering") return;
-    if (lockedView && scatterMode === "scattered") {
-      cube.style.transform = `rotateX(${lockedView.rx}deg) rotateY(${lockedView.ry}deg)`;
-      return;
-    }
-    const ptx = parallaxX * 3;
-    const pty = parallaxY * 3;
-    cube.style.transform = `rotateX(${rotX + pty}deg) rotateY(${rotY + ptx}deg)`;
+    const rx = lockedView && scatterMode === "scattered" ? lockedView.rx : rotX + parallaxY * 3;
+    const ry = lockedView && scatterMode === "scattered" ? lockedView.ry : rotY + parallaxX * 3;
+    const transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+    if (cube.style.transform !== transform) cube.style.transform = transform;
   }
 
   // ================================================================
@@ -372,17 +373,14 @@
     if (!axisInner || scatterMode === "cube") return;
     const rx = lockedView ? lockedView.rx : (rotX + parallaxY * 3);
     const ry = lockedView ? lockedView.ry : (rotY + parallaxX * 3);
-    axisInner.style.transform =
-      "rotateX(" + rx + "deg) rotateY(" + ry + "deg)";
+    const transform = "rotateX(" + rx + "deg) rotateY(" + ry + "deg)";
+    if (axisInner.style.transform !== transform) axisInner.style.transform = transform;
   }
 
   function applyScatterPose(c, pose) {
     c._scatterPose = pose;
-    if (pose.opacity == null || pose.opacity >= 0.999) {
-      c.el.style.opacity = "";
-    } else {
-      c.el.style.opacity = String(pose.opacity);
-    }
+    const opacity = pose.opacity == null || pose.opacity >= 0.999 ? "" : String(pose.opacity);
+    if (c.el.style.opacity !== opacity) c.el.style.opacity = opacity;
     c.el.style.transform =
       "translate3d(" + pose.x + "px," + pose.y + "px," +
       (pose.z || 0) + "px) " +
@@ -394,7 +392,8 @@
       "scale3d(" + (pose.scale == null ? 1 : pose.scale) + "," +
       (pose.scale == null ? 1 : pose.scale) + "," +
       (pose.scale == null ? 1 : pose.scale) + ")";
-    c.core.style.transform = matrix3dCss(c.orient, 0, 0, 0);
+    const orientation = matrix3dCss(c.orient, 0, 0, 0);
+    if (c.core.style.transform !== orientation) c.core.style.transform = orientation;
   }
 
   function clonePose(pose) {
@@ -430,7 +429,8 @@
   }
 
   function canScatter() {
-    return !dragging && !turning && queue.length === 0 && !resetting;
+    return !motionQuery.matches && !document.hidden &&
+      !dragging && !turning && queue.length === 0 && !resetting;
   }
 
   function syncScatterPerspective() {
@@ -519,6 +519,7 @@
       items,
       onDone,
     };
+    startLoop();
   }
 
   function runScatterAnimation(time) {
@@ -538,7 +539,11 @@
   }
 
   function updateScatterDrift(time) {
-    if (scatterMode !== "scattered") return;
+    if (scatterMode !== "scattered" || motionQuery.matches) return;
+    // These blocks are decorative; interaction and gather/turn animations keep
+    // their native cadence. Budget only the settled background drift to 30Hz.
+    if (lastDriftTime !== null && time - lastDriftTime < 1000 / 30) return;
+    lastDriftTime = time;
     const t = (time - scatterDriftStartedAt) * 0.001;
     cubelets.forEach((c, i) => {
       const d = scatterData[i];
@@ -710,6 +715,7 @@
 
   function scheduleScatter(delay) {
     clearTimeout(scatterTimer);
+    if (motionQuery.matches || document.hidden || !mounted) return;
     scatterTimer = setTimeout(() => {
       if (!mouseOverHero && !scattered && canScatter()) scatterCubelets();
     }, delay);
@@ -731,33 +737,82 @@
   function resetIdleTimer() {
     idleSpinActive = false;
     clearTimeout(idleTimer);
+    if (motionQuery.matches || document.hidden || !mounted) return;
     idleTimer = setTimeout(() => {
       idleSpinActive = true;
+      startLoop();
       if (!mouseOverHero && !scattered && canScatter()) scheduleScatter(0);
     }, 1800);
   }
 
   // ---------------------------------------------------------------- main loop
+  function startLoop() {
+    if (!mounted || document.hidden || rafId !== null) return;
+    lastFrameTime = null;
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function pauseLoop() {
+    if (rafId !== null) cancelAnimationFrame(rafId);
+    rafId = null;
+    if (suspendedAt === null) suspendedAt = performance.now();
+    clearTimeout(scatterTimer);
+    clearTimeout(idleTimer);
+  }
+
+  function resumeLoop() {
+    if (!mounted || document.hidden) return;
+    if (suspendedAt !== null) {
+      const pausedFor = performance.now() - suspendedAt;
+      if (scatterAnimation) scatterAnimation.startedAt += pausedFor;
+      scatterDriftStartedAt += pausedFor;
+      suspendedAt = null;
+    }
+    lastDriftTime = null;
+    resetIdleTimer();
+    startLoop();
+  }
+
+  function syncMotion() {
+    if (motionQuery.matches) {
+      clearTimeout(scatterTimer);
+      clearTimeout(idleTimer);
+      idleSpinActive = false;
+      if (scattered) gatherCubelets();
+    } else {
+      resetIdleTimer();
+    }
+    startLoop();
+  }
+
   function tick(time) {
+    rafId = null;
+    if (!mounted || document.hidden) return;
+    const frameScale = lastFrameTime === null ? 1 : Math.min(3, (time - lastFrameTime) / (1000 / 60));
+    lastFrameTime = time;
     if (!dragging) {
       if (scatterMode === "scattered" || scatterMode === "gathering") {
         // View is frozen during scatter/gather
       } else if (Math.abs(vx) > 0.01 || Math.abs(vy) > 0.01) {
-        rotY += vx;
-        rotX += vy;
+        rotY += vx * frameScale;
+        rotX += vy * frameScale;
         rotX = Math.max(-80, Math.min(80, rotX));
-        vx *= 0.94;
-        vy *= 0.94;
-      } else if (idleSpinActive && !turning && queue.length === 0 && !scattered) {
-        rotY += 0.18;
-        rotX += Math.sin(performance.now() / 2800) * 0.02;
+        vx *= Math.pow(0.94, frameScale);
+        vy *= Math.pow(0.94, frameScale);
+      } else if (!motionQuery.matches && idleSpinActive && !turning && queue.length === 0 && !scattered) {
+        rotY += 0.18 * frameScale;
+        rotX += Math.sin(time / 2800) * 0.02 * frameScale;
       }
     }
     renderCube();
     syncAxis();
     runScatterAnimation(time);
     updateScatterDrift(time);
-    rafId = requestAnimationFrame(tick);
+    const moving = dragging || Math.abs(vx) > 0.01 || Math.abs(vy) > 0.01 || scatterAnimation ||
+      (!motionQuery.matches && (idleSpinActive || scatterMode === "scattered"));
+    if (moving) {
+      rafId = requestAnimationFrame(tick);
+    }
   }
 
   // ---------------------------------------------------------------- drag
@@ -901,6 +956,17 @@
   }
 
   function wireEvents(signal) {
+    // A reduced-motion page draws only in response to interaction. All of these
+    // listeners are owned by the page's AbortController and leave with it.
+    document.addEventListener("pointermove", startLoop, { passive: true, signal });
+    container.addEventListener("click", startLoop, { signal });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) pauseLoop();
+      else resumeLoop();
+    }, { signal });
+    window.addEventListener("pagehide", pauseLoop, { signal });
+    window.addEventListener("pageshow", resumeLoop, { signal });
+    motionQuery.addEventListener("change", syncMotion, { signal });
     // Turn buttons
     container.querySelectorAll("[data-cube-turn]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
@@ -940,6 +1006,7 @@
 
     // Keyboard
     window.addEventListener("keydown", (e) => {
+      startLoop();
       if (scattered) return;
       if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
       if (e.key === "Escape") {
@@ -1031,13 +1098,14 @@
     scatterAnimation = null;
     scatterTimer = 0;
     scatterDriftStartedAt = 0;
+    lastFrameTime = lastDriftTime = suspendedAt = null;
     mouseOverHero = false;
 
     buildCubeDOM();
     wireEvents(signal);
 
     resetIdleTimer();
-    rafId = requestAnimationFrame(tick);
+    startLoop();
   }
 
   function unmount() {

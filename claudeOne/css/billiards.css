@@ -254,8 +254,6 @@ body[data-theme="neumorphism"] .billiards-overlay__card {
 body[data-theme="liquid-glass"] .billiards-overlay__card {
   position: relative;
   background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
   border: 1px solid var(--border);
   box-shadow: var(--glass-shadow);
 }
@@ -436,8 +434,6 @@ body[data-theme="neumorphism"] .billiards-action:active { box-shadow: var(--shad
 
 body[data-theme="liquid-glass"] .billiards-action {
   background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
   border: 1px solid var(--border);
   box-shadow: var(--glass-shadow-sm);
 }

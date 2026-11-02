@@ -1,20 +1,6 @@
 /* ===== claudeOne :: animations.css ===== */
 /* Keyframes + shared transition utilities. Reveal-on-scroll, page enter,
-   ambient orb drift, toggle ripple, etc. */
-
-/* ===== Ambient orb drift (liquid-glass) ===== */
-@keyframes orbA {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(4vw, 5vh, 0) scale(1.08); }
-}
-@keyframes orbB {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(-5vw, -4vh, 0) scale(1.05); }
-}
-@keyframes orbC {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(-3vw, 6vh, 0) scale(1.12); }
-}
+   toggle ripple, etc. */
 
 /* ===== Reveal on enter ===== */
 .page-chunk {
@@ -75,7 +61,6 @@ body[data-route-state="exiting"] .page-stack {
     rgba(111, 155, 255, 0.35) 0%,
     transparent 65%
   );
-  filter: blur(24px);
   z-index: -1;
   animation: cubeAura 8s var(--ease-in-out) infinite;
 }
@@ -201,4 +186,11 @@ body[data-theme="liquid-glass"] .cube-stage::before {
   transition: transform var(--dur) var(--ease-out),
     box-shadow var(--dur) var(--ease-out),
     opacity var(--dur) var(--ease-out);
+}
+
+/* The shell owns document visibility; background tabs need no CSS animation. */
+body[data-page-hidden="true"] *,
+body[data-page-hidden="true"] *::before,
+body[data-page-hidden="true"] *::after {
+  animation-play-state: paused !important;
 }
