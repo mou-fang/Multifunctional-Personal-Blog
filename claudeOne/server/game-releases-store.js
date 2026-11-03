@@ -111,9 +111,27 @@ function contentRevision(snapshot) {
   return hash(JSON.stringify({ schemaVersion: 1, date: snapshot.date, windowEnd: snapshot.windowEnd, timeZone: snapshot.timeZone, weeklyPoster: snapshot.weeklyPoster, items: snapshot.items }));
 }
 function emptySnapshot() { return { schemaVersion: 1, revision: null, date: null, windowEnd: null, timeZone: "Asia/Shanghai", generatedAt: null, weeklyPoster: null, items: [] }; }
-async function readSnapshot(dir) {
-  try { return validateSnapshot(await readJson(path.join(dir, "current.json"))); }
-  catch (error) { if (error.code === "ENOENT") return emptySnapshot(); throw error; }
+async function readSnapshot(dir, { autoRepair = true } = {}) {
+  const currentFile = path.join(dir, "current.json");
+  try {
+    return validateSnapshot(await readJson(currentFile));
+  } catch (error) {
+    if (error.code === "ENOENT") return emptySnapshot();
+    if (autoRepair && error.message === "快照内容校验失败") {
+      try {
+        const raw = await readJson(currentFile);
+        const snapshot = validateSnapshot(raw, { checkRevision: false });
+        const realRevision = contentRevision(snapshot);
+        snapshot.revision = realRevision;
+        raw.revision = realRevision;
+        await atomicFile(currentFile, JSON.stringify(raw, null, 2) + "\n");
+        return snapshot;
+      } catch {
+        // 如果自愈也失败，继续向外抛出原本错误
+      }
+    }
+    throw error;
+  }
 }
 async function previousSnapshot(dir) {
   try { return validateSnapshot(await readJson(path.join(dir, "previous.json"))); }
