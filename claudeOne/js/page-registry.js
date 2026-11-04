@@ -123,7 +123,8 @@ return Object.freeze({
   "city-shuttle": {
     path: "/games/city-shuttle",
     indexable: true,
-    updated: "2026-11-02",
+    updated: "2026-11-04",
+    mobile: { required: true, reason: "当前游戏需要键盘、鼠标和 WebGL2，尚未提供触屏飞行操作。" },
     help: {
       "steps": [
         "使用桌面键鼠，点击进入城市后再操作。",
@@ -228,7 +229,8 @@ return Object.freeze({
   beads: {
     path: "/tools/beads",
     indexable: true,
-    updated: "2026-11-02",
+    updated: "2026-11-04",
+    mobile: { required: false, reason: "逐格精修和图层操作在手机小屏上较难准确完成，使用电脑会更方便。" },
     help: {
       "steps": [
         "导入图片并选择图纸尺寸和色卡。",
@@ -364,10 +366,10 @@ return Object.freeze({
   snake: {
     path: "/games/snake",
     indexable: true,
-    updated: "2026-11-02",
+    updated: "2026-11-04",
     help: {
       "steps": [
-        "使用方向键或 W/A/S/D 控制方向，按照界面提示开始游戏。",
+        "电脑使用方向键或 W/A/S/D；手机点击方向按钮开始，也可在棋盘上滑动转向。",
         "进入竞技场后收集食物和道具，躲避对手及障碍。"
       ],
       "limits": [
@@ -609,7 +611,7 @@ return Object.freeze({
   pixel: {
     path: "/tools/pixel",
     indexable: true,
-    updated: "2026-11-02",
+    updated: "2026-11-04",
     help: {
       "steps": [
         "选择图片并调整像素尺寸与调色板。",
@@ -717,7 +719,8 @@ return Object.freeze({
   videogif: {
     path: "/tools/videogif",
     indexable: true,
-    updated: "2026-11-02",
+    updated: "2026-11-04",
+    mobile: { required: false, reason: "视频裁剪和 GIF 编码较占内存，手机处理长视频或高分辨率素材时可能卡顿。" },
     help: {
       "steps": [
         "导入视频，选择起止片段和裁剪范围。",
@@ -744,14 +747,15 @@ return Object.freeze({
   doom: {
     path: "/games/doom",
     indexable: true,
-    updated: "2026-11-02",
+    updated: "2026-11-04",
+    mobile: { required: true, reason: "当前版本需要键盘移动和射击，尚未提供手机触屏控制。" },
     help: {
       "steps": [
         "使用桌面键鼠，在开始界面查看控制说明并进入游戏。",
         "按页面提示移动、瞄准和射击，可使用暂停或全屏。"
       ],
       "limits": [
-        "首次进入需下载游戏资源，设备需支持 WebAssembly；使用的是 Freedoom 自由数据。"
+        "首次进入需下载游戏资源，设备需支持 WebAssembly 和键盘操作；手机端显示电脑使用提示，不加载游戏引擎。"
       ],
       "faq": [
         [

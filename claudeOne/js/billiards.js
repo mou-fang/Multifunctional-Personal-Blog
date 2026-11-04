@@ -1041,7 +1041,7 @@
 
   function onPointerUp(e) {
     if (game.state !== ST_AIMING) return;
-    var p = game.aim.power;
+    var p = e.type === "pointercancel" || e.type === "lostpointercapture" ? 0 : game.aim.power;
     game.aim.active = false;
     if (els.powerWrap) els.powerWrap.hidden = true;
     if (p < 0.05) {
@@ -1066,6 +1066,7 @@
     canvas.addEventListener("pointermove", onPointerMove, { signal: sig });
     canvas.addEventListener("pointerup", onPointerUp, { signal: sig });
     canvas.addEventListener("pointercancel", onPointerUp, { signal: sig });
+    canvas.addEventListener("lostpointercapture", onPointerUp, { signal: sig });
     canvas.addEventListener("pointerleave", onPointerLeave, { signal: sig });
     canvas.addEventListener("contextmenu", function (e) { e.preventDefault(); }, { signal: sig });
   }
@@ -1102,6 +1103,7 @@
     var cssW = (TABLE_W + 2 * CUSHION) * pxPerCm;
     var cssH = (TABLE_H + 2 * CUSHION) * pxPerCm;
     var dpr = window.devicePixelRatio || 1;
+    if (window.ClaudeOneDevice) dpr = window.ClaudeOneDevice.canvasPixelRatio(dpr);
 
     canvas.width = Math.round(cssW * dpr);
     canvas.height = Math.round(cssH * dpr);

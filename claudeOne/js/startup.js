@@ -36,8 +36,16 @@
 
     loadSequence(["/js/softui-background-renderer.js", "/js/softui-background.js"])
       .catch(function (error) { console.warn("[startup]", error.message); });
-    loadSequence(["/js/deepseek-client.js", "/js/assistant.js", "/js/easter-egg.js"])
-      .catch(function (error) { console.warn("[startup]", error.message); });
+    var assistantStarted = false;
+    function startDesktopAssistant() {
+      if (assistantStarted || window.ClaudeOneDevice && window.ClaudeOneDevice.isCompact()) return;
+      assistantStarted = true;
+      loadSequence(["/js/deepseek-client.js", "/js/assistant.js", "/js/easter-egg.js"])
+        .catch(function (error) { console.warn("[startup]", error.message); });
+    }
+    startDesktopAssistant();
+    if (window.matchMedia) window.matchMedia("(max-width: 760px), (hover: none) and (pointer: coarse)")
+      .addEventListener("change", startDesktopAssistant);
   }
 
   function onReady() {

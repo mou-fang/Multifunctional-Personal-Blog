@@ -162,6 +162,48 @@
     return null;
   }
 
+  function mobileSupport(meta) {
+    return window.ClaudeOneDevice && window.ClaudeOneDevice.support(meta);
+  }
+
+  function pageScripts(meta) {
+    // Desktop-only engines and large editing modules stay unloaded until useful.
+    return mobileSupport(meta) ? Promise.resolve() : loadJSSeq(meta.js || []);
+  }
+
+  function mountPage(main, pageName, meta) {
+    if (!mobileSupport(meta)) {
+      currentLifecycle = getLifecycle(meta);
+      if (currentLifecycle && typeof currentLifecycle.mount === "function") currentLifecycle.mount(main);
+      return;
+    }
+    var cancelled = false, lifecycle = null;
+    var notice = window.ClaudeOneDevice.guard(main, meta, function () {
+      loadJSSeq(meta.js || []).then(function () {
+        // A tap followed by navigation must not mount into a detached page.
+        if (cancelled || currentPage !== pageName || isNavigating) return;
+        lifecycle = getLifecycle(meta);
+        if (lifecycle && typeof lifecycle.mount === "function") {
+          try { lifecycle.mount(main); } catch (error) { console.warn("[router] mobile mount error:", error); }
+        }
+        if (lifecycle) Object.keys(lifecycle).forEach(function (key) {
+          if (key !== "unmount") currentLifecycle[key] = lifecycle[key];
+        });
+        if (window.ClaudeOne) window.ClaudeOne.refreshReveal();
+      });
+    });
+    currentLifecycle = { unmount: function () {
+      cancelled = true;
+      notice.destroy();
+      if (lifecycle && typeof lifecycle.unmount === "function") lifecycle.unmount();
+    } };
+  }
+
+  function transitionDuration() {
+    return window.ClaudeOneDevice && window.ClaudeOneDevice.isCompact() ||
+      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : TRANSITION_MS;
+  }
+
   /* ---- Core navigation ---------------------------------------------------- */
   function navigateTo(pageName, opts) {
     opts = opts || {};
@@ -204,7 +246,7 @@
     // Other routes keep their existing resource/exit overlap.
     var hasCurrentPage = currentPage !== null;
     (meta.css || []).forEach(function (url) { loadCSS(url); });
-    var scriptsReady = loadJSSeq(meta.js || []);
+    var scriptsReady = pageScripts(meta);
     var preparationReady = Promise.resolve();
     if (meta.prepare) {
       document.body.setAttribute("data-route-state", hasCurrentPage ? "preparing" : "loading");
@@ -229,7 +271,7 @@
       if (hasCurrentPage) document.body.removeAttribute("data-initial-route");
       document.body.setAttribute("data-route-state", hasCurrentPage ? "exiting" : "loading");
 
-      return sleep(hasCurrentPage ? TRANSITION_MS : 0).then(function () {
+      return sleep(hasCurrentPage ? transitionDuration() : 0).then(function () {
         // 3. Load CSS
         (meta.css || []).forEach(function (url) { loadCSS(url); });
 
@@ -257,11 +299,7 @@
           // Give scripts a microtask to register their lifecycle
           setTimeout(function () {
             updateURL(pageName, opts);
-            currentLifecycle = getLifecycle(meta);
-
-            if (currentLifecycle && typeof currentLifecycle.mount === "function") {
-              try { currentLifecycle.mount(main); } catch (e) { console.warn("[router] mount error:", e); }
-            }
+            try { mountPage(main, pageName, meta); } catch (e) { console.warn("[router] mount error:", e); }
 
             // 6. Keep the head consistent with the address, without replacing the shell.
             document.body.setAttribute("data-page", pageName);
@@ -351,13 +389,9 @@
 
       // Load page JS and try to mount
       if (meta) {
-        var loadPromises = (meta.js || []).map(function (url) { return loadJS(url).catch(function () {}); });
-        Promise.all(loadPromises).then(function () {
+        pageScripts(meta).then(function () {
           setTimeout(function () {
-            currentLifecycle = getLifecycle(meta);
-            if (currentLifecycle && typeof currentLifecycle.mount === "function") {
-              try { currentLifecycle.mount(main); } catch (e) { console.warn("[router] initial mount error:", e); }
-            }
+            try { mountPage(main, initialRoute, meta); } catch (e) { console.warn("[router] initial mount error:", e); }
             resolveReady(initialRoute);
           }, 10);
         });

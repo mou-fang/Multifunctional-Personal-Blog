@@ -2424,6 +2424,7 @@ var CAMERA_SMOOTH = 0.09;
     if (!parent) return;
     var rect = parent.getBoundingClientRect();
     var dpr = window.devicePixelRatio || 1;
+    if (window.ClaudeOneDevice) dpr = window.ClaudeOneDevice.canvasPixelRatio(dpr);
     canvas.width = W * dpr;
     canvas.height = H * dpr;
     canvas.style.width = "100%";

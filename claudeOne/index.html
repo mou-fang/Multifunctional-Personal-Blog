@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="/css/page-help.css" />
   <link rel="stylesheet" href="/css/assistant.css" />
   <link rel="stylesheet" href="/css/easter-egg.css" />
+  <link rel="stylesheet" href="/css/mobile.css" />
   <!-- Page-specific CSS loaded on demand by router -->
 </head>
 <body data-page="home" data-route-state="idle" data-initial-route="true">
@@ -662,6 +663,7 @@
   <script src="/js/config.js" defer></script>
   <script src="/js/page-registry.js?v=20261025-current-list" defer></script>
   <script src="/js/site-pages.js" defer></script>
+  <script src="/js/device-support.js" defer></script>
   <script src="/js/shell.js?v=20261025-release-reveal" defer></script>
   <script src="/js/startup.js?v=20261005-cache" defer></script>
   <script src="/js/router.js?v=20261009-preparation" defer></script>
@@ -2430,6 +2432,12 @@
           </div>
         </div>
 
+        <div class="snake-touch" role="group" aria-label="手机方向控制">
+          <button class="btn" data-snake-dir="UP" type="button" aria-label="向上">↑</button>
+          <button class="btn" data-snake-dir="LEFT" type="button" aria-label="向左">←</button>
+          <button class="btn" data-snake-dir="DOWN" type="button" aria-label="向下">↓</button>
+          <button class="btn" data-snake-dir="RIGHT" type="button" aria-label="向右">→</button>
+        </div>
         <div class="snake-active-buffs" data-snake-buffs>
           <!-- Active buffs appear here as pills -->
         </div>

@@ -44,8 +44,10 @@
 
     loadSequence(["../js/softui-background-renderer.js", "../js/softui-background.js"])
       .catch(function (error) { console.warn("[startup]", error.message); });
-    loadSequence(["../js/deepseek-client.js", "../lens-preview/assistant-preview.js"])
-      .catch(function (error) { console.warn("[startup]", error.message); });
+    if (!window.ClaudeOneDevice || !window.ClaudeOneDevice.isCompact()) {
+      loadSequence(["../js/deepseek-client.js", "../lens-preview/assistant-preview.js"])
+        .catch(function (error) { console.warn("[startup]", error.message); });
+    }
   }
 
   function onReady() {

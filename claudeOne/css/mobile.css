@@ -1,0 +1,116 @@
+/* Shared mobile shell. Page canvases keep their own interaction rules. */
+[data-mobile-blocked] > :not(.mobile-desktop-note):not(.page-help) { display: none !important; }
+.mobile-desktop-note { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); }
+.mobile-desktop-note h1 { font-size: clamp(1.6rem, 5vw, 2.4rem); }
+.mobile-desktop-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.mobile-desktop-dialog {
+  margin: auto;
+  width: min(480px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-out);
+}
+.mobile-desktop-dialog::backdrop { background: rgba(25, 38, 65, .34); }
+.mobile-desktop-dialog h2 { font-size: 1.4rem; margin-bottom: var(--space-4); }
+.mobile-desktop-dialog p { line-height: 1.7; margin-bottom: var(--space-5); }
+body[data-theme="liquid-glass"] .mobile-desktop-dialog {
+  background: rgba(245, 248, 252, .97);
+  box-shadow: var(--glass-shadow);
+}
+
+@media (max-width: 760px), (hover: none) and (pointer: coarse) {
+  html { scrollbar-gutter: auto; scroll-behavior: auto; }
+  body[data-theme="liquid-glass"] { background-attachment: scroll; }
+  /* Long lists must not reserve a GPU surface for every offscreen card. */
+  body[data-theme="liquid-glass"] :is(.site-header, .card, .qr-preview, .qr-params,
+    .compress-upload, .compress-params, .compress-table-wrap, .beads-commandbar,
+    .beads-canvas-panel, .beads-inspector, .cube-hero, .visitor-pulse) { will-change: auto; }
+  body .page-chunk, body .page-chunk[data-revealed="true"],
+  body[data-route-state="exiting"] .page-stack {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  body .theme-transition-overlay { display: none; }
+  body .cube-stage::before { animation: none; }
+  body .wheel-halo, body .bulb,
+  body .release-card__badge[data-release-state="today"] { animation: none; }
+  body .wheel-halo { filter: none; }
+  body .cube-stage { touch-action: pan-y pinch-zoom; }
+  body .cubelet, body .cube { will-change: auto; }
+  body .global-player, body .site-assistant {
+    transition: opacity 160ms ease;
+    animation: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  body .site-assistant { display: none !important; }
+  body[data-theme="liquid-glass"] :is(.global-player, .global-player[data-minimized], .site-assistant) {
+    background-color: rgba(245, 248, 252, .94);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  body .site-shell { padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+  body input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+  body textarea, body select { font-size: 16px; }
+}
+
+@media (max-width: 600px) {
+  body .site-shell { padding-inline: 12px; gap: var(--space-5); }
+  body .site-header { padding: 12px; gap: 12px; }
+  body .site-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; }
+  body .site-nav a { min-height: 44px; padding: 12px 2px; text-align: center; white-space: nowrap; font-size: .82rem; }
+  body .header-actions { margin-left: auto; gap: 8px; }
+  body .brand-text strong { font-size: .92rem; }
+  body .github-link__label, body .github-link__arrow { display: none; }
+  body .github-link { padding: 6px; }
+  body .theme-toggle { gap: 6px; padding: 7px; }
+  body .theme-toggle__label { font-size: .65rem; }
+  body .global-player[data-minimized] {
+    --player-mini-width: 144px;
+    --player-mini-height: 56px;
+    left: auto;
+    right: max(8px, env(safe-area-inset-right, 0px));
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    border-radius: 18px;
+    transform: none;
+  }
+  body .global-player[data-minimized] .global-player__inner { flex-direction: row; gap: 2px; padding: 6px; }
+  body .global-player[data-minimized] .global-player__cover-wrap { display: none; }
+  body .global-player[data-minimized] .global-player__controls { flex-direction: row; gap: 0; }
+  body .global-player[data-minimized] :is([data-gp-play], [data-gp-next], [data-gp-expand]) {
+    position: static;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    margin: 0;
+    padding: 0;
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  body .global-player:not([data-minimized]) { width: 100%; height: calc(128px + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body .global-player:not([data-minimized]) .global-player__inner { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; grid-template-rows: auto 44px; gap: 4px 10px; padding: 8px 12px; }
+  body .global-player:not([data-minimized]) .global-player__cover-wrap { width: 44px; height: 44px; grid-column: 1; grid-row: 1; }
+  body .global-player:not([data-minimized]) .global-player__center { grid-column: 2; grid-row: 1; }
+  body .global-player:not([data-minimized]) .global-player__controls { display: contents; }
+  body .global-player:not([data-minimized]) .global-player__btn { width: 44px; height: 44px; grid-row: 2; }
+  body .global-player:not([data-minimized]) [data-gp-prev] { grid-column: 1; }
+  body .global-player:not([data-minimized]) [data-gp-play] { grid-column: 2; justify-self: start; }
+  body .global-player:not([data-minimized]) [data-gp-next] { grid-column: 2; justify-self: center; }
+  body .global-player:not([data-minimized]) [data-gp-mode] { display: none; }
+  body .global-player:not([data-minimized]) [data-gp-playlist] { grid-column: 2; justify-self: end; }
+  body .global-player:not([data-minimized]) [data-gp-expand] { grid-column: 3; grid-row: 1; width: 44px; }
+  body .global-player:not([data-minimized]) .global-player__volume-group { display: none; }
+  body[data-player-expanded] .site-shell { padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)); }
+  body .chat-shell { min-height: 0; height: max(480px, calc(100dvh - 230px)); }
+  body .chat-messages { min-height: 0; overscroll-behavior: contain; }
+}

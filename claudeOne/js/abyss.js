@@ -116,6 +116,7 @@
     var parent = canvas.parentElement;
     var rect = parent.getBoundingClientRect();
     var dpr = host.devicePixelRatio || 1;
+    if (host.ClaudeOneDevice) dpr = host.ClaudeOneDevice.canvasPixelRatio(dpr);
     canvas.width = Math.round(CFG.W * dpr);
     canvas.height = Math.round(CFG.H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

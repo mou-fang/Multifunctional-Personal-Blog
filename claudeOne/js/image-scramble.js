@@ -510,7 +510,9 @@
     var running = false;
     var lastSwap = 0;
     var lastDraw = 0;
-    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    var compactQuery = window.matchMedia("(max-width: 760px), (hover: none) and (pointer: coarse)");
+    var inView = true;
     var pointer = { x: -1000, y: -1000, px: -1000, py: -1000, speed: 0, heat: 0 };
 
     function clamp(value, min, max) {
@@ -551,10 +553,11 @@
           });
         }
       }
+      sync();
     }
 
     function swapTargets(now) {
-      if (now - lastSwap < (reduceMotion ? 1300 : 430)) return;
+      if (now - lastSwap < 430) return;
       lastSwap = now;
       var swaps = Math.max(2, Math.round(tiles.length / 75));
       for (var i = 0; i < swaps; i++) {
@@ -573,9 +576,11 @@
     }
 
     function draw(now) {
-      if (!running) return;
-      raf = requestAnimationFrame(draw);
-      if (reduceMotion && now - lastDraw < 80) return;
+      raf = 0;
+      if (!running || !inView || document.hidden) return;
+      var reduceMotion = motionQuery.matches || compactQuery.matches;
+      if (!reduceMotion) raf = requestAnimationFrame(draw);
+      if (!reduceMotion && now - lastDraw < 1000 / 30) return;
       lastDraw = now;
       swapTargets(now);
       context.clearRect(0, 0, width, height);
@@ -658,8 +663,23 @@
       pointer.y = -1000;
     }
 
+    function sync() {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      lastDraw = 0;
+      draw(performance.now());
+    }
+
     stage.addEventListener("pointermove", onPointerMove, { signal: signal });
     stage.addEventListener("pointerleave", onPointerLeave, { signal: signal });
+    document.addEventListener("visibilitychange", sync, { signal: signal });
+    motionQuery.addEventListener("change", sync, { signal: signal });
+    compactQuery.addEventListener("change", sync, { signal: signal });
+    var visibilityObserver = typeof IntersectionObserver === "function" ? new IntersectionObserver(function (entries) {
+      inView = entries[0].isIntersecting;
+      sync();
+    }) : null;
+    if (visibilityObserver) visibilityObserver.observe(stage);
     var resizeObserver = typeof ResizeObserver === "function" ? new ResizeObserver(rebuild) : null;
     if (resizeObserver) resizeObserver.observe(stage);
     else window.addEventListener("resize", rebuild, { signal: signal });
@@ -671,7 +691,7 @@
         running = true;
         canvas.hidden = false;
         lastSwap = 0;
-        raf = requestAnimationFrame(draw);
+        sync();
       },
       hide: function () {
         running = false;
@@ -683,6 +703,7 @@
         running = false;
         if (raf) cancelAnimationFrame(raf);
         if (resizeObserver) resizeObserver.disconnect();
+        if (visibilityObserver) visibilityObserver.disconnect();
         tiles = [];
         trail = [];
       },

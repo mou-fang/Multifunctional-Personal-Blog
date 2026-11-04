@@ -61,6 +61,12 @@
   var canvas = null;
   var ctx = null;
   var rafId = null;
+  var controls = null;
+  var inView = true;
+  var visibilityObserver = null;
+  var lastDraw = 0;
+  var speedFeedbackTimer = null;
+  var cellSize = 20;
 
   /* ------------------------------------------------------------------ */
   /*  Game State                                                        */
@@ -717,19 +723,21 @@
     var availH = Math.min(window.innerHeight * 0.65, 680);
     var cellFromW = Math.floor(availW / COLS);
     var cellFromH = Math.floor(availH / ROWS);
-    return Math.max(14, Math.min(cellFromW, cellFromH, 24));
+    var compact = host.ClaudeOneDevice && host.ClaudeOneDevice.isCompact();
+    return Math.max(compact ? 4 : 14, Math.min(cellFromW, cellFromH, 24));
   }
 
   function resizeCanvas() {
     if (!canvas) return;
-    var cs = computeCellSize();
+    var cs = cellSize = computeCellSize();
     var w = cs * COLS;
     var h = cs * ROWS;
     var dpr = window.devicePixelRatio || 1;
+    if (host.ClaudeOneDevice) dpr = host.ClaudeOneDevice.canvasPixelRatio(dpr);
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     canvas.style.width = w + "px";
-    canvas.style.height = h + "px";
+    canvas.style.height = "auto";
     ctx = canvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
@@ -770,7 +778,7 @@
   function render() {
     if (!ctx || !canvas) return;
 
-    var cs = computeCellSize();
+    var cs = cellSize;
     var w = cs * COLS;
     var h = cs * ROWS;
     var phase = game.animationPhase || 0;
@@ -1016,6 +1024,13 @@
   }
 
   function gameLoop(timestamp) {
+    rafId = null;
+    if (!canvas || document.hidden || !inView) return;
+    if (host.ClaudeOneDevice && host.ClaudeOneDevice.isCompact() && timestamp - lastDraw < 1000 / 30) {
+      rafId = requestAnimationFrame(gameLoop);
+      return;
+    }
+    lastDraw = timestamp;
     if (!game || !game.lastTime) game.lastTime = timestamp;
     var dt = Math.min(timestamp - game.lastTime, 500);
     game.lastTime = timestamp;
@@ -1072,7 +1087,7 @@
 
     render();
 
-    rafId = requestAnimationFrame(gameLoop);
+    if (game.state === "playing") rafId = requestAnimationFrame(gameLoop);
   }
 
   /* ------------------------------------------------------------------ */
@@ -1093,7 +1108,7 @@
 
     if (els.stateEl) {
       if (game.state === "ready") {
-        els.stateEl.textContent = "按方向键开始";
+        els.stateEl.textContent = host.ClaudeOneDevice && host.ClaudeOneDevice.isCompact() ? "点方向按钮开始" : "按方向键开始";
       } else if (game.state === "playing") {
         els.stateEl.textContent = "游戏中...";
       } else if (game.state === "paused") {
@@ -1101,6 +1116,13 @@
       } else if (game.state === "over") {
         els.stateEl.textContent = "游戏结束";
       }
+    }
+
+    if (els.pauseBtn) {
+      var label = els.pauseBtn.querySelector(".snake-action__label");
+      if (label) label.textContent = game.state === "paused" ? "继续" : "暂停";
+      els.pauseBtn.setAttribute("aria-label", game.state === "paused" ? "继续游戏" : "暂停游戏");
+      els.pauseBtn.disabled = game.state === "ready" || game.state === "over";
     }
 
     /* Overlay */
@@ -1126,6 +1148,8 @@
   /* ------------------------------------------------------------------ */
 
   function handleKey(e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target && (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON|SUMMARY|A)$/.test(e.target.tagName))) return;
     var newDir = null;
 
     switch (e.key) {
@@ -1142,6 +1166,11 @@
     }
 
     e.preventDefault();
+
+    changeDirection(newDir);
+  }
+
+  function changeDirection(newDir) {
 
     if (game.state === "over") return;
 
@@ -1165,6 +1194,7 @@
     }
 
     snake.nextDir = newDir;
+    if (rafId === null) rafId = requestAnimationFrame(gameLoop);
   }
 
   function togglePause() {
@@ -1177,6 +1207,7 @@
       aiAccumulator = 0;
     }
     updateUI();
+    if (rafId === null) rafId = requestAnimationFrame(gameLoop);
   }
 
   /* ------------------------------------------------------------------ */
@@ -1197,7 +1228,7 @@
     updateBuffsUI();
     if (els.overlay) els.overlay.setAttribute("hidden", "");
     rafId = requestAnimationFrame(gameLoop);
-    if (canvas) canvas.focus();
+    if (canvas) canvas.focus({ preventScroll: true });
   }
 
   function newGame() {
@@ -1214,7 +1245,7 @@
     updateBuffsUI();
     if (els.overlay) els.overlay.setAttribute("hidden", "");
     rafId = requestAnimationFrame(gameLoop);
-    if (canvas) canvas.focus();
+    if (canvas) canvas.focus({ preventScroll: true });
   }
 
   /* ------------------------------------------------------------------ */
@@ -1223,33 +1254,28 @@
 
   var touchStartX = 0;
   var touchStartY = 0;
+  var touchId = null;
 
   function handleTouchStart(e) {
-    if (e.touches.length !== 1) return;
+    if (e.touches.length !== 1) { touchId = null; return; }
+    touchId = e.touches[0].identifier;
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
   }
 
   function handleTouchEnd(e) {
-    if (game.state === "over") return;
-    var endX = e.changedTouches.length > 0 ? e.changedTouches[0].clientX : touchStartX;
-    var endY = e.changedTouches.length > 0 ? e.changedTouches[0].clientY : touchStartY;
+    if (touchId === null || game.state === "over") return;
+    var tracked = Array.from(e.changedTouches).find(function (point) { return point.identifier === touchId; });
+    touchId = null;
+    if (!tracked) return;
+    var endX = tracked.clientX;
+    var endY = tracked.clientY;
     var dx = endX - touchStartX;
     var dy = endY - touchStartY;
     var absDx = Math.abs(dx);
     var absDy = Math.abs(dy);
 
     if (absDx < 20 && absDy < 20) return; // too small, ignore
-
-    if (game.state === "ready") {
-      game.state = "playing";
-      game.lastTime = 0;
-      playerAccumulator = 0;
-      aiAccumulator = 0;
-      updateUI();
-    }
-
-    if (game.state !== "playing") return;
 
     var newDir;
     if (absDx > absDy) {
@@ -1258,9 +1284,20 @@
       newDir = dy > 0 ? DIR.DOWN : DIR.UP;
     }
 
-    var snake = game.snakes[0];
-    if (snake.body.length > 1 && isOppositeDir(newDir, snake.dir)) return;
-    snake.nextDir = newDir;
+    changeDirection(newDir);
+  }
+
+  function syncVisibility() {
+    if (!canvas) return;
+    if (document.hidden || !inView) {
+      if (game.state === "playing") { game.state = "paused"; updateUI(); }
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = null;
+      touchId = null;
+    } else {
+      game.lastTime = lastDraw = 0;
+      if (rafId === null) rafId = requestAnimationFrame(gameLoop);
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -1274,6 +1311,9 @@
   /* ------------------------------------------------------------------ */
 
   function mount(el) {
+    controls = new AbortController();
+    inView = true;
+    lastDraw = 0;
     container = el;
 
     /* Cache DOM elements */
@@ -1328,12 +1368,24 @@
 
     /* Keyboard */
     canvas.setAttribute("tabindex", "0");
-    canvas.focus();
+    canvas.focus({ preventScroll: true });
     document.addEventListener("keydown", handleKey);
 
     /* Touch */
     canvas.addEventListener("touchstart", handleTouchStart, { passive: true });
     canvas.addEventListener("touchend", handleTouchEnd, { passive: true });
+    canvas.addEventListener("touchcancel", function () { touchId = null; }, { signal: controls.signal });
+    document.addEventListener("visibilitychange", syncVisibility, { signal: controls.signal });
+    if (typeof IntersectionObserver === "function") {
+      visibilityObserver = new IntersectionObserver(function (entries) { inView = entries[0].isIntersecting; syncVisibility(); });
+      visibilityObserver.observe(canvas);
+    }
+    container.querySelectorAll("[data-snake-dir]").forEach(function (button) {
+      button.addEventListener("click", function () { changeDirection(DIR[button.dataset.snakeDir]); }, { signal: controls.signal });
+    });
+    if (host.ClaudeOneDevice && host.ClaudeOneDevice.isCompact() && els.status) {
+      els.status.textContent = "点击方向按钮开始，也可在棋盘上滑动转向；暂停后点继续。离开棋盘或切到后台会自动暂停。";
+    }
 
     /* Buttons */
     if (els.restartBtn) els.restartBtn.addEventListener("click", restartGame);
@@ -1356,7 +1408,9 @@
         if (els.status) {
           var prev = els.status.textContent;
           els.status.textContent = "倍速已切换至 " + mult.toFixed(2) + "×";
-          setTimeout(function () {
+          if (speedFeedbackTimer !== null) clearTimeout(speedFeedbackTimer);
+          speedFeedbackTimer = setTimeout(function () {
+            speedFeedbackTimer = null;
             if (els.status && els.status.textContent.indexOf("倍速已切换") === 0) {
               els.status.textContent = prev;
             }
@@ -1373,6 +1427,10 @@
   }
 
   function unmount() {
+    if (speedFeedbackTimer !== null) { clearTimeout(speedFeedbackTimer); speedFeedbackTimer = null; }
+    if (controls) { controls.abort(); controls = null; }
+    if (visibilityObserver) { visibilityObserver.disconnect(); visibilityObserver = null; }
+    touchId = null;
     if (rafId) {
       cancelAnimationFrame(rafId);
       rafId = null;

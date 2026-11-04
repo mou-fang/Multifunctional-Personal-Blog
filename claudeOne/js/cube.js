@@ -21,6 +21,10 @@
   let rafId = null;
   let mounted = false;
   const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const compactQuery = window.matchMedia("(max-width: 760px), (hover: none) and (pointer: coarse)");
+  let heroVisible = true;
+  let heroObserver = null;
+  function ambientMotion() { return !motionQuery.matches && !compactQuery.matches; }
   let lastFrameTime = null;
   let lastDriftTime = null;
   let suspendedAt = null;
@@ -429,7 +433,7 @@
   }
 
   function canScatter() {
-    return !motionQuery.matches && !document.hidden &&
+    return ambientMotion() && heroVisible && !document.hidden &&
       !dragging && !turning && queue.length === 0 && !resetting;
   }
 
@@ -715,13 +719,14 @@
 
   function scheduleScatter(delay) {
     clearTimeout(scatterTimer);
-    if (motionQuery.matches || document.hidden || !mounted) return;
+    if (!ambientMotion() || !heroVisible || document.hidden || !mounted) return;
     scatterTimer = setTimeout(() => {
       if (!mouseOverHero && !scattered && canScatter()) scatterCubelets();
     }, delay);
   }
 
   function checkMouseInHero(e) {
+    if (!ambientMotion() || e.pointerType === "touch") return;
     const inHero = isPointerInHero(e.clientX, e.clientY);
     if (inHero) {
       mouseOverHero = true;
@@ -737,7 +742,7 @@
   function resetIdleTimer() {
     idleSpinActive = false;
     clearTimeout(idleTimer);
-    if (motionQuery.matches || document.hidden || !mounted) return;
+    if (!ambientMotion() || !heroVisible || document.hidden || !mounted) return;
     idleTimer = setTimeout(() => {
       idleSpinActive = true;
       startLoop();
@@ -747,7 +752,7 @@
 
   // ---------------------------------------------------------------- main loop
   function startLoop() {
-    if (!mounted || document.hidden || rafId !== null) return;
+    if (!mounted || !heroVisible || document.hidden || rafId !== null) return;
     lastFrameTime = null;
     rafId = requestAnimationFrame(tick);
   }
@@ -761,7 +766,7 @@
   }
 
   function resumeLoop() {
-    if (!mounted || document.hidden) return;
+    if (!mounted || !heroVisible || document.hidden) return;
     if (suspendedAt !== null) {
       const pausedFor = performance.now() - suspendedAt;
       if (scatterAnimation) scatterAnimation.startedAt += pausedFor;
@@ -774,7 +779,7 @@
   }
 
   function syncMotion() {
-    if (motionQuery.matches) {
+    if (!ambientMotion()) {
       clearTimeout(scatterTimer);
       clearTimeout(idleTimer);
       idleSpinActive = false;
@@ -787,7 +792,7 @@
 
   function tick(time) {
     rafId = null;
-    if (!mounted || document.hidden) return;
+    if (!mounted || !heroVisible || document.hidden) return;
     const frameScale = lastFrameTime === null ? 1 : Math.min(3, (time - lastFrameTime) / (1000 / 60));
     lastFrameTime = time;
     if (!dragging) {
@@ -799,7 +804,7 @@
         rotX = Math.max(-80, Math.min(80, rotX));
         vx *= Math.pow(0.94, frameScale);
         vy *= Math.pow(0.94, frameScale);
-      } else if (!motionQuery.matches && idleSpinActive && !turning && queue.length === 0 && !scattered) {
+      } else if (ambientMotion() && idleSpinActive && !turning && queue.length === 0 && !scattered) {
         rotY += 0.18 * frameScale;
         rotX += Math.sin(time / 2800) * 0.02 * frameScale;
       }
@@ -809,7 +814,7 @@
     runScatterAnimation(time);
     updateScatterDrift(time);
     const moving = dragging || Math.abs(vx) > 0.01 || Math.abs(vy) > 0.01 || scatterAnimation ||
-      (!motionQuery.matches && (idleSpinActive || scatterMode === "scattered"));
+      (ambientMotion() && (idleSpinActive || scatterMode === "scattered"));
     if (moving) {
       rafId = requestAnimationFrame(tick);
     }
@@ -828,6 +833,7 @@
     )
       return;
     dragging = true;
+    startLoop();
     stage.setAttribute("data-dragging", "true");
     lastX = e.clientX;
     lastY = e.clientY;
@@ -854,6 +860,7 @@
   function endDrag(e) {
     if (!dragging) return;
     dragging = false;
+    if (e.type === "pointercancel") vx = vy = 0;
     stage.removeAttribute("data-dragging");
     try { stage.releasePointerCapture && stage.releasePointerCapture(e.pointerId); } catch (ignore) {}
     resetIdleTimer();
@@ -861,6 +868,7 @@
   }
 
   function handleWindowPointerMove(e) {
+    if (!ambientMotion() || e.pointerType === "touch") return;
     if (scatterMode === "gathering") return;
     const cx = window.innerWidth / 2;
     const cy = window.innerHeight / 2;
@@ -958,7 +966,7 @@
   function wireEvents(signal) {
     // A reduced-motion page draws only in response to interaction. All of these
     // listeners are owned by the page's AbortController and leave with it.
-    document.addEventListener("pointermove", startLoop, { passive: true, signal });
+    stage.addEventListener("pointermove", startLoop, { passive: true, signal });
     container.addEventListener("click", startLoop, { signal });
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) pauseLoop();
@@ -967,6 +975,7 @@
     window.addEventListener("pagehide", pauseLoop, { signal });
     window.addEventListener("pageshow", resumeLoop, { signal });
     motionQuery.addEventListener("change", syncMotion, { signal });
+    compactQuery.addEventListener("change", syncMotion, { signal });
     // Turn buttons
     container.querySelectorAll("[data-cube-turn]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
@@ -1060,6 +1069,7 @@
   function mount(el) {
     container = el;
     mounted = true;
+    heroVisible = true;
     ac = new AbortController();
     const signal = ac.signal;
 
@@ -1103,6 +1113,14 @@
 
     buildCubeDOM();
     wireEvents(signal);
+    if (typeof IntersectionObserver === "function") {
+      heroObserver = new IntersectionObserver(entries => {
+        heroVisible = entries[0].isIntersecting;
+        if (heroVisible) resumeLoop();
+        else pauseLoop();
+      });
+      heroObserver.observe(hero);
+    }
 
     resetIdleTimer();
     startLoop();
@@ -1110,6 +1128,7 @@
 
   function unmount() {
     mounted = false;
+    if (heroObserver) { heroObserver.disconnect(); heroObserver = null; }
     activeTurnFinishers.forEach((finish) => finish());
     activeTurnFinishers.clear();
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }

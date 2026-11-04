@@ -111,6 +111,9 @@
   function mount(container) {
     unmount(); root = container.querySelector("[data-qread]"); if (!root) return;
     ac = new AbortController(); animation = new window.QRReaderAnimation($("[data-animation]"));
+    if (window.ClaudeOneDevice && window.ClaudeOneDevice.isCompact()) {
+      $("[data-motion]").hidden = true;
+    }
     listen($("[data-pick]"), "click", () => $("[data-file]").click());
     listen($("[data-file]"), "change", event => { acceptFiles(event.target.files); event.target.value = ""; });
     listen($("[data-reset]"), "click", idle);

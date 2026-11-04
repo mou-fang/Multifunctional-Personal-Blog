@@ -432,6 +432,8 @@
     }
     let raf = 0, elapsed = 0, last = 0, enabled = false, manualPause = false, disposed = false;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+    const compact = matchMedia("(max-width: 760px), (hover: none) and (pointer: coarse)");
+    let inView = true, lastDraw = 0;
     function draw(time) {
       const cycle = Math.floor(elapsed / CYCLE);
       if (cycle !== currentCycle) {
@@ -480,23 +482,28 @@
     function tick(now) {
       raf = 0;
       if (last) elapsed += Math.min(now - last, 80);
-      last = now; draw(elapsed); raf = requestAnimationFrame(tick);
+      last = now;
+      if (now - lastDraw >= 1000 / 30) { draw(elapsed); lastDraw = now; }
+      raf = requestAnimationFrame(tick);
     }
     function sync() {
       cancelAnimationFrame(raf); raf = 0; last = 0;
       if (disposed) return;
-      canvas.dataset.running = String(enabled && !manualPause && !reduced.matches && !document.hidden);
+      canvas.dataset.running = String(enabled && inView && !manualPause && !reduced.matches && !compact.matches && !document.hidden);
       if (canvas.dataset.running === "true") raf = requestAnimationFrame(tick);
-      else if (enabled) draw(reduced.matches ? 8200 : elapsed);
+      else if (enabled && inView && !document.hidden) draw(reduced.matches || compact.matches ? 8200 : elapsed);
     }
-    const resize = new ResizeObserver(() => { if (enabled) draw(reduced.matches ? 8200 : elapsed); });
+    const resize = new ResizeObserver(() => { if (enabled && inView && !document.hidden) draw(reduced.matches || compact.matches ? 8200 : elapsed); });
     resize.observe(canvas);
     document.addEventListener("visibilitychange", sync);
     reduced.addEventListener("change", sync);
+    compact.addEventListener("change", sync);
+    const visibility = new IntersectionObserver(entries => { inView = entries[0].isIntersecting; sync(); });
+    visibility.observe(canvas);
     return {
       setActive(value) { enabled = value; sync(); },
       toggle() { manualPause = !manualPause; sync(); return manualPause; },
-      destroy() { disposed = true; cancelAnimationFrame(raf); resize.disconnect(); document.removeEventListener("visibilitychange", sync); reduced.removeEventListener("change", sync); }
+      destroy() { disposed = true; cancelAnimationFrame(raf); resize.disconnect(); visibility.disconnect(); document.removeEventListener("visibilitychange", sync); reduced.removeEventListener("change", sync); compact.removeEventListener("change", sync); }
     };
   };
 })();

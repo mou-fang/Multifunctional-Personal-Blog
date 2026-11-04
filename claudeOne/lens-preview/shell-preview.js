@@ -223,7 +223,8 @@
   };
 
   function setThemeAnimated(nextTheme, origin) {
-    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (window.ClaudeOneDevice && window.ClaudeOneDevice.isCompact() ||
+        window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       applyTheme(nextTheme);
       return;
     }
@@ -287,6 +288,10 @@
     if (aheadRevealObs) aheadRevealObs.disconnect();
     const chunks = document.querySelectorAll(".page-chunk:not([data-revealed])");
     chunks.forEach((c) => {
+      if (window.ClaudeOneDevice && window.ClaudeOneDevice.isCompact()) {
+        c.setAttribute("data-revealed", "true");
+        return;
+      }
       const obs = getRevealObserver(!!c.closest("[data-reveal-ahead]"));
       if (obs) obs.observe(c);
       else c.setAttribute("data-revealed", "true");

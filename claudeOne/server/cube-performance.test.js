@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
-function harness({ reduced = false, hidden = false } = {}) {
+function harness({ reduced = false, hidden = false, compact = false } = {}) {
   let now = 0, nextId = 0;
   const frames = new Map(), timers = new Map();
   function events() {
@@ -60,14 +60,21 @@ function harness({ reduced = false, hidden = false } = {}) {
   root.querySelector = selector => selector === "[data-cube-stage]" ? stage : null;
   root.querySelectorAll = selector => selector === "[data-cube-turn]" ? [turn] : [];
   const motion = { ...events(), matches: reduced };
+  const compactMotion = { ...events(), matches: compact };
   const document = { ...events(), body, hidden, createElement: () => node(), querySelector: () => null };
-  const window = { ...events(), innerWidth: 1280, innerHeight: 800, matchMedia: () => motion };
+  const window = { ...events(), innerWidth: 1280, innerHeight: 800, matchMedia: query => query.includes("max-width") ? compactMotion : motion };
+  let visibleCallback, disconnected = false;
+  class IntersectionObserver {
+    constructor(callback) { visibleCallback = callback; }
+    observe() {}
+    disconnect() { disconnected = true; }
+  }
   class AbortController {
     constructor() { this.signal = { aborted: false, cleanup: [] }; }
     abort() { this.signal.aborted = true; this.signal.cleanup.splice(0).forEach(fn => fn()); }
   }
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../js/cube.js"), "utf8"), {
-    window, document, AbortController, console,
+    window, document, AbortController, console, IntersectionObserver,
     getComputedStyle: () => ({ perspective: "1200px", getPropertyValue: key => key === "--cubelet" ? "64" : "4" }),
     performance: { now: () => now },
     requestAnimationFrame: fn => { frames.set(++nextId, fn); return nextId; },
@@ -95,7 +102,9 @@ function harness({ reduced = false, hidden = false } = {}) {
     cube: () => stage.children.find(el => el.className === "cube"),
     scatter: () => body.children.find(el => el.className === "scatter-stage"),
     hide(value) { document.hidden = value; document.emit("visibilitychange"); },
-    reduce(value) { motion.matches = value; motion.emit("change"); }
+    reduce(value) { motion.matches = value; motion.emit("change"); },
+    visible(value) { visibleCallback([{ isIntersecting: value }]); },
+    disconnected: () => disconnected
   };
 }
 
@@ -116,11 +125,39 @@ test("cube has no frame loop while waiting for idle, and reduced motion stays st
       h.window.emit("pointermove", { clientX: 1000, clientY: 600 });
       h.document.emit("pointermove", { clientX: 1000, clientY: 600 });
       h.tick(16);
-      assert.notEqual(h.cube().style.transform, before);
+      assert.equal(h.cube().style.transform, before, "moving outside the cube no longer schedules decorative work");
+      h.stage.emit("pointerdown", { target: { closest() { return null; } }, clientX: 200, clientY: 200 });
+      h.stage.emit("pointermove", { clientX: 220, clientY: 200 });
+      h.tick(16);
+      assert.notEqual(h.cube().style.transform, before, "direct dragging remains available with reduced motion");
+      h.stage.emit("pointercancel", { type: "pointercancel" });
+      h.tick(16);
       assert.equal(h.frames.size, 0);
     }
     h.page.unmount();
   }
+});
+
+test("small screens never scatter or spin while idle, but still allow turning cube faces", async () => {
+  const h = harness({ compact: true }); h.mount(); h.tick(16); h.tick(10000);
+  assert.equal(h.frames.size, 0); assert.equal(h.timers.size, 0);
+  assert.equal(h.state().scattered, false);
+  h.turn.emit("click");
+  h.tick(350); await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(Array.from(h.state().history), ["U"]);
+  h.page.unmount();
+  assert.equal(h.disconnected(), true);
+});
+
+test("an offscreen cube releases frames and idle timers and resumes when visible", () => {
+  const h = harness(); settleScatter(h);
+  h.visible(false);
+  assert.equal(h.frames.size, 0); assert.equal(h.timers.size, 0);
+  h.sample(1000, 5);
+  h.visible(true); h.tick(16);
+  assert.equal(h.frames.size, 1);
+  h.page.unmount();
+  assert.equal(h.disconnected(), true);
 });
 
 test("background cube drift stays within 30 updates per second on high-refresh displays", () => {

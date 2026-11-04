@@ -84,6 +84,8 @@
   let selectedFile = null;
   let originalImage = null;
   let debounceTimer = null;
+  let loadVersion = 0;
+  let pendingReader = null;
   let config = loadConfig();
 
   // ===== DOM refs (rebuilt on mount) =====
@@ -341,13 +343,18 @@
       if (CS && CS.toast) CS.toast("请选择图片文件", "info");
       return;
     }
+    clearFile();
     selectedFile = file;
+    var version = loadVersion;
     var reader = new FileReader();
+    pendingReader = reader;
     reader.onload = function(e) {
-      if (!previewImg || !pixelitSrcImg) return;
+      if (!container || version !== loadVersion || !previewImg || !pixelitSrcImg) return;
+      pendingReader = null;
       previewImg.src = e.target.result;
       previewName.textContent = file.name;
       pixelitSrcImg.onload = function() {
+        if (!container || version !== loadVersion) return;
         originalImage = pixelitSrcImg;
         if (previewDims) previewDims.textContent = pixelitSrcImg.naturalWidth + " x " + pixelitSrcImg.naturalHeight;
         var inner = uploadZone ? uploadZone.querySelector(".pixel-upload__inner") : null;
@@ -356,16 +363,30 @@
         if (workspaceSection) workspaceSection.hidden = false;
         processImage();
       };
+      pixelitSrcImg.onerror = function() {
+        if (!container || version !== loadVersion) return;
+        clearFile();
+        if (CS && CS.toast) CS.toast("图片无法解码，请选择有效的 PNG、JPG、WebP 或 BMP 图片", "err");
+      };
       pixelitSrcImg.src = e.target.result;
+    };
+    reader.onerror = function() {
+      if (!container || version !== loadVersion) return;
+      clearFile();
+      if (CS && CS.toast) CS.toast("图片读取失败，请重新选择文件", "err");
     };
     reader.readAsDataURL(file);
   }
 
   function clearFile() {
+    loadVersion++;
+    if (pendingReader && pendingReader.readyState === 1) pendingReader.abort();
+    pendingReader = null;
+    clearTimeout(debounceTimer);
     selectedFile = null;
     originalImage = null;
-    if (pixelitSrcImg) pixelitSrcImg.src = "";
-    if (previewImg) previewImg.src = "";
+    if (pixelitSrcImg) { pixelitSrcImg.onload = pixelitSrcImg.onerror = null; pixelitSrcImg.removeAttribute("src"); }
+    if (previewImg) previewImg.removeAttribute("src");
     if (fileInput) fileInput.value = "";
     var inner = uploadZone ? uploadZone.querySelector(".pixel-upload__inner") : null;
     if (inner) inner.hidden = false;
@@ -374,7 +395,9 @@
     if (resultCanvas) {
       var ctx = resultCanvas.getContext("2d");
       ctx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+      resultCanvas.width = resultCanvas.height = 1;
     }
+    if (pixelitWorkCanvas) pixelitWorkCanvas.width = pixelitWorkCanvas.height = 1;
   }
 
   // ===== Core processing pipeline =====
@@ -818,6 +841,8 @@
     if (ac) { ac.abort(); ac = null; }
     clearTimeout(debounceTimer);
     debounceTimer = null;
+    clearFile();
+    pixelitSrcImg = previewImg = originalImage = resultCanvas = pixelitWorkCanvas = null;
     container = null;
   }
 

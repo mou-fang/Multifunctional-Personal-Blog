@@ -11,6 +11,7 @@
   document.body.setAttribute('data-softui-background-ready', '');
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const compact = window.matchMedia('(max-width: 760px), (hover: none) and (pointer: coarse)');
   let renderer = null;
   let attempted = false;
   let suspended = false;
@@ -18,8 +19,20 @@
   function sync() {
     const enabled = document.body.dataset.theme === 'neumorphism';
     const visible = enabled && !document.hidden && !suspended;
-    const moving = !reducedMotion.matches;
+    const moving = !reducedMotion.matches && !compact.matches;
     root.dataset.flowing = String(visible && moving);
+
+    // A native-DPR full-screen shader competes with touch scrolling on phones.
+    // Reuse the same aurora palette as a static CSS wash without a GPU context.
+    if (compact.matches) {
+      renderer?.destroy();
+      renderer = null;
+      attempted = false;
+      if (canvas.width !== 1) canvas.width = 1;
+      if (canvas.height !== 1) canvas.height = 1;
+      root.dataset.renderer = 'css';
+      return;
+    }
 
     // A saved Liquid Glass theme never allocates a hidden GPU context on load.
     if (visible && !attempted) {
@@ -39,6 +52,7 @@
   const themeObserver = new MutationObserver(sync);
   themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
   reducedMotion.addEventListener('change', sync);
+  compact.addEventListener('change', sync);
   document.addEventListener('visibilitychange', sync);
 
   window.addEventListener('pagehide', event => {
@@ -47,6 +61,7 @@
     if (!event.persisted) {
       themeObserver.disconnect();
       reducedMotion.removeEventListener('change', sync);
+      compact.removeEventListener('change', sync);
       document.removeEventListener('visibilitychange', sync);
       renderer?.destroy();
       renderer = null;

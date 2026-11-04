@@ -220,7 +220,11 @@
   var RELEASE_CARDS = [{ icon: "📅", title: "游戏发售", desc: "每周二更新未来约 8 周的发售清单，也可回看往期已发售游戏。", tags: ["发售日历", "往期回顾"], page: "game-releases" }];
 
   [GAME_CARDS, TOOL_CARDS, RELEASE_CARDS].forEach(function (cards) { cards.forEach(function (card) {
-    if (card.page || card.href) { card.page = card.page || card.href.slice(2); card.href = site.href(card.page); }
+    if (card.page || card.href) {
+      card.page = card.page || card.href.slice(2); card.href = site.href(card.page);
+      var meta = site.pages[site.key(card.page)];
+      if (meta && meta.mobile) card.tags = (card.tags || []).concat(meta.mobile.required ? "需要电脑" : "建议电脑使用");
+    }
   }); });
 
   function renderCards(cards) {

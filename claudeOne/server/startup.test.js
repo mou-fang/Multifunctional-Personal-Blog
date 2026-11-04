@@ -47,3 +47,21 @@ test("optional downloads wait until the route paints; legacy playlist fallback s
   await settle();
   assert.equal(window.__CLAUDEONE_PLAYER_LOADING, false);
 });
+
+test("phones skip assistant and companion downloads while keeping the shared player", async () => {
+  const window = new EventTarget(), scripts = [], frames = [];
+  window.ClaudeOneDevice = { isCompact: () => true };
+  const document = {
+    createElement: () => ({ remove() {} }),
+    body: { appendChild: script => scripts.push(script) }, head: { appendChild() {} }
+  };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../js/startup.js"), "utf8"), {
+    window, document, console, requestAnimationFrame: fn => frames.push(fn)
+  });
+  window.dispatchEvent(new Event("claudeone:router-ready"));
+  frames.shift()(); frames.shift()(); await settle();
+  assert.equal(scripts.some(s => /assistant|deepseek-client|easter-egg/.test(s.src)), false);
+  scripts.find(s => s.src === "/api/music-library/playlist.js").onload();
+  await settle();
+  assert.ok(scripts.some(s => /player.js/.test(s.src)));
+});
